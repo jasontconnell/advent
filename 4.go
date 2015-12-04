@@ -18,8 +18,7 @@ func main() {
 
 		hex := getMD5Hex(test)
 
-		found = strings.HasPrefix(hex, "000000")
-		if found {
+		if found = strings.HasPrefix(hex, "000000"); found {
 			lastTest = test
 		}
 	}
