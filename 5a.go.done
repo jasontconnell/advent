@@ -39,7 +39,6 @@ func pairCheck(s string) bool {
 			if s[i-1] == s[i] && i < len(s)-1 {
 				if s[i] == s[i+1]{
 					overlaps = true
-					fmt.Println("overlaps?", s, c)
 				}
 			}
 
