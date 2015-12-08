@@ -9,15 +9,15 @@ import (
 	"strings"
 )
 
-var input = "8.txt"
+var input = "8.test.txt"
 
 func main(){
 	if f,err := os.Open(input); err == nil {
 		scanner := bufio.NewScanner(f)
 
-		hex,_ := regexp.Compile(`\\x[abcdef0-9]{2}`)
+		hex,_ := regexp.Compile(`[^\\]\\x[abcdef0-9]{2}`)
 		q,_ := regexp.Compile(`\\"`)
-		bs,_ := regexp.Compile(`\\\\`)
+		bs,_ := regexp.Compile(`\\\\[^x]`)
 
 		total := 0
 		replaced := 0
@@ -29,7 +29,7 @@ func main(){
 				fmt.Println(txt)
 			}
 			total += len(txt)
-			txt = strings.Trim(txt, `"`)
+			txt = txt[1:len(txt)-1]
 			txt = bs.ReplaceAllString(txt, `\`)
 			txt = q.ReplaceAllString(txt, `"`)
 			txt = hex.ReplaceAllString(txt, ".")
