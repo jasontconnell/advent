@@ -1,0 +1,22 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	//"regexp"
+	//"strconv"
+	//"strings"
+)
+var input = ".txt"
+
+func main() {
+	if f, err := os.Open(input); err == nil {
+		scanner := bufio.NewScanner(f)
+
+		for scanner.Scan() {
+			var txt = scanner.Text()
+			fmt.Println(txt)
+		}
+	}
+}
