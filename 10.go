@@ -28,19 +28,14 @@ func lookAndSayDelegation(str string) (output string) {
 	workers := 1
 	l := len(str)
 	if l > 1500000 {
-		workers = 6
+		workers = runtime.NumCPU()
 	} else if l > 300000 {
 		workers = 4
 	} else if l > 1000 {
 		workers = 2
 	}
 
-	maxCPUs := 1
-	if workers > 1 {
-		maxCPUs = workers
-	}
-	runtime.GOMAXPROCS(maxCPUs)
-
+	runtime.GOMAXPROCS(workers)
 	fmt.Println("using", workers, "workers")
 
 	result := make([]string, workers)
