@@ -8,7 +8,9 @@ import (
 	"runtime"
 	"math"
 )
-var input = "3113322113"
+//var input = "3113322113"
+
+var input = []int{ 3,1,1,3,3,2,2,1,1,3 }
 
 func main(){
 	startTime := time.Now()
@@ -24,9 +26,9 @@ func main(){
 	fmt.Println("time", duration)
 }
 
-func lookAndSayDelegation(str string) (output string) {
+func lookAndSayDelegation(array []int) (output []int) {
 	workers := 1
-	l := len(str)
+	l := len(array)
 	if l > 1500000 {
 		workers = runtime.NumCPU()
 	} else if l > 300000 {
@@ -69,7 +71,7 @@ func lookAndSayDelegation(str string) (output string) {
 	wg.Wait()
 
 	for _,r := range result {
-		output += r
+		output = append(output, r)
 	}
 	return
 }
