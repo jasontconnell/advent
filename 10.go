@@ -40,7 +40,7 @@ func lookAndSayDelegation(array []int) (output []int) {
 	runtime.GOMAXPROCS(workers)
 	fmt.Println("using", workers, "workers")
 
-	result := make([]string, workers)
+	result := make([]int, workers)
 	start := 0
 	length := len(str) / workers
 	lastStrLen := length
@@ -71,7 +71,7 @@ func lookAndSayDelegation(array []int) (output []int) {
 	wg.Wait()
 
 	for _,r := range result {
-		output = append(output, r)
+		output = append(output, r...)
 	}
 	return
 }
