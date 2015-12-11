@@ -13,14 +13,14 @@ var input = []int{ 3,1,1,3,3,2,2,1,1,3 }
 
 func main(){
 	startTime := time.Now()
-	str := input
-	fmt.Println("start", str)
+	ints := input
+	fmt.Println("start", ints)
 	for i := 0; i < 50; i++ {
-		str = lookAndSayDelegation(str)
-		fmt.Println("on iteration", i, time.Since(startTime), "string length =", len(str))
+		ints = lookAndSayDelegation(ints)
+		fmt.Println("on iteration", i, time.Since(startTime), "string length =", len(ints))
 	}
 
-	fmt.Println(len(str))
+	fmt.Println(len(ints))
 	duration := time.Since(startTime)
 	fmt.Println("time", duration)
 }
