@@ -3,26 +3,31 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 var input = "vzbxkghb"
 var start, end byte = byte(97), byte(122)
 var illegals = []rune{ 'i', 'o', 'l' }
+var illegalBytes =[]byte{ byte('i'), byte('o'), byte('l') }
 
 func main() {
+	startTime := time.Now()
 	valid := false
 	pwd := input
 	iterations := 0
 	passwords := 0
-	for passwords < 4 {
+	for passwords < 10000 {
 		pwd = increment(pwd)
-		valid = hasStraight(pwd) && noIllegals(pwd) && twoPairs(pwd)
+		valid = hasStraight(pwd) && twoPairs(pwd)
 		iterations++
 		if valid {
 			fmt.Println(passwords, pwd, "after", iterations, "iterations")
 			passwords++
 		}
 	}
+
+	fmt.Println(time.Since(startTime))
 }
 
 func hasStraight(pwd string) bool {
@@ -61,8 +66,13 @@ func increment(pw string) string {
 
 func inc(pw string, ch int) string {
 	cp := pw
-	b := cp[ch]
-	b = b+1
+	b := cp[ch]+1
+
+	for _,illegal := range illegalBytes {
+		if b == illegal {
+			b = b+1
+		}
+	}
 
 	if loop := b > end; loop {
 		b = start
