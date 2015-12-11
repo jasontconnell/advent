@@ -1,18 +1,13 @@
 package main
 
 import (
-	//"bufio"
 	"fmt"
-	//"os"
-	//"regexp"
-	//"strconv"
 	"strings"
 )
 
 var input = "vzbxkghb"
 var start, end byte = byte(97), byte(122)
 var illegals = []rune{ 'i', 'o', 'l' }
-
 
 func main() {
 	valid := false
@@ -28,7 +23,6 @@ func main() {
 			passwords++
 		}
 	}
-
 }
 
 func hasStraight(pwd string) bool {
@@ -52,19 +46,16 @@ func noIllegals(pwd string) bool {
 
 func twoPairs(pwd string) bool {
 	pairs := 0
-
 	for i := 0; i < len(pwd)-1; i++{
 		if pwd[i] == pwd[i+1] {
 			pairs++
 			i++
 		}
 	}
-
 	return pairs == 2
 }
 
 func increment(pw string) string {
-
 	return inc(pw, len(pw)-1)
 }
 
