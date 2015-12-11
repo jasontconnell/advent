@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"time"
 	//"regexp"
 	//"strconv"
 	//"strings"
@@ -11,6 +12,7 @@ import (
 var input = ".txt"
 
 func main() {
+	startTime := time.Now()
 	if f, err := os.Open(input); err == nil {
 		scanner := bufio.NewScanner(f)
 
@@ -19,4 +21,7 @@ func main() {
 			fmt.Println(txt)
 		}
 	}
+
+	fmt.Println("Time", time.Since(startTime))
+
 }
