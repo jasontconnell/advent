@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 	"sync"
 	"runtime"
@@ -26,41 +25,44 @@ func main(){
 	fmt.Println("time", duration)
 }
 
-func lookAndSayDelegation(array []int) (output []int) {
+func lookAndSayDelegation(ints []int) (output []int) {
 	workers := 1
-	l := len(array)
-	if l > 1500000 {
-		workers = runtime.NumCPU()
-	} else if l > 300000 {
-		workers = 4
-	} else if l > 1000 {
-		workers = 2
-	}
+	//l := len(ints)
+	// if l > 1500000 {
+	// 	workers = runtime.NumCPU()
+	// } else if l > 300000 {
+	// 	workers = 4
+	// } else if l > 1000 {
+	// 	workers = 2
+	// }
 
 	runtime.GOMAXPROCS(workers)
 	fmt.Println("using", workers, "workers")
 
-	result := make([]int, workers)
+	result := make([][]int, workers)
 	start := 0
-	length := len(str) / workers
-	lastStrLen := length
+	length := len(ints) / workers
+	lastLen := length
 
 	wg := sync.WaitGroup{}
 	wg.Add(workers)
 
-	for i := 0; i < workers; i++ {
-		end := int(math.Min(float64(len(str)), float64(start+lastStrLen)))
-		
-		part := str[start:end]
+	cp := make([]int, len(ints))
+	copy(cp, ints)
 
-		if end < len(str) && str[end-1] == str[end] {
-			part = part + string(str[end])
-			if end < len(str) - 1 && str[end] == str[end+1] {
-				part = part + string(str[end+1])
+	for i := 0; i < workers; i++ {
+		end := int(math.Min(float64(len(cp)), float64(start+lastLen)))
+		
+		part := cp[start:end]
+
+		if end < len(ints) && cp[end-1] == cp[end] {
+			part = append(part, cp[end])
+			if end < len(cp) - 1 && cp[end] == cp[end+1] {
+				part = append(part, cp[end+1])
 			}
 		}
-		lastStrLen = len(part)
-		start = start+lastStrLen
+		lastLen = len(part)
+		start = start+lastLen
 
 		go func(index int){
 			output := lookAndSay(part)
@@ -76,17 +78,17 @@ func lookAndSayDelegation(array []int) (output []int) {
 	return
 }
 
-func lookAndSay(str string) (output string) {
-	count,digit := 0, rune(str[0])
-	for _,c := range str {
+func lookAndSay(ints []int) (output []int) {
+	count,digit := 0, ints[0]
+	for _,c := range ints {
 		if digit == c {
 			count++
 		} else {
-			output += strconv.Itoa(count) + string(digit)
+			output = append(output, count, digit)
 			count = 1
 		}
 		digit = c
 	}
-	output += strconv.Itoa(count) + string(digit)
+	output = append(output, count, digit)
 	return
 }
