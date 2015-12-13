@@ -71,12 +71,6 @@ func main() {
 
 		if includeMe {
 			people = append(people, jason)
-			for _,p := range people {
-				key := jason + "-" + p
-				key2 := p + "-" + jason
-				list[key] = 0
-				list[key2] = 0
-			}
 		}
 
 		fmt.Println("getting permutations at", time.Since(startTime))
