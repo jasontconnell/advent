@@ -79,8 +79,7 @@ func main() {
 		arrangements := ArrangementList{}
 
 		for _,p := range perms {
-			arr := Arrangement{}
-			arr.People = p
+			arr := Arrangement{ People: p }
 			for i := 0; i < len(arr.People); i++ {
 				// last person sits next to first person
 				left := i
