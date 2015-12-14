@@ -18,7 +18,6 @@ type Deer struct {
 	Duration int
 	Rest int
 	Distance int
-	Resting bool
 	BurstStart int
 	BurstStop int
 	NextBurst int
