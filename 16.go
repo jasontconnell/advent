@@ -127,13 +127,7 @@ func main() {
 		sort.Sort(sort.Reverse(sorter))
 		fmt.Println("First:", sorter.Entries[0])
 		fmt.Println("Last:", sorter.Entries[len(sorter.Entries)-1])
-
 	}
 
 	fmt.Println("Time", time.Since(startTime))
 }
-/* 			
-if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				fmt.Println(groups[1:])
-			}
-			*/
