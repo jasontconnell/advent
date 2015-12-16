@@ -105,15 +105,14 @@ func main() {
 					pct := 0.0
 					if rng {
 						if less && diff < 0 {
-							pct = 100
+							pct = 1
 						} else if greater && diff > 0 {
-							pct = 100
+							pct = 1
 						}
 					} else if diff != 0 {
 						pct = 1.0/float64(diff)
-						
 					} else {
-						pct = 100
+						pct = 1
 					}
 
 					total += pct
