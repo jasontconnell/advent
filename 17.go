@@ -9,7 +9,7 @@ import (
 	"strconv"
 	//"strings"
 	//"sort"
-	"math/rand"
+	//"math/rand"
 )
 var input = "17.txt"
 
@@ -31,12 +31,12 @@ func main() {
 		}
 
 		
-		//fmt.Println(perms)
+		fmt.Println(ary)
 		buckets := 0
 
-		combos := Combinate(ary, 3) // n choose r for 20,10 should be 184756
-		fmt.Println(len(combos))
+		combos := Combinate(ary, 4) // n choose r for 20,10 should be 184756
 		fmt.Println(combos)
+		fmt.Println(len(combos))
 
 		fmt.Println(buckets)
 	}
@@ -45,22 +45,51 @@ func main() {
 }
 
 func Combinate(ints []int, size int) (combos [][]int) {
-	max := len(ints)
+	loops := int(factorial(len(ints)) / (factorial(len(ints)-size) * factorial(size)))
+	
+	indices := []int{}
 	for i := 0; i < size; i++ {
-		// choose 1 random then combinate size-1
+		indices = append(indices, i)
+	}
 
-		x := rand.Intn(max)
+	curindex := size-1
+	curindexmax := len(ints)-1
 
-		sub := append(ints[:x], ints[x+1:]...)
-		others := Combinate(sub, size-1)
-		for _,other := range others {
-			fmt.Println(other)
-			combos = append(combos, append([]int { ints[x] }, other...))
+	for i := 0; i < loops; i++ {
+		combo := []int{}
+		for _,index := range indices {
+			combo = append(combo, ints[index])
+		}
+
+		fmt.Println(combo)
+		curindex--
+
+		if curindex < 0 { curindex = size-1 }
+		
+
+		fmt.Println(curindex)
+
+		for indices[curindex] == len(ints) - 1 && curindexmax >= 0 {
+			curindexmax--
+		}
+
+		if curindex > 0 {
+			indices[curindex]++
 		}
 	}
+
+	fmt.Println(ints)
+
 	return
 }
 
+func factorial(n int) int64 {
+	if n == 1 || n == 2 {
+		return int64(n)
+	} else {
+		return int64(n) * factorial(n-1)
+	}
+}
 
 
 func Permutate(ints []int) [][]int {
