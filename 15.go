@@ -61,31 +61,16 @@ func main() {
 			}
 		}
 
-		allcookies := []Cookie{}
 		max := 0
 		calmax := 0
 
 		perms := Perms(100, 4)
 
-		fmt.Println(len(perms))
-		return
-
-		ints := make([]int, len(names))
-		for i := 0; i < len(names); i++ {
-			ints[i] = 0
-		}
-		iterations := 0
-
-		for {
-			ints = NextAmount(ints, 100)
-			if ints == nil {
-				break
-			}
-
+		for _,p := range perms {
 			cookie := Cookie{ Score: 0 }
-			for i,n := range names{
+			for i,n := range names {
 				ing := ingmap[n]
-				amt := ints[i]
+				amt := p[i]
 				ingamt := IngredientAmount{ Amount: amt, Ingredient: ing }
 				cookie.Ingredients = append(cookie.Ingredients, ingamt)
 			}
@@ -130,79 +115,39 @@ func main() {
 
 			if cookie.Score > max {
 				max = cookie.Score
-				fmt.Println("new max score is ", max)
-				fmt.Println(cookie)
 			}
 
 			if cal == 500 && cookie.Score > calmax {
 				calmax = cookie.Score
-				fmt.Println("-----new calorie max is ", calmax)
-				fmt.Println(cookie)
-			}
-
-			iterations++
-
-			if iterations % 1000000 == 0 {
-				fmt.Println(iterations)
 			}
 		}
 
-		fmt.Println("all cookie combos", len(allcookies))
+		fmt.Println("all cookie combos", len(perms))
 		fmt.Println("max score", max)
+		fmt.Println("max calorie score", calmax)
 	}
 
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func SumCheck(ints []int, total int) bool {
-	sum := 0
-	for _,i := range ints {
-		sum += i
-	}
-	return sum == total
-}
-
-func NextAmount(ints []int, total int) []int {
-	next, cont := Inc(&ints, len(ints)-1, total)
-	for cont && !SumCheck(next, total){
-		next,cont = Inc(&ints, len(ints)-1, total)
-	}
-	return next
-}
-
 func Perms(total, num int) [][]int {
 	ret := [][]int{}
-	cp := []int{}
 
-	if num == 1 {
-		cp = append(cp, total)
-		ret = append(ret, cp)
-		fmt.Println("ret", ret)
-		return ret
-	}
-
-	for i := 0; i < total; i++ {
-		if len(cp) < num {
-			cp = append(cp, i)
-			ret = append(ret, cp)
-			perms := Perms(total - i, num-1)
-			for _,p := range perms {
-				p = append([]int{ total }, p...)
-				ret = append(ret, p)
+	if num == 2 {
+		for i := 0; i < total/2 + 1; i++ {
+			ret = append(ret, []int{ total-i, i })
+			if i != total - i {
+				ret = append(ret, []int{ i, total-i })
+			}
+		}
+	} else {
+		for i := 0; i <= total; i++ {
+			perms := Perms(total-i, num-1)
+			for _, p := range perms {
+				q := append([]int{ i }, p...)
+				ret = append(ret, q)
 			}
 		}
 	}
 	return ret
-}
-
-func Inc(ints *[]int, pos, wrap int) ([]int, bool) { // array, more
-	if pos < 0 {
-		return nil, false
-	}
-	(*ints)[pos]++
-	if (*ints)[pos] == wrap {
-		(*ints)[pos] = 0
-		Inc(ints, pos-1, wrap)
-	}
-	return *ints, true
 }
