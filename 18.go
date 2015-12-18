@@ -52,15 +52,8 @@ func main() {
 			copy(animatedLights[i], lights[i])
 		}
 
-		PrintGrid(animatedLights)
 		for i := 0; i < animations; i++ {
-			oncount := Count(animatedLights, true)
-			fmt.Println("on before step", i, oncount)
-
 			animatedLights = Animate(animatedLights)
-
-			oncount = Count(animatedLights, true)
-			fmt.Println("on after step", i, oncount)
 		}
 
 		defaultCount := Count(lights, true)
@@ -112,10 +105,6 @@ func PrintGrid(lights [][]Light){
 
 func NeighborCount(lights [][]Light, y, x int) int {
 	count := 0
-	if y == 1 && x == 3 {
-		fmt.Println(lights[y][x+1])
-		fmt.Println(lights[y-1][x+1])
-	}
 	if x > 0 && lights[y][x-1].On { count++ }
 	if x < len(lights[y])-1 && lights[y][x+1].On { count++ }
 	if x > 0 && y > 0 && lights[y-1][x-1].On { count++ }
