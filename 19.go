@@ -8,8 +8,9 @@ import (
 	"regexp"
 	"io/ioutil"
 	"crypto/md5"
+	"sort"
 	//"strconv"
-	//"strings"
+	"strings"
 )
 var input = "19.txt"
 var input2 = "19.2.txt"
@@ -18,14 +19,28 @@ type Replacement struct {
 	In, Out string
 }
 
+type ReplacementList []Replacement
+
+type ReplacementListSorter struct {
+	Entries ReplacementList
+}
+func (p ReplacementListSorter) Len() int {
+	return len(p.Entries)
+}
+func (p ReplacementListSorter) Less(i, j int) bool {
+	return len(p.Entries[i].Out) < len(p.Entries[j].Out)
+}
+func (p ReplacementListSorter) Swap(i, j int) {
+	p.Entries[i], p.Entries[j] = p.Entries[j], p.Entries[i]
+}
+
+
 func main() {
 	startTime := time.Now()
-	list := []Replacement{}
+	list := ReplacementList{}
 	if f, err := os.Open(input); err == nil {
 		scanner := bufio.NewScanner(f)
-
 		reg := regexp.MustCompile(`^(\w+) => (\w+)$`)
-
 
 		for scanner.Scan() {
 			var txt = scanner.Text()
@@ -36,17 +51,22 @@ func main() {
 		}
 	}
 
+	sorter := ReplacementListSorter{ Entries: list }
+	sort.Sort(sort.Reverse(sorter))
+
+
 	inputMolecule := ""
 	if tmp,err := ioutil.ReadFile(input2); err == nil {
 		inputMolecule = string(tmp)
 	}
 
-	
+	//inputMolecule = "ORnFArSiThRnPMgAr"
+
 	// do replace across all molecules, add md5 hash of output to map if not exists
 	results := make(map[string]int)
 	
 	//inputMolecule = "HOH"
-	for _, rep := range list {
+	for _, rep := range sorter.Entries {
 		replacements := AllReplacements(rep.In, rep.Out, inputMolecule)
 		
 		for _, r := range replacements {
@@ -57,34 +77,21 @@ func main() {
 				results[md5]++
 			}	
 		}
-		
 	}
 
-	outputMap := make(map[string]Replacement)
-	for _, v := range list {
-		if _,exists := outputMap[v.Out]; !exists {
-			outputMap[v.Out] = v
-		}
-	}
+	// c, s := Build2(list, []string {"HF"}, inputMolecule, 0)
+	// fmt.Println(c,s)
+	// return
 
-	tokensMap := make(map[string]string)
-	for _, v := range list {
-		if _,exists := outputMap[v.In]; !exists {
-			tokensMap[v.In] = v.In
-		}
-	}
 	minreplacements := 1000000
-	for _,electron := range list {
-		// just those that are e are electrons
-		if electron.In == "e" {
-			startString := electron.Out
-			desired := inputMolecule
-			pos := getMatched(startString, desired)
-			fmt.Println(startString)
-			completed, total := Build(list, outputMap, tokensMap, startString, desired, pos, 0)
-
-			if completed && total < minreplacements { total = minreplacements+1 }
-		}
+	// just those that are e are electrons
+	for _,electron := range getReplacementsForMolecule("e", list) {
+		startString := ""+ electron.Out
+		fmt.Println(startString)
+		//completed, total := Build(sorter.Entries, startString, inputMolecule, 0, 0)
+		completed, total := Build2(sorter.Entries, []string { startString }, inputMolecule, 0)
+		total = total + 1
+		fmt.Println("\n####### on path", startString, "took", total, "steps and completed =", completed, " #######\n")
 	}
 
 	fmt.Println("Steps to build desired molecule", minreplacements)
@@ -93,43 +100,92 @@ func main() {
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func Build(list []Replacement, repmap map[string]Replacement, tokens map[string]string, current, desired string, pos, curstep int) (completed bool, steps int) {
-	fmt.Println("------------------- called build")
-	var cp string = current
+func Build2(list []Replacement, current []string, desired string, step int) (completed bool, steps int) {
+	var newstrings []string
+	for _,rep := range list {
+		for _,cur := range current {
+			replacements := AllReplacements(rep.In, rep.Out, cur)
 
-	for i := pos+1; i <= len(current); i++ {
-		// find a replacement and test
-		token := current[pos:i]
-		if _,ok := tokens[token]; ok {
-			for j := 0; j < len(list); j++ {				
-				if list[j].In == token {
-					fmt.Println("checking replacement", list[j].Out, "for", token, i, j)
-					cp2 := cp[:i-len(token)] + list[j].Out + cp[i:]
-					nextpos := getMatched(cp2, desired)
-					if nextpos > pos {
-						return Build(list, repmap, tokens, cp2, desired, nextpos, curstep + 1)
-					} else if nextpos == -1 {
-						return true, curstep+1
-					}
+			for _,str := range replacements {
+				//fmt.Println("testing", str)
+				if str == desired {
+					return true, step+1
+				} else if len(str) < len(desired) {					
+					newstrings = append(newstrings, str)
 				}
 			}
 		}
 	}
-	completed = getMatched(current, desired) == -1
-	steps = curstep
+
+	return Build2(list, newstrings, desired, step)
+}
+
+func Build(list []Replacement, current, desired string, curpos, curstep int) (completed bool, steps int) {
+	fmt.Println(current)
+	for _,rep := range list {
+		replacements := AllReplacements(rep.In, rep.Out, current)
+		if len(replacements) > 0 { fmt.Println(replacements) }
+
+		for _,str := range replacements {
+			matched := getMatched(str, desired)
+
+			if strings.Contains(current,"NRnFYFArF") {
+				fmt.Println("in", rep.In, "out", rep.Out, "current", current, "str", str, "matched", matched, desired[:len(rep.In)])
+			}
+
+			if len(str) > len(desired){
+				return false, -1
+			} else if matched > 0 {
+				fmt.Println("recursing with ", str[matched:], "des", desired[matched:])
+				c,s := Build(list, str[matched:], desired[matched:], matched, curstep+1)
+				fmt.Println(" - done recursing with ", str[matched:], "des", desired[matched:])
+				if c {
+					return c, s	
+				}
+			}
+
+			fmt.Println(matched, str, desired)
+
+			// if matched == -2 {
+			// 	return true, curstep
+			// } else if matched != -1 {
+			// 	fmt.Println("-------------calling build------------------")
+			// 	subbuildcomplete,substeps := Build(list, str[matched:], desired, matched, curstep+1)
+			// 	fmt.Println("-------------returned from call------------------")
+			// 	if subbuildcomplete {
+			// 		fmt.Println("found match", rep, str, desired)
+			// 		return true, substeps
+			// 	}
+			// }
+		}
+	}
+
 	return
 }
 
-func getMatched(current, desired string) int {
-	matched := -1 // -1 indicates entire string matches
+func getReplacementsForMolecule(molecule string, list []Replacement) []Replacement {
+	ret := []Replacement{}
+	for _, rep := range list {
+		if rep.In == molecule {
+			ret = append(ret, rep)
+		}
+	}
+	return ret
+}
 
-	for i := 0; i < len(current); i++ {
-		if current[:i] != desired[:i] {
-			matched = i-1
-			fmt.Println("getmatched", current, matched)
+func getMatched(current, desired string) int {
+	matched := -1 
+	//fmt.Println("start get matched", current, desired, matched)
+	for i := 0; i < len(current) && i < len(desired); i++ {
+		if current[i] == desired[i] {
+			//fmt.Println(current[i], "==", desired[i], i)
+			matched = i+1
+		} else {
 			break
 		}
 	}
+	//fmt.Println("get matched", current, desired, matched, len(current))
+	if matched == len(current) { matched = -2 }
 	return matched
 }
 
@@ -138,8 +194,6 @@ func AllReplacements(in, out, input string) []string{
 	repreg := regexp.MustCompile("(" + in + ")")
 
 	list := []string{}
-
-	// done := false
 	loc := repreg.FindAllStringIndex(cp, -1)
 
 	for _,indices := range loc {
@@ -158,10 +212,3 @@ func MD5(content []byte) string {
 func MD5s(content string) string {
 	return MD5([]byte(content))
 }
-
-// reg := regexp.MustCompile("-?[0-9]+")
-/* 			
-if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				fmt.Println(groups[1:])
-			}
-			*/
