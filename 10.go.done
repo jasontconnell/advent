@@ -26,7 +26,7 @@ func main(){
 }
 
 func lookAndSayDelegation(ints []int) (output []int) {
-	workers := 1
+	workers := 1	
 	//l := len(ints)
 	// if l > 1500000 {
 	// 	workers = runtime.NumCPU()
