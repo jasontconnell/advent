@@ -59,3 +59,9 @@ func main() {
 
 	fmt.Println("Time", time.Since(startTime))
 }
+
+func Attack(striker, strikee *Player){
+	if len(striker.Spells) > 0 {
+		
+	}
+}
