@@ -60,6 +60,14 @@ func main() {
 		inputMolecule = string(tmp)
 	}
 
+	outputmap := make(map[string]Replacement)
+	for _,rep := range list {
+		if _,exists := outputmap[rep.Out]; !exists {
+			outputmap[rep.Out] = rep
+			fmt.Println(rep.Out)
+		}
+	}
+
 	//inputMolecule = "ORnFArSiThRnPMgAr"
 
 	// do replace across all molecules, add md5 hash of output to map if not exists
@@ -86,38 +94,91 @@ func main() {
 	minreplacements := 1000000
 	// just those that are e are electrons
 	for _,electron := range getReplacementsForMolecule("e", list) {
-		startString := ""+ electron.Out
+		startString := electron.Out
 		fmt.Println(startString)
 		//completed, total := Build(sorter.Entries, startString, inputMolecule, 0, 0)
-		completed, total := Build2(sorter.Entries, []string { startString }, inputMolecule, 0)
+		//completed, total := Build2(sorter.Entries, []string { startString }, inputMolecule, 0, 0)
+		completed,total := Build3(outputmap, inputMolecule, 0)
 		total = total + 1
 		fmt.Println("\n####### on path", startString, "took", total, "steps and completed =", completed, " #######\n")
 	}
 
 	fmt.Println("Steps to build desired molecule", minreplacements)
-	fmt.Println("unique molecules", len(results))
+	fmt.Println("Unique molecules", len(results))
 
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func Build2(list []Replacement, current []string, desired string, step int) (completed bool, steps int) {
-	var newstrings []string
+func Build3(outmap map[string]Replacement, current string, step int) (completed bool, steps int) {
+	for i := len(current)-1; i >= 0; i-- {
+		if len(current) == 1 && current == "e" {
+			return true, step
+		} else {
+			token := current[i:]
+
+			//fmt.Println(outmap[token])
+
+
+			if rep,ok := outmap[token]; ok {
+				newcur := current[:i] + rep.In
+
+				fmt.Println("found token", token, rep)
+				return
+
+				fmt.Println(token, newcur)
+
+				// c,s := Build3(outmap, newcur, step+1)
+				// if c {
+				// 	return c, s
+				// }
+			}
+		}
+	}
+	return
+}
+
+func Build2(list []Replacement, current []string, desired string, step, matched int) (completed bool, steps int) {
+	var unique = make(map[string]string)
+
 	for _,rep := range list {
 		for _,cur := range current {
-			replacements := AllReplacements(rep.In, rep.Out, cur)
-
-			for _,str := range replacements {
-				//fmt.Println("testing", str)
-				if str == desired {
-					return true, step+1
-				} else if len(str) < len(desired) {					
-					newstrings = append(newstrings, str)
+			values := AllReplacements(rep.In, rep.Out, cur)
+			
+			for _,val := range values {
+				if _,ok := unique[val]; !ok {
+					unique[val] = val
 				}
 			}
 		}
 	}
 
-	return Build2(list, newstrings, desired, step)
+	maxmatch := matched
+	newstrings := []string{}
+	for k,_ := range unique {
+		newstrings = append(newstrings, k)
+		if m := getMatched(k, desired); m > maxmatch {
+			maxmatch = m
+		}
+	}
+
+	fmt.Println("new max match ", maxmatch)
+	recurse := []string{}
+
+	if maxmatch > matched {
+		for _,str := range newstrings {
+			if m := getMatched(str, desired); m >= maxmatch {
+				recurse = append(recurse, str)
+			}
+		}
+	}
+
+	if len(recurse) > 0 {
+		fmt.Println("testing", len(recurse), "strings", maxmatch)
+		fmt.Println(recurse)
+		return Build2(list, recurse, desired, step+1, maxmatch)
+	} else {
+		return false, -1
+	}
 }
 
 func Build(list []Replacement, current, desired string, curpos, curstep int) (completed bool, steps int) {
