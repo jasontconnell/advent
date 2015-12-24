@@ -50,16 +50,12 @@ func main() {
 }
 
 func Fill(list []int, bucket, max int) []int {
-	cp := make([]int, len(list))
-	copy(cp, list)
-
 	nums := []int{}
 
-	for i := len(cp)-1; i >= 0; i-- {
-		if bucket + cp[i] <= max {
-			bucket += cp[i]
-			nums = append(nums, cp[i])
-			cp = append(cp[:i], cp[i+1:]...)
+	for i := len(list)-1; i >= 0; i-- {
+		if bucket + list[i] <= max {
+			bucket += list[i]
+			nums = append(nums, list[i])
 		}
 	}
 
