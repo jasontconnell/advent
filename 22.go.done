@@ -12,6 +12,7 @@ type Player struct {
 	Name string
 	HP int
 	Damage int
+	Defense int
 	Mana int
 	Spells []Spell
 }
@@ -36,6 +37,12 @@ type Effect struct {
 	Value int
 }
 
+type BattleEffect struct {
+	Countdown int
+	Prop EffectProperty
+	Value int
+}
+
 func main() {
 	startTime := time.Now()
 	boss := Player{ Name: "Boss", HP: 58, Damage: 9 }
@@ -55,13 +62,55 @@ func main() {
 
 	player := Player{ Name: "Jason", HP: 50, Mana: 500, Spells: spells }
 
-	fmt.Println(boss, player)
+	var castLists [][]Spell
+	fmt.Println("cast lists", castLists)
+
+	fmt.Println(boss)
 
 	fmt.Println("Time", time.Since(startTime))
 }
 
+func RunSim(player, boss Player){
+	effects := []BattleEffect{}
+	//casts := []string{}
+	//alternate := false
+	for {
+		// process pre-turn effects
+		for _,eff := range effects {
+			switch eff.Prop {
+				case Damage: boss.HP -= eff.Value
+				break
+				case HP: player.HP += eff.Value
+				break
+				case Defense: player.Defense += eff.Value
+				break
+				case Mana: player.Mana += eff.Value
+				break
+			}
+		}
+		// attack
+		// determine if one is dead
+
+
+		if player.HP <= 0 || boss.HP <= 0 {
+			// dead
+			return
+		}
+
+
+		// count down effects counters
+		for i := len(effects)+1; i >= 0; i-- {
+			effects[i].Countdown--
+
+			if effects[i].Countdown <= 0 {
+				effects = append(effects[:i], effects[i+1:]...)  // get rid of current effect
+			}
+		}
+	}
+}
+
 func Attack(striker, strikee *Player){
 	if len(striker.Spells) > 0 {
-		
+
 	}
 }
