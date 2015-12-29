@@ -194,6 +194,9 @@ func RunSim(player, boss *Player, availableSpells []Spell, minmana int) (Story, 
 
 				effects = append(effects, effs...)
 				mana += spell.Cost
+			} else {
+				mana = minmana+1
+				break // if can't cast any spell you lose
 			}
 		}
 
