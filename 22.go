@@ -182,11 +182,11 @@ func RunSim(player, boss *Player, availableSpells []Spell, minmana int) (Story, 
 		}
 
 		// attack
-		if alternate && player.HP > 0 && boss.HP > 0 {
+		if alternate {
 			damage := Attack(boss.Damage, player.Defense)
 			player.HP -= damage
 			story.AddLine(fmt.Sprintf("Boss attacks for %v, player HP: %v", damage, player.HP))
-		} else if player.HP > 0 && boss.HP > 0 {
+		} else {
 			spell := GetRandSpell(*boss, *player, availableSpells, effects)
 			if spell.Cost > 0 {
 				effs := Cast(&story, player, spell)
