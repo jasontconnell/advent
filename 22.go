@@ -132,7 +132,7 @@ func main() {
 
 func RunSims(threadID int, spells []Spell, min int, hardMode bool, res chan Result)  {
 	minmana := min
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		player := Player{ Name: "Jason", HP: 50, Mana: 500, HardMode: hardMode }
 		boss := Player{ Name: "Boss", HP: 58, Damage: 9 }
 
