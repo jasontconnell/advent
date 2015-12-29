@@ -14,10 +14,11 @@ type Player struct {
 	Damage int
 	Defense int
 	Mana int
+	HardMode bool
 }
 
 func (p Player) String() string {
-	return fmt.Sprintf("%v HP: %v Defense: %v Mana: %v", p.Name, p.HP, p.Defense, p.Mana)
+	return fmt.Sprintf("%v HP: %v Defense: %v Mana: %v Hard Mode: %v", p.Name, p.HP, p.Defense, p.Mana, p.HardMode)
 }
 
 type Spell struct {
@@ -43,6 +44,7 @@ type Effect struct {
 	Prop EffectProperty
 	Value int
 	OneTime bool
+	Instant bool
 }
 
 func (eff Effect) String() string {
@@ -57,7 +59,7 @@ func (eff Effect) String() string {
 		prop = "Mana" 
 	}
 
-	return fmt.Sprintf("%v Countdown: %v Value: %v One Time: %v", prop, eff.Countdown, eff.Value, eff.OneTime)
+	return fmt.Sprintf("%v Countdown: %v Value: %v One Time: %v Instant: %v", prop, eff.Countdown, eff.Value, eff.OneTime, eff.Instant)
 }
 
 type Result struct {
@@ -89,8 +91,8 @@ func main() {
 	rand.Seed(startTime.Unix())
 
 	spells := []Spell{}
-	mm := Spell{ Name: "Magic Missile", Cost: 53, Effects: []Effect{ Effect{ Countdown: 1, Prop: Damage, Value: 4 } } }
-	drain := Spell{ Name: "Drain", Cost: 73, Effects: []Effect{ Effect{ Countdown: 1, Prop: HP, Value: 2 }, Effect{ Countdown: 1, Prop: Damage, Value: 2 } } }
+	mm := Spell{ Name: "Magic Missile", Cost: 53, Effects: []Effect{ Effect{ Instant: true, Prop: Damage, Value: 4 } } }
+	drain := Spell{ Name: "Drain", Cost: 73, Effects: []Effect{ Effect{ Instant: true, Prop: HP, Value: 2 }, Effect{ Instant: true, Prop: Damage, Value: 2 } } }
 	shield := Spell{ Name: "Shield", Cost: 113, Effects: []Effect{ Effect{ Countdown: 6, Prop: Defense, Value: 7, OneTime: true } } }
 	poison := Spell{ Name: "Poison", Cost: 173, Effects: []Effect{ Effect{ Countdown: 6, Prop: Damage, Value: 3 } } }
 	recharge := Spell{ Name: "Recharge", Cost: 229, Effects: []Effect{ Effect{ Countdown: 5, Prop: Mana, Value: 101 } } }
@@ -101,15 +103,15 @@ func main() {
 	spells = append(spells, poison)
 	spells = append(spells, recharge)
 
-
 	min := 1400
+	hardMode := true
 
 	wg := sync.WaitGroup{}
 	wg.Add(runtime.NumCPU())
 	results := make(chan Result)
 	for i := 0; i < runtime.NumCPU(); i++ {
 		go func(threadID int) {
-			RunSims(threadID, spells, min, results)
+			RunSims(threadID, spells, min, hardMode, results)
 			wg.Done()
 		}(i)
 	}
@@ -128,43 +130,36 @@ func main() {
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func RunSims(threadID int, spells []Spell, min int, res chan Result)  {
+func RunSims(threadID int, spells []Spell, min int, hardMode bool, res chan Result)  {
 	minmana := min
-	for i := 0; i < 5000000; i++ {
-		player := Player{ Name: "Jason", HP: 50, Mana: 500 }
+	for i := 0; i < 10000; i++ {
+		player := Player{ Name: "Jason", HP: 50, Mana: 500, HardMode: hardMode }
 		boss := Player{ Name: "Boss", HP: 58, Damage: 9 }
 
-		// player := Player{ Name: "Jason", HP: 10, Mana: 250 }
-		// boss := Player{ Name: "Boss", HP: 13, Damage: 8 }
+		story,mana,win := RunSim(&player, &boss, spells, minmana)
 
-		story,mana := RunSim(&player, &boss, spells, minmana)
-
-		if (player.HP > 0 && boss.HP <= 0) && mana < minmana {
+		if win && mana < minmana {
 			minmana = mana
 			result := Result{ Mana: mana, Story: story }
 			res <- result
-			// fmt.Println("==============")
-			// fmt.Println("min mana =", minmana)
-			// fmt.Println("winning combo", winningCasts)
-			// fmt.Println("winning player", player)
-			// fmt.Println("losing boss", boss)
-			// fmt.Println("==============")
-		}
-
-		if i % 1000000 == 0 {
-			fmt.Println("thread", threadID, "through", i, "tests")
 		}
 	}
 }
 
-func RunSim(player, boss *Player, availableSpells []Spell, minmana int) (Story, int) {
+func RunSim(player, boss *Player, availableSpells []Spell, minmana int) (Story, int, bool) {
 	effects := []Effect{}
 	story := Story{}
 	alternate := false
 	mana := 0
 	turn := 0
+	win := false
 	for mana < minmana {
 		story.AddLine(fmt.Sprintf("\nStarting turn %v\n----------", turn))
+
+		if player.HardMode {
+			player.HP--
+			story.AddLine(fmt.Sprintf("Player hard mode. Player HP: %v", player.HP))
+		}
 
 		// process pre-turn effects
 		ApplyEffects(&story, player, boss, effects)
@@ -176,6 +171,7 @@ func RunSim(player, boss *Player, availableSpells []Spell, minmana int) (Story, 
 			if player.HP <= 0 {
 				story.AddLine(fmt.Sprintf("Player has died"))
 			} else {
+				win = true
 				story.AddLine(fmt.Sprintf("Boss has died"))
 			}
 			break
@@ -195,7 +191,6 @@ func RunSim(player, boss *Player, availableSpells []Spell, minmana int) (Story, 
 				effects = append(effects, effs...)
 				mana += spell.Cost
 			} else {
-				mana = minmana+1
 				break // if can't cast any spell you lose
 			}
 		}
@@ -204,17 +199,20 @@ func RunSim(player, boss *Player, availableSpells []Spell, minmana int) (Story, 
 		turn++
 	}
 
-	return story, mana
+	return story, mana, win
 }
 
 func CountdownEffects(story *Story, player, boss *Player, effects []Effect) []Effect {
 	remaining := []Effect{}
 	for i := len(effects)-1; i >= 0; i-- {
-		effects[i].Countdown--
-		story.AddLine(fmt.Sprintf("Countdown updated: %v", effects[i]))
+		if !effects[i].Instant {
+			effects[i].Countdown--
+			story.AddLine(fmt.Sprintf("Countdown updated: %v", effects[i]))
+		}
 
 		if effects[i].Countdown == 0 {
-			RollbackEffect(story, player, boss, effects[i])
+			RollbackEffect(player, boss, effects[i])
+			story.AddLine(fmt.Sprintf("Effect %v has ended", effects[i]))
 		} else {
 			remaining = append(remaining, effects[i])
 		}
@@ -222,12 +220,11 @@ func CountdownEffects(story *Story, player, boss *Player, effects []Effect) []Ef
 	return remaining
 }
 
-func RollbackEffect(story *Story, player, boss *Player, eff Effect){
+func RollbackEffect(player, boss *Player, eff Effect){
 	if eff.OneTime {
 		switch eff.Prop {
 			case Defense: 
 				player.Defense -= eff.Value
-				story.AddLine(fmt.Sprintf("Effect Defense has ended. Player Defense: %v", player.Defense))
 			break
 		}
 	}
@@ -272,7 +269,7 @@ func GetRandSpell(boss, player Player, spells []Spell, effects []Effect) Spell {
 		if sp.Cost <= player.Mana {
 			for _,eff := range effects {
 				for _, spellEffect := range sp.Effects {
-					if eff.Prop == spellEffect.Prop {
+					if eff.Prop == spellEffect.Prop && eff.Instant == spellEffect.Instant {
 						canCast = false
 						break
 					}
@@ -287,35 +284,6 @@ func GetRandSpell(boss, player Player, spells []Spell, effects []Effect) Spell {
 		}
 	}
 
-	// index := 0
-	// for i := 0; i < len(available); i++ {
-	// 	for _, eff := range available[i].Effects {
-	// 		total := eff.Value * eff.Length
-	// 		switch eff.Prop {
-	// 			case Damage: 
-	// 				if total <= boss.HP {
-	// 					index = i
-	// 				}
-	// 				break
-	// 			case HP:
-	// 				if total > player.HP - (boss.Damage - player.Defense) {
-	// 					index = i
-	// 				}
-	// 				break
-	// 			case Mana:
-	// 				if player.Mana < 53 || boss.HP > 30 {
-	// 					index = i
-	// 				}
-	// 				break
-	// 			case Defense:
-	// 				if player.HP < boss.HP {
-	// 					index = i
-	// 				}
-	// 				break
-	// 		}
-	// 	}
-	// }
-
 	if len(available) > 0 {
 		index := rand.Intn(len(available))
 		return available[index]
@@ -327,18 +295,15 @@ func GetRandSpell(boss, player Player, spells []Spell, effects []Effect) Spell {
 func Attack(damage, defense int) (dmg int) {
 	dmg = damage - defense
 	if dmg < 1 { dmg = 1 }
-	//fmt.Println("boss attacks player for ", dmg, striker.HP, strikee.HP)
 	return dmg
 }
 
 func Cast(story *Story, caster *Player, spell Spell) []Effect {
-
-	story.AddLine(fmt.Sprintf("Player casting %v for %v mana", spell.Name, spell.Cost))
-
 	caster.Mana -= spell.Cost
+	story.AddLine(fmt.Sprintf("Player casting %v for %v mana, %v mana remaining", spell.Name, spell.Cost, caster.Mana))
 	effects := []Effect{}
 	for _,eff := range spell.Effects {
-		effects = append(effects, Effect{ Countdown: eff.Countdown, Prop: eff.Prop, Value: eff.Value, OneTime: eff.OneTime })
+		effects = append(effects, Effect{ Countdown: eff.Countdown, Prop: eff.Prop, Value: eff.Value, OneTime: eff.OneTime, Instant: eff.Instant })
 	}
 	return effects
 }
