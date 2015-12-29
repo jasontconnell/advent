@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 	"math/rand"
+	"runtime"
+	"sync"
 )
 
 type Player struct {
@@ -12,10 +14,10 @@ type Player struct {
 	Damage int
 	Defense int
 	Mana int
-	Spells []Spell
 }
 
 type Spell struct {
+	ID int
 	Name string
 	Cost int
 	Effects []Effect
@@ -36,10 +38,17 @@ type Effect struct {
 }
 
 type BattleEffect struct {
+	SpellID int
 	Countdown int
 	Prop EffectProperty
 	Value int
 }
+
+type Result struct {
+	Mana int
+	Spells []Spell
+}
+
 func (eff BattleEffect) String() string {
 	prop := ""
 	if eff.Prop == Damage { 
@@ -56,27 +65,82 @@ func (eff BattleEffect) String() string {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	startTime := time.Now()
 
+	rand.Seed(startTime.Unix())
+
 	spells := []Spell{}
-	mm := Spell{ Name: "Magic Missile", Cost: 53, Effects: []Effect{ Effect{ Length: 0, Prop: HP, Value: 4 } } }
-	drain := Spell{ Name: "Drain", Cost: 73, Effects: []Effect{ Effect{ Length: 0, Prop: HP, Value: 2 }, Effect{ Length: 0, Prop: Damage, Value: 2 } } }
-	shield := Spell{ Name: "Shield", Cost: 113, Effects: []Effect{ Effect{ Length: 6, Prop: Defense, Value: 7 } } }
-	poison := Spell{ Name: "Poison", Cost: 173, Effects: []Effect{ Effect{ Length: 6, Prop: Damage, Value: 3 } } }
-	recharge := Spell{ Name: "Recharge", Cost: 229, Effects: []Effect{ Effect{ Length: 5, Prop: Mana, Value: 101 } } }
+	mm := Spell{ ID:1, Name: "Magic Missile", Cost: 53, Effects: []Effect{ Effect{ Length: 0, Prop: HP, Value: 4 } } }
+	drain := Spell{ ID:2, Name: "Drain", Cost: 73, Effects: []Effect{ Effect{ Length: 0, Prop: HP, Value: 2 }, Effect{ Length: 0, Prop: Damage, Value: 2 } } }
+	shield := Spell{ ID:3, Name: "Shield", Cost: 113, Effects: []Effect{ Effect{ Length: 6, Prop: Defense, Value: 7 } } }
+	poison := Spell{ ID:4, Name: "Poison", Cost: 173, Effects: []Effect{ Effect{ Length: 6, Prop: Damage, Value: 3 } } }
+	recharge := Spell{ ID:5, Name: "Recharge", Cost: 229, Effects: []Effect{ Effect{ Length: 5, Prop: Mana, Value: 101 } } }
 
-	spells = append(spells, mm)
-	spells = append(spells, drain)
-	spells = append(spells, shield)
-	spells = append(spells, poison)
 	spells = append(spells, recharge)
+	spells = append(spells, poison)
+	spells = append(spells, shield)
+	spells = append(spells, drain)
+	spells = append(spells, mm)
 
+
+	wg := sync.WaitGroup{}
+	wg.Add(runtime.NumCPU())
+	results := make(chan Result)
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go func(threadID int) {
+			RunSims(threadID, spells, results)
+			wg.Done()
+		}(i)
+	}
+
+	go func(){
+		min := 10000
+
+		for r := range results {
+			if r.Mana < min {
+				min = r.Mana
+				fmt.Println(r.Mana, len(r.Spells))
+			}
+		}
+		close(results)
+
+	}()
+	wg.Wait()
+
+	// rand.Seed(startTime.Unix())
+	// for {
+	// 	//fmt.Println("running sim #", i)
+	// 	player := Player{ Name: "Jason", HP: 50, Mana: 500 }
+	// 	boss := Player{ Name: "Boss", HP: 58, Damage: 9 }
+
+	// 	casts := RunSim(&player, &boss, spells)
+	// 	mana := 0
+
+	// 	for _, c := range casts {
+	// 		mana += c.Cost
+	// 	}
+
+	// 	if (player.HP > 0 && boss.HP <= 0) && mana < minmana {
+	// 		minmana = mana
+	// 		winningCasts = casts
+	// 		fmt.Println("==============")
+	// 		fmt.Println("min mana =", minmana)
+	// 		fmt.Println("winning combo", winningCasts)
+	// 		fmt.Println("winning player", player)
+	// 		fmt.Println("losing boss", boss)
+	// 		fmt.Println("==============")
+	// 	}
+	// }
+
+	fmt.Println("Time", time.Since(startTime))
+}
+
+func RunSims(threadID int, spells []Spell, res chan Result)  {
 	minmana := 1000000
 	var winningCasts []Spell
-
-	for i := 0; i < 6000000; i++ {
-		//fmt.Println("running sim #", i)
-		player := Player{ Name: "Jason", HP: 50, Mana: 500, Spells: spells }
+	for i := 0; i < 20000000; i++ {
+		player := Player{ Name: "Jason", HP: 50, Mana: 500 }
 		boss := Player{ Name: "Boss", HP: 58, Damage: 9 }
 
 		casts := RunSim(&player, &boss, spells)
@@ -89,14 +153,20 @@ func main() {
 		if (player.HP > 0 && boss.HP <= 0) && mana < minmana {
 			minmana = mana
 			winningCasts = casts
-			fmt.Println("Got new winning combo", player, boss)
+			result := Result{ Mana: mana, Spells: winningCasts }
+			res <- result
+			// fmt.Println("==============")
+			// fmt.Println("min mana =", minmana)
+			// fmt.Println("winning combo", winningCasts)
+			// fmt.Println("winning player", player)
+			// fmt.Println("losing boss", boss)
+			// fmt.Println("==============")
+		}
+
+		if i % 1000000 == 0 {
+			fmt.Println("thread", threadID, "through", i, "tests")
 		}
 	}
-
-	fmt.Println("min mana =", minmana)
-	fmt.Println("winning combo", winningCasts)
-
-	fmt.Println("Time", time.Since(startTime))
 }
 
 func RunSim(player, boss *Player, availableSpells []Spell) []Spell {
@@ -106,22 +176,32 @@ func RunSim(player, boss *Player, availableSpells []Spell) []Spell {
 	for {
 		// process pre-turn effects
 		ApplyEffects(player, boss, effects)
+		// count down effects counters
+		for i := len(effects)-1; i >= 0; i-- {
+			effects[i].Countdown--
+
+			if effects[i].Countdown <= 0 {
+				effects = append(effects[:i], effects[i+1:]...)  // get rid of current effect
+			}
+		}
+
 		// attack
-		if alternate {
+		if alternate && player.HP >= 0 && boss.HP >= 0 {
 			Attack(boss, player)
-		} else {
-			spell := GetRandSpell(player.Mana, availableSpells)
-			if spell.Name == "" { break }
+		} else if player.HP >= 0 && boss.HP >= 0 {
+			spell := GetRandSpell(player.Mana, availableSpells, effects)
+			if spell.Name != "" { 
+				effs := Cast(player, spell)
+				casts = append(casts, spell)
 
-			effs := Cast(player, spell)
-			casts = append(casts, spell)
-
-			for i := len(effs)-1; i >= 0; i--  {
-				if effs[i].Countdown == 0 {
-					ApplyEffects(player, boss, []BattleEffect{effs[i]})
-					effs = append(effs[:i], effs[i+1:]...)
-				} else {
-					effects = append(effects, effs[i])
+				// process immediate
+				for i := len(effs)-1; i >= 0; i--  {
+					if effs[i].Countdown == 0 {
+						ApplyEffects(player, boss, []BattleEffect{effs[i]})
+						effs = append(effs[:i], effs[i+1:]...)
+					} else {
+						effects = append(effects, effs[i])
+					}
 				}
 			}
 		}
@@ -134,15 +214,6 @@ func RunSim(player, boss *Player, availableSpells []Spell) []Spell {
 		}
 
 		player.Defense = 0
-
-		// count down effects counters
-		for i := len(effects)-1; i >= 0; i-- {
-			effects[i].Countdown--
-
-			if effects[i].Countdown <= 0 {
-				effects = append(effects[:i], effects[i+1:]...)  // get rid of current effect
-			}
-		}
 		alternate = !alternate
 	}
 
@@ -164,13 +235,21 @@ func ApplyEffects(player, boss *Player, effects []BattleEffect){
 	}
 }
 
-func GetRandSpell(mana int, spells []Spell) Spell {
+func GetRandSpell(mana int, spells []Spell, effects []BattleEffect) Spell {
 	cancast := []Spell{}
 	for _,sp := range spells {
-		if sp.Cost <= mana {
+		castAlready := false
+		for _,eff := range effects {
+			if eff.SpellID == sp.ID {
+				castAlready = true
+				break
+			}
+		}
+		if !castAlready && sp.Cost <= mana {
 			cancast = append(cancast, sp)
 		}
 	}
+
 	if len(cancast) > 0 {
 		n := rand.Intn(len(cancast))
 		return cancast[n]
@@ -190,7 +269,7 @@ func Cast(caster *Player, spell Spell) []BattleEffect {
 	caster.Mana -= spell.Cost
 	effects := []BattleEffect{}
 	for _,eff := range spell.Effects {
-		effects = append(effects, BattleEffect{ Countdown: eff.Length, Prop: eff.Prop, Value: eff.Value })
+		effects = append(effects, BattleEffect{ SpellID: spell.ID, Countdown: eff.Length, Prop: eff.Prop, Value: eff.Value })
 	}
 	return effects
 }
