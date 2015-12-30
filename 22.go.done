@@ -106,10 +106,11 @@ func main() {
 	min := 1400
 	hardMode := true
 
+	workers := runtime.NumCPU()
 	wg := sync.WaitGroup{}
-	wg.Add(runtime.NumCPU())
+	wg.Add(workers)
 	results := make(chan Result)
-	for i := 0; i < runtime.NumCPU(); i++ {
+	for i := 0; i < workers; i++ {
 		go func(threadID int) {
 			RunSims(threadID, spells, min, hardMode, results)
 			wg.Done()
@@ -132,7 +133,7 @@ func main() {
 
 func RunSims(threadID int, spells []Spell, min int, hardMode bool, res chan Result)  {
 	minmana := min
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 2000; i++ {
 		player := Player{ Name: "Jason", HP: 50, Mana: 500, HardMode: hardMode }
 		boss := Player{ Name: "Boss", HP: 58, Damage: 9 }
 
