@@ -8,6 +8,7 @@ import (
 	//"regexp"
 	//"strconv"
 	//"strings"
+	//"math"
 )
 var input = ".txt"
 
