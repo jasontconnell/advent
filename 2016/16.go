@@ -60,5 +60,5 @@ func checksum(str string) (string, bool) {
         n++
     }
 
-    return string(sum[:n]), len(sum) % 2 == 0
+    return string(sum[:n]), n % 2 == 0
 }
