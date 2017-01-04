@@ -3,14 +3,8 @@ package main
 import (
     "fmt"
     "time"
-    //"regexp"
-    //"strconv"
-    //"strings"
-    //"math"
 )
 var input = 3014603
-//var input = 5
-
 
 type Elf struct {
     Number int
@@ -35,7 +29,6 @@ func main() {
         if i == input - 1 { 
             next.Next = first
             first.Prev = &next
-
         }
     }
 
@@ -62,16 +55,13 @@ func main() {
                 elf.Next.Prev = elf
             }
         }
-        count --
-
+        count--
         elf = elf.Next
         across = across.Next
         if count % 2 == 0 { across = across.Next }
-
         solved = elf.Next == elf
     }
 
     fmt.Println(elf)
-
     fmt.Println("Time", time.Since(startTime))
 }
