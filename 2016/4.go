@@ -58,7 +58,9 @@ func decrypt(input string, sector int) string {
 }
 
 func processLine(input, checksum string, sector int) (result int) {
-	if len(checksum) != 5 { return }
+	if len(checksum) != 5 {
+		return
+	}
 	cmap := make(map[string]RuneCount)
 	for _, c := range input {
 		cs := string(c)
@@ -66,7 +68,7 @@ func processLine(input, checksum string, sector int) (result int) {
 			entry.Count++
 			cmap[cs] = entry
 		} else {
-			cmap[cs] = RuneCount{ Rune: cs, Count: 1 }
+			cmap[cs] = RuneCount{Rune: cs, Count: 1}
 		}
 	}
 
@@ -93,13 +95,13 @@ func processLine(input, checksum string, sector int) (result int) {
 }
 
 type RuneCount struct {
-	Rune string
+	Rune  string
 	Count int
 }
 type RuneCountList []RuneCount
 
-func (p RuneCountList) Len() int           { return len(p) }
-func (p RuneCountList) Less(i, j int) bool { 
+func (p RuneCountList) Len() int { return len(p) }
+func (p RuneCountList) Less(i, j int) bool {
 	less := p[i].Count < p[j].Count
 	equal := p[i].Count == p[j].Count
 	if equal {
@@ -108,14 +110,13 @@ func (p RuneCountList) Less(i, j int) bool {
 
 	return less
 }
-func (p RuneCountList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p RuneCountList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 func SortRuneCounts(list RuneCountList) RuneCountList {
 	sort.Sort(sort.Reverse(list))
-	
+
 	return list
 }
-
 
 type RuneSlice []rune
 
