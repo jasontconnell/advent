@@ -14,13 +14,19 @@ var input = ".txt"
 
 func main() {
 	startTime := time.Now()
-	if f, err := os.Open(input); err == nil {
-		scanner := bufio.NewScanner(f)
 
-		for scanner.Scan() {
-			var txt = scanner.Text()
-			fmt.Println(txt)
-		}
+	f, err := os.Open(input)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	
+	scanner := bufio.NewScanner(f)
+
+	for scanner.Scan() {
+		var txt = scanner.Text()
+		fmt.Println(txt)
 	}
 
 	fmt.Println("Time", time.Since(startTime))
