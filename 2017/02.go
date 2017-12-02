@@ -62,31 +62,7 @@ func getDivisionResult(lines []string) int {
     return res
 }
 
-func getMinMax(line string) (min int, max int){
-    min = 100000
-    max = 0
-    if groups := reg.FindAllStringSubmatch(line, -1); groups != nil && len(groups) > 1 {
-        for _, g := range groups {
-            val, err := strconv.Atoi(g[0])
-            if err != nil {
-                fmt.Println("parsing", err)
-            }
-
-            if val < min {
-                min = val
-            }
-
-            if val > max {
-                max = val
-            }
-        }
-        
-    }
-
-    return min, max
-}
-
-func getDivision(line string) (div int){
+func getNums(line string) []int {
     nums := []int{}
     if groups := reg.FindAllStringSubmatch(line, -1); groups != nil && len(groups) > 1 {
         for _, g := range groups {
@@ -100,6 +76,18 @@ func getDivision(line string) (div int){
     }
 
     sort.Ints(nums)
+
+    return nums
+}
+
+func getMinMax(line string) (min int, max int){
+    nums := getNums(line)
+
+    return nums[0], nums[len(nums)-1]
+}
+
+func getDivision(line string) (div int){
+    nums := getNums(line)
 
     for i := 0; i < len(nums); i++ {
         for j := 0; j < len(nums); j++ {
