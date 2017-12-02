@@ -8,8 +8,6 @@ import (
     "regexp"
     "strconv"
     "sort"
-    //"strings"
-    //"math"
 )
 var input = "02.txt"
 
@@ -102,7 +100,6 @@ func getDivision(line string) (div int){
     }
 
     sort.Ints(nums)
-    fmt.Println(nums)
 
     for i := 0; i < len(nums); i++ {
         for j := 0; j < len(nums); j++ {
