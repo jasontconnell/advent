@@ -63,7 +63,7 @@ func getDivisionResult(lines []string) int {
 }
 
 func getMinMax(line string) (min int, max int){
-    min = 1000
+    min = 100000
     max = 0
     if groups := reg.FindAllStringSubmatch(line, -1); groups != nil && len(groups) > 1 {
         for _, g := range groups {
