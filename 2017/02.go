@@ -94,8 +94,8 @@ func getDivision(line string) (div int){
             if i == j {
                 continue
             }
-            if nums[i] % nums[j] == 0 {
-                return nums[i] / nums[j]
+            if nums[j] % nums[i] == 0 {
+                return nums[j] / nums[i]
             }
         }
     }
