@@ -90,7 +90,7 @@ func getDivision(line string) (div int){
     nums := getNums(line)
 
     for i := 0; i < len(nums); i++ {
-        for j := 0; j < len(nums); j++ {
+        for j := len(nums)-1; j >= 0; j-- {
             if i == j {
                 continue
             }
