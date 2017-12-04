@@ -76,8 +76,7 @@ func isValidPart2(line string) bool {
 			str += string(c)
 		}
 
-		tstr := strings.TrimSpace(str)
-		strs = append(strs, tstr)
+		strs = append(strs, str)
 	}
 
 	sort.Strings(strs)
@@ -90,20 +89,4 @@ func isValidPart2(line string) bool {
 		}
 	}
 	return valid
-}
-
-func equal(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	eq := true
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			eq = false
-			break
-		}
-	}
-
-	return eq
 }
