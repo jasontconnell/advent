@@ -15,7 +15,8 @@ func main() {
 
 	c1, c2 := solve(input)
 
-	fmt.Println("solve", c1, c2)
+	fmt.Println("found a repeat at  ", c1)
+	fmt.Println("found it again at  ", c2)
 
 	fmt.Println("Time", time.Since(startTime))
 }
