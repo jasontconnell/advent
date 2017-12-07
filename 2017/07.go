@@ -19,23 +19,8 @@ type Program struct {
 	Weight   int
 	Children []*Program
 	Above    []string
-	Tower    int
 	All      int
-
-	Level int
-}
-
-func (p *Program) String() string {
-	space := " "
-	children := ""
-	for _, c := range p.Children {
-		children += c.Name + " "
-	}
-	s := strings.Repeat(space, p.Level) + fmt.Sprintf("%v (%v) (T %v) (A %v) -> %v   [%v]\n", p.Name, p.Weight, p.Tower, p.All, children, p.Level)
-	for _, c := range p.Children {
-		s += strings.Repeat(space, c.Level) + fmt.Sprintf("%v", c)
-	}
-	return s
+	Level    int
 }
 
 func main() {
@@ -75,7 +60,6 @@ func main() {
 }
 
 func setWeights(p *Program) {
-	p.Tower = sumTower(p)
 	p.All = sumAll(p)
 
 	for _, c := range p.Children {
@@ -116,14 +100,6 @@ func findUnbalance(p *Program) (d, val int) {
 	}
 
 	return 0, p.Weight
-}
-
-func sumTower(p *Program) int {
-	w := p.Weight
-	for _, c := range p.Children {
-		w += c.Weight
-	}
-	return w
 }
 
 func sumAll(p *Program) int {
