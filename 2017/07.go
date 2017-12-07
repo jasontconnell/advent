@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	//"math"
 )
 
 var input = "07.txt"
