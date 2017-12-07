@@ -20,7 +20,6 @@ type Program struct {
 	Children []*Program
 	Above    []string
 	All      int
-	Level    int
 }
 
 func main() {
@@ -49,7 +48,6 @@ func main() {
 	bottom := getBottom(programs)
 
 	buildTree(programs)
-	setLevels(bottom)
 	setWeights(bottom)
 	diff, value := findUnbalance(bottom)
 
@@ -127,13 +125,6 @@ func buildTree(programs []*Program) {
 	}
 }
 
-func setLevels(p *Program) {
-	for _, c := range p.Children {
-		c.Level = p.Level + 1
-		setLevels(c)
-	}
-}
-
 func getBottom(programs []*Program) *Program {
 	nmap := make(map[string]string)
 	for _, p := range programs {
@@ -146,7 +137,6 @@ func getBottom(programs []*Program) *Program {
 	for _, p := range programs {
 		if _, ok := nmap[p.Name]; !ok {
 			bottom = p
-			bottom.Level = 0
 
 			break
 		}
