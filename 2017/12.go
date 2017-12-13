@@ -59,6 +59,7 @@ func getGroups(programs []*Program) int {
     startTime := time.Now()
 
     // find out which group each program belongs
+    // the trick to making it run fast is to remove visited programs from the list of programs to check
     groups := make(map[string]string)
     vmap := make(map[string]bool)
     cp := make([]*Program, len(programs))
@@ -76,6 +77,7 @@ func getGroups(programs []*Program) int {
                 }
             }
 
+            // remove visited from the list of programs to check
             for i := len(cp)-1; i >= 0; i-- {
                 sp := cp[i]
                 if _, ok := vmap[sp.ID]; ok {
@@ -84,9 +86,6 @@ func getGroups(programs []*Program) int {
             }
         }
     }
-
-    fmt.Println("Finished determining groups after", time.Since(startTime))
-
 
     // determine unique groups
     m := make(map[string]string)
