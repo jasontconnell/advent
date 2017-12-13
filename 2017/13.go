@@ -121,7 +121,7 @@ func tick(scanners []*Scanner) {
 
 func getScanner(line string) *Scanner {
 	s := strings.Split(line, ":")
-	var l *Scanner
+	var sc *Scanner
 	if len(s) == 2 {
 		d, err := strconv.Atoi(s[0])
 		if err != nil {
@@ -135,7 +135,7 @@ func getScanner(line string) *Scanner {
 			return nil
 		}
 
-		l = &Scanner{Depth: d, Range: r, Current: 0, Dir: 1, Nil: false}
+		sc = &Scanner{Depth: d, Range: r, Current: 0, Dir: 1, Nil: false}
 	}
-	return l
+	return sc
 }
