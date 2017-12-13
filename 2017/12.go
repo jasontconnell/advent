@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"time"
 	"strings"
+	"time"
 )
 
 var input = "12.txt"
