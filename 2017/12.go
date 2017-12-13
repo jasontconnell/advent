@@ -53,8 +53,6 @@ func main() {
 }
 
 func getGroups(programs []*Program) int {
-	startTime := time.Now()
-
 	// find out which group each program belongs
 	// the trick to making it run fast is to remove visited programs from the list of programs to check
 	groups := make(map[string]string)
