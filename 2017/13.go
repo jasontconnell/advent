@@ -64,29 +64,14 @@ func fill(scanners []*Scanner) []*Scanner {
 	return scanners
 }
 
-func reset(scanners []*Scanner) {
-	for i := 0; i < len(scanners); i++ {
-		scanners[i].Current = 0
-	}
-}
-
 func negotiateWithoutCapture(scanners []*Scanner) int {
 	delay := 0
 
 	for {
-		reset(scanners)
-
 		p := possible(scanners, delay)
 
 		if p {
-			for j := 0; j < delay; j++ {
-				tick(scanners)
-			}
-
-			sev, caught := negotiateWithSeverity(scanners)
-			if sev == 0 && !caught {
-				break
-			}
+			break
 		}
 
 		delay++
@@ -97,13 +82,11 @@ func negotiateWithoutCapture(scanners []*Scanner) int {
 func possible(scanners []*Scanner, delay int) bool {
 	p := true
 	for _, s := range scanners {
-
-		zero := (s.Range*2 - 2)
-		if s.Nil {
-			zero = 0
+		blocking := (s.Range*2 - 2)
+		p = p && (s.Nil || ((delay+s.Depth)%blocking != 0))
+		if !p {
+			break
 		}
-
-		p = p && (s.Nil || ((delay+s.Depth)%zero != 0))
 	}
 	return p
 }
@@ -120,14 +103,6 @@ func negotiateWithSeverity(scanners []*Scanner) (int, bool) {
 		tick(scanners)
 	}
 	return sev, caught
-}
-
-func list(scanners []*Scanner) string {
-	f := ""
-	for _, s := range scanners {
-		f += fmt.Sprintf("scanner (%v) with range (%v) at cycle %v\n", s.Depth, s.Range, s.Current)
-	}
-	return f
 }
 
 func tick(scanners []*Scanner) {
