@@ -20,9 +20,6 @@ type Judge struct {
 var genA Generator = Generator{Previous: 516, Factor: 16807}
 var genB Generator = Generator{Previous: 190, Factor: 48271}
 
-var genAtest Generator = Generator{Previous: 65, Factor: 16807}
-var genBtest Generator = Generator{Previous: 8921, Factor: 48271}
-
 var judge Judge = Judge{Div: 2147483647}
 
 func main() {
@@ -84,7 +81,6 @@ func parallelCompute(wg *sync.WaitGroup, gen *Generator, j Judge, vals *[]int, c
 		}
 	}
 
-	fmt.Println("done")
 	wg.Done()
 }
 
