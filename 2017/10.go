@@ -1,9 +1,9 @@
 package main
 
 import (
+	"advent/2017/knot"
 	"fmt"
 	"time"
-    "advent/2017/knot"
 )
 
 var lengths = []int{206, 63, 255, 131, 65, 80, 238, 157, 254, 24, 133, 2, 16, 0, 1, 3}
@@ -20,4 +20,3 @@ func main() {
 	fmt.Println("hash value                  :", h)
 	fmt.Println("Time", time.Since(startTime))
 }
-
