@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var input = "13.txt"
