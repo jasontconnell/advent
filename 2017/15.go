@@ -56,8 +56,15 @@ func computePart2(a, b Generator, j Judge, c int) int {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go parallelCompute(&wg, &a, j, &j.GenA, c, 4)
-	go parallelCompute(&wg, &b, j, &j.GenB, c, 8)
+	go func(){
+		parallelCompute(&a, j, &j.GenA, c, 4)
+		wg.Done()
+	}()
+
+	go func(){
+		parallelCompute(&b, j, &j.GenB, c, 8)
+		wg.Done()
+	}()
 
 	wg.Wait()
 
@@ -71,7 +78,7 @@ func computePart2(a, b Generator, j Judge, c int) int {
 	return matched
 }
 
-func parallelCompute(wg *sync.WaitGroup, gen *Generator, j Judge, vals *[]int, c int, m int) {
+func parallelCompute(gen *Generator, j Judge, vals *[]int, c int, m int) {
 	for len(*vals) < c {
 		processGen(gen, j)
 		p := gen.Previous & 65535
@@ -80,8 +87,6 @@ func parallelCompute(wg *sync.WaitGroup, gen *Generator, j Judge, vals *[]int, c
 			*vals = append(*vals, p)
 		}
 	}
-
-	wg.Done()
 }
 
 func processGen(gen *Generator, j Judge) {
