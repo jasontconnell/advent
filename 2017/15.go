@@ -56,12 +56,12 @@ func computePart2(a, b Generator, j Judge, c int) int {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go func(){
+	go func() {
 		parallelCompute(&a, j, &j.GenA, c, 4)
 		wg.Done()
 	}()
 
-	go func(){
+	go func() {
 		parallelCompute(&b, j, &j.GenB, c, 8)
 		wg.Done()
 	}()
