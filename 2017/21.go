@@ -52,7 +52,7 @@ func main() {
 	on := solve(start, rmap, 5)
 	fmt.Println("on  ", on)
 
-	on2 := solve(start, rmap, 6)
+	on2 := solve(start, rmap, 18)
 	fmt.Println("on2 ", on2)
 
 	fmt.Println("Time", time.Since(startTime))
