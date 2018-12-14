@@ -72,7 +72,26 @@ func main() {
 
 	fmt.Println(id, largest)
 
+	region := regionSize(points, coords, 10000)
+	fmt.Println("region size is", region)
+
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func regionSize(points []point, coords []coord, check int) int {
+	region := 0
+	for _, p := range points {
+		s := 0
+		for _, c := range coords {
+			s += distance(p.x, p.y, c.x, c.y)
+		}
+		
+		if s < check {
+			region++
+		}
+	}
+
+	return region
 }
 
 func minMax(coords []coord) (minX, maxX, minY, maxY int){
