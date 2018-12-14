@@ -1,8 +1,8 @@
 package main
 
 import (
-	"advent/2017/knot"
 	"fmt"
+	"github.com/jasontconnell/advent/2017/knot"
 	"time"
 )
 
