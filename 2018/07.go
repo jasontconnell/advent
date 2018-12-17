@@ -19,6 +19,17 @@ type step struct {
 	prereqs   []*step
 	pnames    []string
 	completed bool
+	inprocess bool
+}
+
+func (s *step) String() string {
+	return s.name
+}
+
+type worker struct {
+	step *step
+	busy bool
+	left int
 }
 
 func (s *step) Completed() bool {
@@ -62,6 +73,10 @@ func main() {
 	order := process(list)
 	fmt.Println("Process order: " + order)
 
+	resetList(list)
+	duration := processParallel(list, 5, 60)
+	fmt.Println("Process time for jobs:", duration)
+
 	fmt.Println("Time", time.Since(startTime))
 }
 
@@ -70,6 +85,14 @@ func sortList(list []*step) {
 		sortList(step.prereqs)
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].name < list[j].name })
+}
+
+func resetList(list []*step) {
+	for _, step := range list {
+		step.completed = false
+		step.inprocess = false
+		resetList(step.prereqs)
+	}
 }
 
 func process(steps []*step) string {
@@ -81,6 +104,85 @@ func process(steps []*step) string {
 		n = getNext(steps)
 	}
 	return p
+}
+
+func processParallel(steps []*step, numWorkers, duration int) int {
+	workers := []*worker{}
+	for i := 0; i < numWorkers; i++ {
+		w := &worker{busy: false}
+		workers = append(workers, w)
+	}
+	i := 0
+	complete := false
+	for !complete {
+		loop(steps, workers, duration)
+		c := unfinished(steps)
+		complete = c == 0
+		if !complete {
+			i++
+		}
+	}
+	return i
+}
+
+func unfinished(steps []*step) int {
+	i := len(steps)
+	for _, s := range steps {
+		if s.completed {
+			i--
+		}
+	}
+	return i
+}
+
+func loop(steps []*step, workers []*worker, duration int) {
+	for i := 0; i < len(workers); i++ {
+		w := workers[i]
+		if !w.busy {
+			workerReady(w, steps, duration)
+		} else {
+			w.left--
+			if w.left == 0 {
+				w.step.completed = true
+				w.step.inprocess = false
+				workerReady(w, steps, duration)
+			}
+		}
+	}
+}
+
+func workerReady(w *worker, steps []*step, duration int) {
+	s := nextToProcess(steps)
+	if s != nil {
+		ttl := duration + 1 + int(s.name[0]) - int('A')
+		w.step = s
+		w.step.inprocess = true
+		w.busy = true
+		w.left = ttl
+	}
+}
+
+func nextToProcess(steps []*step) *step {
+	if len(steps) == 0 {
+		return nil
+	}
+
+	ready := []*step{}
+	for _, s := range steps {
+		sub := nextToProcess(s.prereqs)
+		if sub != nil {
+			ready = append(ready, sub)
+		} else if !s.completed && !s.inprocess && unfinished(s.prereqs) == 0 {
+			ready = append(ready, s)
+		}
+	}
+
+	if len(ready) > 0 {
+		sortList(ready)
+		return ready[0]
+	}
+
+	return nil
 }
 
 func getNext(steps []*step) *step {
