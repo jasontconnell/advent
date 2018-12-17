@@ -4,11 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
-	//"regexp"
 	"strconv"
 	"strings"
-	//"math"
+	"time"
 )
 
 var input = "08.txt"
@@ -20,6 +18,7 @@ type node struct {
 	children []*node
 	parent   *node
 	meta     []int
+	idmap    map[int]*node
 }
 
 func main() {
@@ -45,6 +44,7 @@ func main() {
 	}
 
 	fmt.Println(sumMeta(n))
+	fmt.Println(nodeValue(n))
 
 	fmt.Println("Time", time.Since(startTime))
 }
@@ -60,6 +60,20 @@ func sumMeta(n *node) int {
 	}
 
 	return sum
+}
+
+func nodeValue(n *node) int {
+	var val int
+	if len(n.children) == 0 {
+		val = sumMeta(n)
+	} else {
+		for _, m := range n.meta {
+			if c, ok := n.idmap[m]; ok {
+				val += nodeValue(c)
+			}
+		}
+	}
+	return val
 }
 
 func parseTree(txt string) (*node, error) {
@@ -80,14 +94,16 @@ func parseNode(parent *node, ints []int, id int) *node {
 	cc := ints[0]
 	mc := ints[1]
 
-	n := &node{id: id, ccount: cc, mcount: mc, parent: parent}
+	n := &node{id: id, ccount: cc, mcount: mc, parent: parent, idmap: make(map[int]*node)}
 
 	idx := 0
 	for i := 0; i < cc; i++ {
+		id := i + 1
 		sub := ints[idx+2 : len(ints)-mc]
-		c := parseNode(n, sub, id+1+i)
+		c := parseNode(n, sub, id)
 		n.children = append(n.children, c)
 		idx += nodeLen(c)
+		n.idmap[id] = c
 	}
 
 	end := nodeLen(n)
