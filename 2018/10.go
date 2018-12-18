@@ -56,19 +56,18 @@ func main() {
 		vectors = append(vectors, v)
 	}
 
-	part1(vectors)
+	seconds := part1(vectors)
+
+	processOne(vectors, seconds)
+	sky := getSky(vectors)
+	printSky(sky)
+
+	fmt.Println("seconds", seconds)
+
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func clone(vectors []*vector) []*vector {
-	c := []*vector{}
-	for _, v := range vectors {
-		c = append(c, &vector{position: v.position, velocity: v.velocity})
-	}
-	return c
-}
-
-func part1(vectors []*vector) {
+func part1(vectors []*vector) int {
 	itr := 1
 	done := false
 	minsize := int64(200000000000000)
@@ -78,17 +77,13 @@ func part1(vectors []*vector) {
 		s := size(vectors)
 		if s < minsize {
 			minsize = s
+			itr++
 		} else {
-			fmt.Println(s, minsize)
 			done = true
-			processOne(vectors, itr-1)
 		}
-		itr++
 	}
 
-	sky := getSky(vectors)
-	printSky(sky)
-
+	return itr-1
 }
 
 func processOne(vectors []*vector, scale int) {
