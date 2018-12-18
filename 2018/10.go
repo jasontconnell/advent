@@ -68,7 +68,7 @@ func main() {
 }
 
 func part1(vectors []*vector) int {
-	itr := 1
+	itr := 10000
 	done := false
 	minsize := int64(200000000000000)
 
@@ -83,7 +83,7 @@ func part1(vectors []*vector) int {
 		}
 	}
 
-	return itr-1
+	return itr - 1
 }
 
 func processOne(vectors []*vector, scale int) {
