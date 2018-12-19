@@ -17,7 +17,7 @@ var ids string = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 type coord struct {
 	id   string
 	x, y int
-	inf bool
+	inf  bool
 }
 
 func (c coord) String() string {
@@ -85,7 +85,7 @@ func regionSize(points []point, coords []coord, check int) int {
 		for _, c := range coords {
 			s += distance(p.x, p.y, c.x, c.y)
 		}
-		
+
 		if s < check {
 			region++
 		}
@@ -94,8 +94,8 @@ func regionSize(points []point, coords []coord, check int) int {
 	return region
 }
 
-func minMax(coords []coord) (minX, maxX, minY, maxY int){
-	minX,minY = 10000,10000
+func minMax(coords []coord) (minX, maxX, minY, maxY int) {
+	minX, minY = 10000, 10000
 	for _, c := range coords {
 		if c.x > maxX {
 			maxX = c.x
@@ -172,8 +172,8 @@ func populateDistances(points []point, coords []coord) []point {
 
 func populate(minX, maxX, minY, maxY int) []point {
 	points := []point{}
-	for i := minX-1; i < maxX+1; i++ {
-		for j := minY-1; j < maxY+1; j++ {
+	for i := minX - 1; i < maxX+1; i++ {
+		for j := minY - 1; j < maxY+1; j++ {
 			p := point{x: i, y: j, nearest: nil, tied: false, dist: 10000}
 			points = append(points, p)
 		}
