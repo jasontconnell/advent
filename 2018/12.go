@@ -4,11 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
-	//"regexp"
-	//"strconv"
 	"strings"
-	//"math"
+	"time"
 )
 
 type rule struct {
@@ -36,34 +33,101 @@ func main() {
 		lines = append(lines, txt)
 	}
 
-	pad := 50
+	pad := 150
 	initial := parseInit(lines[0], pad)
 	rules := parseRules(lines[2:])
-	result := sim(initial, rules, 20)
-	sum := sumIndices(result, pad)
 
+	//part 1
+	_, result := sim(initial, rules, 20, pad)
+	sum := sumIndices(result, pad)
 	fmt.Println("part 1:", sum)
+
+	//part 2 . make more room in initial
+	initial = append(initial, make([]bool, 160)...)
+	dupTurn, result2 := sim(initial, rules, 200, pad)
+	idcs := indices(result2, pad)
+	sum2 := sumIndices(result2, pad)
+
+	// remaining turns: 50 billion minus the turn that the duplicates start
+	turnsLeft := int64(50000000000) - int64(dupTurn)
+	count := len(idcs)
+
+	fmt.Println("part 2:", sum2, int64(sum2)+turnsLeft*int64(count))
 
 	fmt.Println("Time", time.Since(startTime))
 }
 
+func indices(result []bool, pad int) []int {
+	idcs := []int{}
+
+	for i, v := range result {
+		if v {
+			idcs = append(idcs, i-pad)
+		}
+	}
+	return idcs
+}
+
 func sumIndices(result []bool, pad int) int {
 	sum := 0
-	for i := 0; i < len(result); i++ {
-		index := i - pad
-		if result[i] {
-			sum += index
-		}
+	for _, i := range indices(result, pad) {
+		sum += i
 	}
 	return sum
 }
 
-func sim(initial []bool, rules []rule, turns int) []bool {
-	gen := initial
-	for i := 0; i < turns; i++ {
-		gen = processMatches(rules, gen)
+func first(val []bool) int {
+	first := 0
+	for i := 0; i < len(val); i++ {
+		if val[i] && first == 0 {
+			first = i
+			break
+		}
 	}
-	return gen
+	return first
+}
+
+func last(val []bool) int {
+	last := 0
+	for i := len(val) - 1; i >= 0; i-- {
+		if val[i] && last == 0 {
+			last = i
+			break
+		}
+	}
+	return last
+}
+
+func tostr(val []bool) string {
+	str := ""
+	fst, lst := first(val), last(val)
+	for i := fst; i < lst+1; i++ {
+		v := val[i]
+		c := "."
+		if v {
+			c = "#"
+		}
+		str += c
+	}
+	return str
+}
+
+func sim(initial []bool, rules []rule, turns, pad int) (int, []bool) {
+	m := make(map[string]bool)
+	gen := initial
+	result := 0
+	m[tostr(gen)] = true
+	for i := 1; i < turns; i++ {
+		gen = processMatches(rules, gen)
+		key := tostr(gen)
+		fmt.Println(indices(gen, pad))
+		if _, ok := m[key]; ok {
+			result = i
+			break
+		}
+		m[key] = true
+	}
+	return result, gen
 }
 
 func processMatches(rules []rule, val []bool) []bool {

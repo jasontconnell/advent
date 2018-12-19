@@ -8,6 +8,7 @@ import (
 	//"strings"
 	//"math"
 )
+
 var input = 2694
 
 func main() {
@@ -48,13 +49,13 @@ func largestVariableCube(grid [][]int) (int, int, int) {
 func largestCube(grid [][]int, size int) (int, int, int) {
 	x, y := -1, -1
 	max := -10000
-	for i := 0; i < len(grid) - size; i++ {
-		for j := 0; j < len(grid[i]) - size; j++ {
+	for i := 0; i < len(grid)-size; i++ {
+		for j := 0; j < len(grid[i])-size; j++ {
 			sum := sumcube(grid, size, i, j)
 			if sum > max {
 				max = sum
-				x = i+1
-				y = j+1
+				x = i + 1
+				y = j + 1
 			}
 		}
 	}
@@ -64,8 +65,8 @@ func largestCube(grid [][]int, size int) (int, int, int) {
 
 func sumcube(grid [][]int, size, x, y int) int {
 	sum := 0
-	for i := x; i < x + size; i++ {
-		for j := y; j < y + size; j++ {
+	for i := x; i < x+size; i++ {
+		for j := y; j < y+size; j++ {
 			sum += grid[i][j]
 		}
 	}
@@ -82,10 +83,10 @@ func mapPowers(grid [][]int, serial int) {
 
 func cellPower(serial, x, y int) int { // x and y are 0 based
 	rackId := x + 10
-	h := int((rackId * y + serial) * rackId / 100)
+	h := int((rackId*y + serial) * rackId / 100)
 	if h == 0 {
 		return 0
 	}
 
-	return h % 10 - 5
+	return h%10 - 5
 }

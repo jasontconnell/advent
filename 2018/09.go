@@ -6,13 +6,13 @@ import (
 )
 
 type node struct {
-	left *node
+	left  *node
 	right *node
-	val int
+	val   int
 }
 
 type player struct {
-	num int
+	num   int
 	score int
 }
 
@@ -31,9 +31,9 @@ func main() {
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func print(n *node){
+func print(n *node) {
 	tmp := n.right
-	
+
 	fmt.Print("(", n.val, ") ")
 	for tmp != n {
 		fmt.Print(tmp.val, " ")
@@ -76,11 +76,13 @@ func highScore(players []*player) int {
 	return high
 }
 
-func move(n *node, steps, dir int) *node{
+func move(n *node, steps, dir int) *node {
 	for i := 0; i < steps; i++ {
 		switch dir {
-		case -1: n = n.left
-		case 1: n = n.right
+		case -1:
+			n = n.left
+		case 1:
+			n = n.right
 		}
 	}
 	return n
@@ -90,12 +92,12 @@ func moveCW(n *node, steps int) *node {
 	return move(n, steps, 1)
 }
 
-func moveCCW(n *node, steps int) * node {
+func moveCCW(n *node, steps int) *node {
 	return move(n, steps, -1)
 }
 
 func insert(val int, cur *node) (*node, int) {
-	if val % 23 != 0 {
+	if val%23 != 0 {
 		ins := &node{val: val}
 		cur = moveCW(cur, 1)
 		tmp := cur.right
