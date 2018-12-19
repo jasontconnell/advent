@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"sort"
 )
 
 var input = "13.txt"
@@ -74,6 +75,21 @@ func (c cart) char() string {
 
 func clone(carts []cart) []cart {
 	return append([]cart{}, carts...)
+}
+
+func sortCarts(carts []cart) []cart {
+	s := func (i, j int) bool {
+		dx := carts[i].x - carts[j].x
+		l := dx < 0
+
+		if dx == 0 {
+			return carts[i].y < carts[j].y
+		}
+		return l
+	}
+
+	sort.Slice(carts, s)
+	return carts
 }
 
 type path struct {
@@ -165,23 +181,29 @@ func lastStanding(grid [][]path, carts []cart) cart {
 	done := false
 
 	for !done {
+		carts = sortCarts(carts)
+		idmap := make(map[int]bool)
 		for i := 0; i < len(carts); i++ {
 			c := carts[i]
 			c = move(c, grid)
 			c = turn(c, grid)
 			carts[i] = c
-		}
-
-		crashes := collisions(carts)
-		for _, crash := range crashes {
-			for i := len(carts)-1; i >= 0; i-- {
-				cc := carts[i]
-				if cc.x == crash.x && cc.y == crash.y {
-					carts = append(carts[:i], carts[i+1:]...)
+			crashes := collisions(carts)
+			for _, cc := range carts {
+				for _, cr := range crashes {
+					if cc.x == cr.x && cc.y == cr.y {
+						idmap[cc.id] = true
+					}
 				}
 			}
 		}
 
+		for i := len(carts)-1; i >= 0; i-- {
+			cc := carts[i]
+			if _, ok := idmap[cc.id]; ok {
+				carts = append(carts[:i], carts[i+1:]...)
+			}
+		}
 		done = len(carts) == 1
 	}
 
@@ -193,6 +215,7 @@ func sim(grid [][]path, carts []cart) xy {
 	crashed := false
 
 	for !crashed {
+		carts = sortCarts(carts)
 		for i := 0; i < len(carts); i++ {
 			c := carts[i]
 			c = move(c, grid)
