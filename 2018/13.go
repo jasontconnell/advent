@@ -163,33 +163,28 @@ func print(grid [][]path, carts []cart) {
 
 func lastStanding(grid [][]path, carts []cart) cart {
 	done := false
-	m := make(map[int]bool)
 
 	for !done {
 		for i := 0; i < len(carts); i++ {
-			var crashed bool
 			c := carts[i]
-			c, crashed = move(c, grid, carts)
-			if crashed {
-				m[c.id] = true
-			}
+			c = move(c, grid)
 			c = turn(c, grid)
 			carts[i] = c
 		}
 
-		for i := len(carts)-1; i >= 0; i-- {
-			c := carts[i]
-			if _, ok := m[c.id]; ok {
-				carts = append(carts[:i], carts[i+1:]...)
-				fmt.Println(len(carts))
+		crashes := collisions(carts)
+		for _, crash := range crashes {
+			for i := len(carts)-1; i >= 0; i-- {
+				cc := carts[i]
+				if cc.x == crash.x && cc.y == crash.y {
+					carts = append(carts[:i], carts[i+1:]...)
+				}
 			}
 		}
 
 		done = len(carts) == 1
 	}
 
-	fmt.Println("done", carts)
-	print(grid, carts)
 	return carts[0]
 }
 
@@ -200,16 +195,32 @@ func sim(grid [][]path, carts []cart) xy {
 	for !crashed {
 		for i := 0; i < len(carts); i++ {
 			c := carts[i]
-			c, crashed = move(c, grid, carts)
-			if crashed {
-				crash.x = c.x
-				crash.y = c.y
-			}
+			c = move(c, grid)
 			c = turn(c, grid)
 			carts[i] = c
 		}
+
+		crashes := collisions(carts)
+		if len(crashes) > 0 {
+			crashed = true
+			crash = crashes[0]
+		}
 	}
 	return crash
+}
+
+func collisions(carts []cart) []xy {
+	m := make(map[xy]bool)
+	list := []xy{}
+	for _, c := range carts {
+		key := xy{x: c.x, y: c.y }
+		_, ok := m[key]
+		if ok {
+			list = append(list, key)
+		}
+		m[key] = true
+	}
+	return list
 }
 
 func turn(c cart, grid [][]path) cart {
@@ -271,8 +282,7 @@ func turn(c cart, grid [][]path) cart {
 	return c
 }
 
-func move(c cart, grid [][]path, carts []cart) (cart, bool) {
-	crash := collision(c, carts)
+func move(c cart, grid [][]path) cart {
 	nx, ny := c.x, c.y
 	switch c.dir {
 	case Left:
@@ -287,22 +297,7 @@ func move(c cart, grid [][]path, carts []cart) (cart, bool) {
 	c.x = nx
 	c.y = ny
 
-	crash = crash || collision(c, carts)
-
-	return c, crash
-}
-
-func collision(c cart, carts []cart) bool {
-	for _, cc := range carts {
-		if c.id == cc.id {
-			continue
-		}
-
-		if c.x == cc.x && c.y == cc.y {
-			return true
-		}
-	}
-	return false
+	return c
 }
 
 func getLine(i int, txt string) ([]path, []cart) {
