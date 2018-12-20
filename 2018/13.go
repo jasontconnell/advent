@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 	"sort"
+	"time"
 )
 
 var input = "13.txt"
@@ -38,8 +38,8 @@ type xy struct {
 
 type cart struct {
 	xy
-	id, dir      int
-	decision     int
+	id, dir  int
+	decision int
 }
 
 func (c cart) String() string {
@@ -78,7 +78,7 @@ func clone(carts []cart) []cart {
 }
 
 func sortCarts(carts []cart) []cart {
-	s := func (i, j int) bool {
+	s := func(i, j int) bool {
 		dx := carts[i].x - carts[j].x
 		l := dx < 0
 
@@ -198,7 +198,7 @@ func lastStanding(grid [][]path, carts []cart) cart {
 			}
 		}
 
-		for i := len(carts)-1; i >= 0; i-- {
+		for i := len(carts) - 1; i >= 0; i-- {
 			cc := carts[i]
 			if _, ok := idmap[cc.id]; ok {
 				carts = append(carts[:i], carts[i+1:]...)
@@ -236,7 +236,7 @@ func collisions(carts []cart) []xy {
 	m := make(map[xy]bool)
 	list := []xy{}
 	for _, c := range carts {
-		key := xy{x: c.x, y: c.y }
+		key := xy{x: c.x, y: c.y}
 		_, ok := m[key]
 		if ok {
 			list = append(list, key)
@@ -278,7 +278,7 @@ func turn(c cart, grid [][]path) cart {
 				}
 			}
 		}
-		c.decision = (c.decision+1)%3
+		c.decision = (c.decision + 1) % 3
 	case CurveFront:
 		switch c.dir {
 		case Left:
