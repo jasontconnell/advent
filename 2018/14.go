@@ -7,6 +7,7 @@ import (
 )
 
 var input = 165061
+
 //var input = 59414
 
 type elf struct {
@@ -58,11 +59,11 @@ func process2(elves []elf, recipes []int, count int) int {
 		found, curindex = find(recipes, val, curindex)
 	}
 
-	return curindex-1
+	return curindex - 1
 }
 
 func find(recipes []int, val []int, start int) (bool, int) {
-	if start+len(val) >= len(recipes){
+	if start+len(val) >= len(recipes) {
 		return false, start
 	}
 
@@ -70,7 +71,7 @@ func find(recipes []int, val []int, start int) (bool, int) {
 	for j := 0; j < len(val); j++ {
 		found = found && (recipes[start+j] == val[j])
 	}
-	return found, start+1
+	return found, start + 1
 }
 
 func processOne(elves []elf, recipes []int) ([]elf, []int) {
