@@ -60,6 +60,7 @@ func (u unit) String() string {
 type state struct {
 	xy
 	moves []xy
+	dist  int
 }
 
 func main() {
@@ -88,7 +89,7 @@ func main() {
 		units[i].id = i
 	}
 
-	// print(units, grid)
+	print(units, grid)
 
 	units, round := sim(units, grid)
 
@@ -96,7 +97,7 @@ func main() {
 	for _, u := range units {
 		sum += u.hp
 	}
-	fmt.Println("Part 1:", sum*round)
+	fmt.Println("Part 1:", sum*round, round, "rounds, sum: ", sum)
 	fmt.Println("Time", time.Since(startTime))
 }
 
@@ -141,16 +142,27 @@ func print(units []unit, grid [][]path) {
 func sim(units []unit, grid [][]path) ([]unit, int) {
 	done := false
 	roundNum := 0
+	var fullRound bool
 	for !done {
-		units = turn(units, grid)
+		units, fullRound = turn(units, grid)
 		units = bringOutYourDead(units)
 		enlist := enemies(units[0], units)
-		done = len(enlist) == 0
-		//print(units, grid)
-		if !done {
+		if fullRound {
 			roundNum++
 		}
+
+		// if roundNum < 15 {
+		print(units, grid)
+		// }
+		done = len(enlist) == 0
+
+		sum := 0
+		for _, u := range units {
+			sum += u.hp
+		}
 	}
+
+	//print(units, grid)
 
 	return units, roundNum
 }
@@ -166,7 +178,8 @@ func bringOutYourDead(units []unit) []unit {
 
 func attack(u unit, units []unit) (unit, int) { // returns unit and index
 	atk, index := unit{id: -1, hp: 201}, -1
-	enmap := unitMap(enemies(u, units))
+	enlist := enemies(u, units)
+	enmap := unitMap(enlist)
 
 	sur := surrounding(u.xy)
 	for _, s := range sur {
@@ -188,47 +201,72 @@ func attack(u unit, units []unit) (unit, int) { // returns unit and index
 
 	if index != -1 {
 		atk.hp = atk.hp - u.atk
-		if atk.hp < 0 {
+		if atk.hp <= 0 {
 			atk.dead = true
 		}
 	}
 	return atk, index
 }
 
-func turn(units []unit, grid [][]path) []unit {
+func turn(units []unit, grid [][]path) ([]unit, bool) { // whether a full round completed
+	fullRound := true
 	usort := sortUnits(units)
 
 	for i := 0; i < len(usort); i++ {
 		u := usort[i]
-		atk := canAttack(u, units)
+		if u.dead {
+			continue
+		}
 
+		enlist := enemies(u, usort)
+		if len(enlist) == 0 && i < len(usort)-1 {
+			fullRound = false
+		}
+
+		atk := canAttack(u, enlist)
 		if !atk {
 			n := getNext(u, usort, grid)
 			if n.x != -1 && n.y != -1 {
-				u = move(u, n, units, grid)
+				u = move(u, n)
 			}
+			atk = canAttack(u, enlist)
 		}
 
-		dmgd, index := attack(u, usort)
-		if index != -1 {
+		if atk {
+			dmgd, index := attack(u, usort)
 			usort[index] = dmgd
 		}
 
 		usort[i] = u
-		// print(usort, grid)
 	}
-	return usort
+	return usort, fullRound
 }
 
 func abs(x int) int {
 	return int(math.Abs(float64(x)))
 }
 
-func move(u unit, to xy, units []unit, grid [][]path) unit {
+func move(u unit, to xy) unit {
 	u.x = to.x
 	u.y = to.y
 
 	return u
+}
+
+func sortXY(xys []xy) []xy {
+	s := func(i, j int) bool {
+		dy := xys[i].y - xys[j].y
+		l := dy < 0
+
+		if dy == 0 {
+			l = xys[i].x < xys[j].x
+		}
+		return l
+	}
+
+	sort.Slice(xys, s)
+
+	return xys
 }
 
 func sortUnits(units []unit) []unit {
@@ -257,20 +295,21 @@ func getNext(u unit, units []unit, grid [][]path) xy {
 	enlist := enemies(u, units)
 	goals := []xy{}
 	for _, e := range enlist {
-		spots := availableSpots(e, units, grid)
+		//spots := availableSpots(e, units, grid)
+		spots := bestSpots(u, e, units, grid)
 		for _, s := range spots {
 			goals = append(goals, s)
 		}
 	}
 
+	mv := xy{-1, -1}
 	if len(goals) == 0 {
-		return u.xy
+		return mv
 	}
 
 	open := getOpen(units, grid)
 
 	min := 10000
-	mv := xy{-1, -1}
 	for _, g := range goals {
 		visited := make(map[xy]bool)
 		shortest := getPath(u.xy, g, open, visited)
@@ -298,7 +337,7 @@ func enemies(u unit, units []unit) []unit {
 
 func getPath(from, to xy, open []xy, visited map[xy]bool) state {
 	queue := []state{}
-	queue = append(queue, state{xy: from, moves: []xy{}})
+	queue = append(queue, state{xy: from, moves: []xy{}, dist: distance(from, to)})
 	solves := []state{}
 	minsolve := 10000
 
@@ -308,7 +347,8 @@ func getPath(from, to xy, open []xy, visited map[xy]bool) state {
 		mvs := getMoves(s.xy, open)
 
 		for _, mv := range mvs {
-			mvstate := state{moves: append(s.moves, mv), xy: mv}
+			dist := distance(mv, to)
+			mvstate := state{moves: append(s.moves, mv), xy: mv, dist: dist}
 			if mv.x == to.x && mv.y == to.y {
 				if len(mvstate.moves) < minsolve {
 					minsolve = len(mvstate.moves)
@@ -329,6 +369,12 @@ func getPath(from, to xy, open []xy, visited map[xy]bool) state {
 	mv := state{}
 	if len(solves) > 0 {
 		mv = solves[0]
+	}
+	if len(solves) > 1 {
+		fmt.Println("More than one solve", from, to)
+		for _, s := range solves {
+			fmt.Println(s.moves)
+		}
 	}
 	return mv
 }
@@ -372,8 +418,27 @@ func availableSpots(u unit, units []unit, grid [][]path) []xy {
 	return avail
 }
 
-func canAttack(u unit, units []unit) bool {
-	emap := unitMap(enemies(u, units))
+// get rid of spots to check
+func bestSpots(u, to unit, units []unit, grid [][]path) []xy {
+	avail := []xy{}
+	umap := unitMap(units)
+	mindist := 1000
+
+	for _, point := range surrounding(to.xy) {
+		g := grid[point.y][point.x]
+		if _, ok := umap[point]; !ok && g.block == Open {
+			dist := distance(u.xy, point)
+			if dist <= mindist {
+				mindist = dist
+				avail = append(avail, point)
+			}
+		}
+	}
+	return sortXY(avail)
+}
+
+func canAttack(u unit, enlist []unit) bool {
+	emap := unitMap(enlist)
 	for _, point := range surrounding(u.xy) {
 		if _, ok := emap[point]; ok {
 			return true
