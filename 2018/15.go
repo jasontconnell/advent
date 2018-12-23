@@ -90,23 +90,37 @@ func main() {
 	}
 
 
-	p1 := sim(units, grid, false)
-
-
+	p1 := sim(units, grid, 3, false)
+	var p2 int
+	atk := 4
+	for p2 == 0 {
+		p2 = sim(units, grid, atk, true)
+		atk++
+	}
 
 	fmt.Println("Part 1:", p1)
-	fmt.Println("Part 2:", 0)
+	fmt.Println("Part 2:", p2)
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func sim(orig []unit, grid [][]path, part2 bool) int {
+func sim(orig []unit, grid [][]path, atk int, endOnElfDeath bool) int {
 	cloned := append([]unit{}, orig...)
 
+	for i := 0; i < len(cloned); i++ {
+		if cloned[i].race == Elf {
+			cloned[i].atk = atk
+		}
+	}
+
 	done := false
+	elfDied := false
 	roundNum := 0
 	var fullRound bool
 	for !done {
-		cloned, fullRound = turn(cloned, grid)
+		cloned, fullRound,elfDied = turn(cloned, grid)
+		if endOnElfDeath && elfDied {
+			return 0
+		}
 		cloned = bringOutYourDead(cloned)
 		enlist := enemies(cloned[0], cloned)
 		if fullRound {
@@ -119,7 +133,6 @@ func sim(orig []unit, grid [][]path, part2 bool) int {
 	for _, u := range cloned {
 		sum += u.hp
 	}
-
 
 	return roundNum * sum
 }
@@ -165,8 +178,9 @@ func attack(u unit, units []unit) (unit, int) { // returns unit and index
 	return atk, index
 }
 
-func turn(units []unit, grid [][]path) ([]unit, bool) { // whether a full round completed
+func turn(units []unit, grid [][]path) ([]unit, bool, bool) { // whether a full round completed and whether an elf died
 	fullRound := true
+	elfDied := false
 	usort := sortUnits(units)
 
 	for i := 0; i < len(usort); i++ {
@@ -192,11 +206,15 @@ func turn(units []unit, grid [][]path) ([]unit, bool) { // whether a full round 
 		if atk {
 			dmgd, index := attack(u, usort)
 			usort[index] = dmgd
+
+			if !elfDied {
+				elfDied = dmgd.race == Elf && dmgd.dead
+			}
 		}
 
 		usort[i] = u
 	}
-	return usort, fullRound
+	return usort, fullRound, elfDied
 }
 
 func abs(x int) int {
