@@ -89,7 +89,6 @@ func main() {
 		units[i].id = i
 	}
 
-
 	p1 := sim(units, grid, 3, false)
 	var p2 int
 	atk := 4
@@ -117,7 +116,7 @@ func sim(orig []unit, grid [][]path, atk int, endOnElfDeath bool) int {
 	roundNum := 0
 	var fullRound bool
 	for !done {
-		cloned, fullRound,elfDied = turn(cloned, grid)
+		cloned, fullRound, elfDied = turn(cloned, grid)
 		if endOnElfDeath && elfDied {
 			return 0
 		}
