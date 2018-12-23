@@ -144,6 +144,7 @@ func sim(units []unit, grid [][]path) ([]unit, int) {
 	roundNum := 0
 	var fullRound bool
 	for !done {
+		//fmt.Println("Beginning round", roundNum)
 		units, fullRound = turn(units, grid)
 		units = bringOutYourDead(units)
 		enlist := enemies(units[0], units)
@@ -153,6 +154,8 @@ func sim(units []unit, grid [][]path) ([]unit, int) {
 
 		// if roundNum < 15 {
 		print(units, grid)
+		// } else {
+		// 	break
 		// }
 		done = len(enlist) == 0
 
@@ -160,6 +163,8 @@ func sim(units []unit, grid [][]path) ([]unit, int) {
 		for _, u := range units {
 			sum += u.hp
 		}
+
+		fmt.Println(roundNum, sum)
 	}
 
 	//print(units, grid)
@@ -225,8 +230,8 @@ func turn(units []unit, grid [][]path) ([]unit, bool) { // whether a full round 
 
 		atk := canAttack(u, enlist)
 		if !atk {
-			n := getNext(u, usort, grid)
-			if n.x != -1 && n.y != -1 {
+			n, m := getNext(u, usort, grid)
+			if m {
 				u = move(u, n)
 			}
 			atk = canAttack(u, enlist)
@@ -291,29 +296,28 @@ func distance(p1, p2 xy) int {
 	return dx + dy
 }
 
-func getNext(u unit, units []unit, grid [][]path) xy {
+func getNext(u unit, units []unit, grid [][]path) (xy, bool) {
 	enlist := enemies(u, units)
 	goals := []xy{}
-	for _, e := range enlist {
-		//spots := availableSpots(e, units, grid)
-		spots := bestSpots(u, e, units, grid)
-		for _, s := range spots {
-			goals = append(goals, s)
-		}
-	}
-
-	mv := xy{-1, -1}
-	if len(goals) == 0 {
-		return mv
-	}
-
 	open := getOpen(units, grid)
 
-	min := 10000
+	for _, e := range enlist {
+		best := bestSpots(u.xy, e.xy, open)
+		goals = append(goals, best...)
+	}
+
+	if len(goals) == 0 {
+		return xy{}, false
+	}
+
+	mv := xy{}
+	doMove := false
+	min := 1000
 	for _, g := range goals {
 		visited := make(map[xy]bool)
 		shortest := getPath(u.xy, g, open, visited)
 		if len(shortest.moves) > 0 {
+			doMove = true
 			final := shortest.moves[len(shortest.moves)-1]
 			dist := distance(final, u.xy)
 			if dist < min {
@@ -322,7 +326,8 @@ func getNext(u unit, units []unit, grid [][]path) xy {
 			}
 		}
 	}
-	return mv
+
+	return mv, doMove
 }
 
 func enemies(u unit, units []unit) []unit {
@@ -340,11 +345,12 @@ func getPath(from, to xy, open []xy, visited map[xy]bool) state {
 	queue = append(queue, state{xy: from, moves: []xy{}, dist: distance(from, to)})
 	solves := []state{}
 	minsolve := 10000
+	omap := xyMap(open)
 
 	for len(queue) > 0 {
 		s := queue[0]
 		queue = queue[1:]
-		mvs := getMoves(s.xy, open)
+		mvs := getMoves(s.xy, omap)
 
 		for _, mv := range mvs {
 			dist := distance(mv, to)
@@ -379,12 +385,11 @@ func getPath(from, to xy, open []xy, visited map[xy]bool) state {
 	return mv
 }
 
-func getMoves(from xy, open []xy) []xy {
-	xym := xyMap(open)
+func getMoves(from, to xy, omap map[xy]bool) []xy {
 	moves := []xy{}
 
 	for _, p := range surrounding(from) {
-		if _, ok := xym[p]; ok {
+		if _, ok := omap[p]; ok {
 			moves = append(moves, p)
 		}
 	}
@@ -405,36 +410,26 @@ func getOpen(units []unit, grid [][]path) []xy {
 	return open
 }
 
-func availableSpots(u unit, units []unit, grid [][]path) []xy {
-	avail := []xy{}
-	umap := unitMap(units)
-
-	for _, point := range surrounding(u.xy) {
-		g := grid[point.y][point.x]
-		if _, ok := umap[point]; !ok && g.block == Open {
-			avail = append(avail, point)
-		}
-	}
-	return avail
-}
-
-// get rid of spots to check
-func bestSpots(u, to unit, units []unit, grid [][]path) []xy {
-	avail := []xy{}
-	umap := unitMap(units)
+func bestSpots(from, to xy, open []xy) []xy {
+	omap := xyMap(open)
 	mindist := 1000
+	dmap := make(map[int][]xy)
 
-	for _, point := range surrounding(to.xy) {
-		g := grid[point.y][point.x]
-		if _, ok := umap[point]; !ok && g.block == Open {
-			dist := distance(u.xy, point)
-			if dist <= mindist {
+	for _, point := range surrounding(to) {
+		if _, isOpen := omap[point]; isOpen {
+			dist := distance(from, to)
+			if dist < mindist {
 				mindist = dist
-				avail = append(avail, point)
 			}
+			// mindist = 1
+			// dist := 1
+			dmap[dist] = append(dmap[dist], point)
 		}
 	}
-	return sortXY(avail)
+	if list, ok := dmap[mindist]; ok && len(list) > 0 {
+		return list
+	}
+	return []xy{}
 }
 
 func canAttack(u unit, enlist []unit) bool {
