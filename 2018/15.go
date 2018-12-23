@@ -89,87 +89,39 @@ func main() {
 		units[i].id = i
 	}
 
-	print(units, grid)
 
-	units, round := sim(units, grid)
+	p1 := sim(units, grid, false)
 
-	sum := 0
-	for _, u := range units {
-		sum += u.hp
-	}
-	fmt.Println("Part 1:", sum*round, round, "rounds, sum: ", sum)
+
+
+	fmt.Println("Part 1:", p1)
+	fmt.Println("Part 2:", 0)
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func printUnits(units []unit) {
-	s := ""
-	for _, u := range units {
-		s += fmt.Sprintf("[%v] :: ", u)
-	}
-	fmt.Println(s)
-}
+func sim(orig []unit, grid [][]path, part2 bool) int {
+	cloned := append([]unit{}, orig...)
 
-func print(units []unit, grid [][]path) {
-	umap := unitMap(units)
-
-	for y := 0; y < len(grid); y++ {
-		line := ""
-		for x := 0; x < len(grid[y]); x++ {
-			key := xy{x: x, y: y}
-			g := grid[y][x]
-			ch := '.'
-			if g.block == Wall {
-				ch = '#'
-			}
-			if u, ok := umap[key]; ok {
-				ch = 'G'
-				if u.race == Elf {
-					ch = 'E'
-				}
-				//ch = rune(48 + u.id)
-				if u.dead {
-					ch = '.'
-				}
-			}
-			line += string(ch)
-		}
-		fmt.Println(line)
-	}
-	printUnits(units)
-	fmt.Println("--------------------------------------------")
-}
-
-func sim(units []unit, grid [][]path) ([]unit, int) {
 	done := false
 	roundNum := 0
 	var fullRound bool
 	for !done {
-		//fmt.Println("Beginning round", roundNum)
-		units, fullRound = turn(units, grid)
-		units = bringOutYourDead(units)
-		enlist := enemies(units[0], units)
+		cloned, fullRound = turn(cloned, grid)
+		cloned = bringOutYourDead(cloned)
+		enlist := enemies(cloned[0], cloned)
 		if fullRound {
 			roundNum++
 		}
-
-		// if roundNum < 15 {
-		print(units, grid)
-		// } else {
-		// 	break
-		// }
 		done = len(enlist) == 0
-
-		sum := 0
-		for _, u := range units {
-			sum += u.hp
-		}
-
-		fmt.Println(roundNum, sum)
 	}
 
-	//print(units, grid)
+	sum := 0
+	for _, u := range cloned {
+		sum += u.hp
+	}
 
-	return units, roundNum
+
+	return roundNum * sum
 }
 
 func bringOutYourDead(units []unit) []unit {
@@ -318,11 +270,13 @@ func getNext(u unit, units []unit, grid [][]path) (xy, bool) {
 		shortest := getPath(u.xy, g, open, visited)
 		if len(shortest.moves) > 0 {
 			doMove = true
-			final := shortest.moves[len(shortest.moves)-1]
-			dist := distance(final, u.xy)
+			dist := len(shortest.moves)
 			if dist < min {
 				min = dist
 				mv = shortest.moves[0]
+			} else if dist == min {
+				sorted := sortXY([]xy{mv, shortest.moves[0]})
+				mv = sorted[0]
 			}
 		}
 	}
@@ -376,18 +330,11 @@ func getPath(from, to xy, open []xy, visited map[xy]bool) state {
 	if len(solves) > 0 {
 		mv = solves[0]
 	}
-	if len(solves) > 1 {
-		fmt.Println("More than one solve", from, to)
-		for _, s := range solves {
-			fmt.Println(s.moves)
-		}
-	}
 	return mv
 }
 
-func getMoves(from, to xy, omap map[xy]bool) []xy {
+func getMoves(from xy, omap map[xy]bool) []xy {
 	moves := []xy{}
-
 	for _, p := range surrounding(from) {
 		if _, ok := omap[p]; ok {
 			moves = append(moves, p)
@@ -421,8 +368,6 @@ func bestSpots(from, to xy, open []xy) []xy {
 			if dist < mindist {
 				mindist = dist
 			}
-			// mindist = 1
-			// dist := 1
 			dmap[dist] = append(dmap[dist], point)
 		}
 	}
