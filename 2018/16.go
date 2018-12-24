@@ -7,11 +7,17 @@ import (
 	"regexp"
 	"strconv"
 	"time"
-	//"strings"
+	"strings"
 	//"math"
 )
 
 var input = "16.txt"
+
+type op struct {
+	opcode int
+	in inputs
+	out int
+}
 
 type inputs struct {
 	a, b int
@@ -20,19 +26,18 @@ type inputs struct {
 type cpuobs struct { // cpu observation
 	sid         int
 	before      []int
-	instruction int
-	in          inputs
-	output      int
+	operation op
 	after       []int
 }
 
 func (obs cpuobs) String() string {
-	s := fmt.Sprintf("Before: %v\nInstruction: %d Inputs: %d %d Output: %d\nAfter: %v\n\n", obs.before, obs.instruction, obs.in.a, obs.in.b, obs.output, obs.after)
+	opr := obs.operation
+	s := fmt.Sprintf("Before: %v\nInstruction: %d Inputs: %d %d Output: %d\nAfter: %v\n\n", obs.before, opr.opcode, opr.in.a, opr.in.b, opr.out, obs.after)
 	return s
 }
 
 type instruction struct {
-	id   int
+	opcode   int
 	name string
 	f    func(registers []int, in inputs, out int) []int // returns modified registers
 
@@ -56,12 +61,17 @@ func main() {
 		lines = append(lines, txt)
 	}
 
-	observations := getCPUResults(lines)
+	observations, progstart := getCPUResults(lines)
 	instmap := getInstructions()
 
 	p1 := behaviorCounts(observations, instmap, 3)
-
 	fmt.Println("Part 1:", p1)
+
+	determineOpcodes(instmap)
+	prog := getProgram(lines, progstart)
+	p2 := runProgram(prog, instmap)
+
+	fmt.Println("Part 2:", p2)
 
 	fmt.Println("Time", time.Since(startTime))
 }
@@ -75,13 +85,59 @@ func eq(a, b []int) bool {
 	return true
 }
 
+func runProgram(prog []op, imap map[string]instruction) int {
+	r := []int{0,0,0,0}
+	opmap := make(map[int]instruction)
+	for _, inst := range imap {
+		opmap[inst.opcode] = inst
+	}
+
+	for _, o := range prog {
+		inst := opmap[o.opcode]
+		r = inst.f(r, o.in, o.out)
+	}
+
+	return r[0]
+}
+
+func allDetermined(imap map[string]instruction) bool {
+	res := true
+	for _, inst := range imap {
+		if len(inst.ops) > 1 {
+			res = false
+		}
+	}
+	return res
+}
+
+func determineOpcodes(imap map[string]instruction) {
+	for !allDetermined(imap) {
+		for k, inst := range imap {
+			if len(inst.ops) == 1 {
+				for opcode, _ := range inst.ops {
+					inst.opcode = opcode
+					removeOpcodes(imap, opcode)
+				}
+				imap[k] = inst
+			}
+		}
+	}
+}
+
+func removeOpcodes(imap map[string]instruction, opcode int) {
+	for k, inst := range imap {
+		delete(inst.ops, opcode)
+		imap[k] = inst
+	}
+}
+
 func behaviorCounts(obs []cpuobs, imap map[string]instruction, c int) int {
 	srmap := make(map[int]int)
 	for _, o := range obs {
 		for k, inst := range imap {
-			rc := inst.f(o.before, o.in, o.output)
+			rc := inst.f(o.before, o.operation.in, o.operation.out)
 			if eq(rc, o.after) {
-				imap[k].ops[o.instruction] = true
+				imap[k].ops[o.operation.opcode] = true
 				srmap[o.sid]++
 			}
 		}
@@ -233,11 +289,13 @@ func getInstructions() map[string]instruction {
 	return imap
 }
 
-func getCPUResults(lines []string) []cpuobs {
+func getCPUResults(lines []string) ([]cpuobs, int) {
 	obs := []cpuobs{}
 	reg := regexp.MustCompile(`(Before|After)?:?( *?)(\[?)(\d+),? (\d+),? (\d+),? (\d+)(\]?)`)
+	last := 0
 	for i := 0; i < len(lines); i += 4 {
 		if lines[i] == "" {
+			last = i
 			break
 		}
 		before := reg.FindAllStringSubmatch(lines[i], -1)
@@ -249,10 +307,31 @@ func getCPUResults(lines []string) []cpuobs {
 		ins := getInts(middle[0], 4, 4)
 		aints := getInts(after[0], 4, 4)
 
-		ob := cpuobs{sid: i, before: bints, after: aints, instruction: ins[0], in: inputs{a: ins[1], b: ins[2]}, output: ins[3]}
+		opr := op{opcode: ins[0], in: inputs{a: ins[1], b: ins[2]}, out: ins[3]}
+		ob := cpuobs{sid: i, before: bints, after: aints, operation: opr}
 		obs = append(obs, ob)
+
 	}
-	return obs
+	return obs, last
+}
+
+func getProgram(lines []string, start int) []op {
+	ops := []op{}
+	for i := start; i < len(lines); i++ {
+		sp := strings.Fields(lines[i])
+		if len(sp) != 4 {
+			continue
+		}
+
+		opcode, _ := strconv.Atoi(sp[0])
+		a, _ := strconv.Atoi(sp[1])
+		b, _ := strconv.Atoi(sp[2])
+		out, _ := strconv.Atoi(sp[3])
+
+		opr := op{opcode: opcode, in: inputs{a: a, b: b}, out: out}
+		ops = append(ops, opr)
+	}
+	return ops
 }
 
 func getInts(str []string, startpos, count int) []int {
@@ -264,10 +343,3 @@ func getInts(str []string, startpos, count int) []int {
 	}
 	return ints
 }
-
-// reg := regexp.MustCompile("-?[0-9]+")
-/*
-if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				fmt.Println(groups[1:])
-			}
-*/
