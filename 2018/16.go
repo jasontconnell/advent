@@ -6,8 +6,8 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 	//"math"
 )
 
@@ -15,8 +15,8 @@ var input = "16.txt"
 
 type op struct {
 	opcode int
-	in inputs
-	out int
+	in     inputs
+	out    int
 }
 
 type inputs struct {
@@ -24,10 +24,10 @@ type inputs struct {
 }
 
 type cpuobs struct { // cpu observation
-	sid         int
-	before      []int
+	sid       int
+	before    []int
 	operation op
-	after       []int
+	after     []int
 }
 
 func (obs cpuobs) String() string {
@@ -37,9 +37,9 @@ func (obs cpuobs) String() string {
 }
 
 type instruction struct {
-	opcode   int
-	name string
-	f    func(registers []int, in inputs, out int) []int // returns modified registers
+	opcode int
+	name   string
+	f      func(registers []int, in inputs, out int) []int // returns modified registers
 
 	ops map[int]bool
 }
@@ -86,7 +86,7 @@ func eq(a, b []int) bool {
 }
 
 func runProgram(prog []op, imap map[string]instruction) int {
-	r := []int{0,0,0,0}
+	r := []int{0, 0, 0, 0}
 	opmap := make(map[int]instruction)
 	for _, inst := range imap {
 		opmap[inst.opcode] = inst

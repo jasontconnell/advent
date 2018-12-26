@@ -113,7 +113,7 @@ func solve(blocks [][]block, startx, starty int) [][]block {
 	return blocks
 }
 
-func countWater(blocks [][]block, miny int) (int,int) {
+func countWater(blocks [][]block, miny int) (int, int) {
 	wet := 0
 	water := 0
 	for y := 0; y < len(blocks); y++ {
