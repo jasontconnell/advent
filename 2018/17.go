@@ -41,7 +41,11 @@ func (b block) canHold() bool {
 }
 
 func (b block) isWater() bool {
-	return b.contents == Water || (b.contents == Sand && b.wet)
+	return b.contents == Water
+}
+
+func (b block) isWet() bool {
+	return b.isWater() || (b.contents == Sand && b.wet)
 }
 
 func (b block) String() string {
@@ -85,9 +89,10 @@ func main() {
 
 	blocks, minx, miny := makeGrid(specs, 500, 0)
 	blocks = solve(blocks, 500-minx, 0)
-	water := countWater(blocks, miny)
+	wet, water := countWater(blocks, miny)
 
-	fmt.Println("Part 1:", water)
+	fmt.Println("Part 1:", wet)
+	fmt.Println("Part 2:", water)
 
 	fmt.Println("Time", time.Since(startTime))
 }
@@ -108,19 +113,23 @@ func solve(blocks [][]block, startx, starty int) [][]block {
 	return blocks
 }
 
-func countWater(blocks [][]block, miny int) int {
-	count := 0
+func countWater(blocks [][]block, miny int) (int,int) {
+	wet := 0
+	water := 0
 	for y := 0; y < len(blocks); y++ {
 		if y < miny {
 			continue
 		}
 		for x := 0; x < len(blocks[y]); x++ {
-			if blocks[y][x].isWater() {
-				count++
+			if blocks[y][x].isWet() {
+				wet++
+				if blocks[y][x].isWater() {
+					water++
+				}
 			}
 		}
 	}
-	return count
+	return wet, water
 }
 
 func dropWater(blocks [][]block, x, y int) [][]block {
