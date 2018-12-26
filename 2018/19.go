@@ -51,13 +51,26 @@ func main() {
 	instreg := getInstReg(lines[0])
 	prog := getProgram(lines[1:])
 	instrs := getInstructions()
-	registers := []int{0, 0, 0, 0, 0, 0}
 
-	registers = run(instreg, instrs, prog, registers)
+	p1reg := run(instreg, instrs, prog, []int{0, 0, 0, 0, 0, 0})
+	fmt.Println("Part 1:", p1reg[0])
 
-	fmt.Println("Part 1:", registers[0])
+	//p2reg := run(instreg, instrs, prog, []int{1, 0, 0, 0, 0, 0})
+	fmt.Println("Part 2:", p2crap(10551364))
+
 
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func p2crap(n int) int {
+	s := 0
+
+	for i := 1; i < n; i++ {
+		if n % i == 0 {
+			s += i
+		}
+	}
+	return s+n
 }
 
 func run(ip int, instrs map[string]instruction, prog []op, registers []int) []int {
@@ -70,147 +83,128 @@ func run(ip int, instrs map[string]instruction, prog []op, registers []int) []in
 		registers[ip]++
 		idx = registers[ip]
 	}
-
 	return registers
 }
 
-func cp(a []int) []int {
-	return append([]int{}, a...)
-}
-
-func updateIP(ip int, val int, registers []int) []int {
-	registers[ip] = val
-	return registers
+func ipcheck(r []int, ip, out int) []int {
+	if ip == out {
+		r[ip]--
+	}
+	return r
 }
 
 func getInstructions() map[string]instruction {
 	imap := make(map[string]instruction)
 	imap["addr"] = instruction{name: "addr", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		res := r[in.a] + r[in.b]
-		rc[out] = res
-		return rc
+		r[out] = res
+		return r
 	}}
 
 	imap["addi"] = instruction{name: "addi", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		res := r[in.a] + in.b
-		rc[out] = res
-		return rc
+		r[out] = res
+		return r
 	}}
 
 	imap["mulr"] = instruction{name: "mulr", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
-		res := r[in.a] * rc[in.b]
-		rc[out] = res
-		return rc
+		res := r[in.a] * r[in.b]
+		r[out] = res
+		return r
 	}}
 
 	imap["muli"] = instruction{name: "muli", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		res := r[in.a] * in.b
-		rc[out] = res
-		return rc
+		r[out] = res
+		return r
 	}}
 
 	imap["banr"] = instruction{name: "banr", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		res := r[in.a] & r[in.b]
-		rc[out] = res
-		return rc
+		r[out] = res
+		return r
 	}}
 
 	imap["bani"] = instruction{name: "bani", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		res := r[in.a] & in.b
-		rc[out] = res
-		return rc
+		r[out] = res
+		return r
 	}}
 
 	imap["borr"] = instruction{name: "borr", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		res := r[in.a] | r[in.b]
-		rc[out] = res
-		return rc
+		r[out] = res
+		return r
 	}}
 
 	imap["bori"] = instruction{name: "bori", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		res := r[in.a] | in.b
-		rc[out] = res
-		return rc
+		r[out] = res
+		return r
 	}}
 
 	imap["setr"] = instruction{name: "setr", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
-		rc[out] = r[in.a]
-		return rc
+		r[out] = r[in.a]
+		return r
 	}}
 
 	imap["seti"] = instruction{name: "seti", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
-		rc[out] = in.a
-		return rc
+		r[out] = in.a
+		return r
 	}}
 
 	imap["gtir"] = instruction{name: "gtir", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		v := 0
 		if in.a > r[in.b] {
 			v = 1
 		}
-		rc[out] = v
-		return rc
+		r[out] = v
+		return r
 	}}
 
 	imap["gtri"] = instruction{name: "gtri", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		v := 0
 		if r[in.a] > in.b {
 			v = 1
 		}
-		rc[out] = v
-		return rc
+		r[out] = v
+		return r
 	}}
 
 	imap["gtrr"] = instruction{name: "gtrr", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		v := 0
 		if r[in.a] > r[in.b] {
 			v = 1
 		}
-		rc[out] = v
-		return rc
+		r[out] = v
+		return r
 	}}
 
 	imap["eqir"] = instruction{name: "eqir", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		v := 0
 		if in.a == r[in.b] {
 			v = 1
 		}
-		rc[out] = v
-		return rc
+		r[out] = v
+		return r
 	}}
 
 	imap["eqri"] = instruction{name: "eqri", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		v := 0
 		if r[in.a] == in.b {
 			v = 1
 		}
-		rc[out] = v
-		return rc
+		r[out] = v
+		return r
 	}}
 
 	imap["eqrr"] = instruction{name: "eqrr", ops: make(map[int]bool), f: func(ip int, r []int, in inputs, out int) []int {
-		rc := cp(r)
 		v := 0
 		if r[in.a] == r[in.b] {
 			v = 1
 		}
-		rc[out] = v
-		return rc
+		r[out] = v
+		return r
 	}}
 
 	return imap
