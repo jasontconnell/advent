@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var input = "17_test.txt"
+var input = "17.txt"
 
 const (
 	XAxis int = iota
@@ -28,16 +28,13 @@ type spec struct {
 	origin     int
 	start, end int
 }
-
-type xy struct {
-	x, y int
-}
-
 type block struct {
-	xy
 	contents int
-	wet bool
+	wet      bool
+	dropped  bool
 }
+
+var depth int
 
 func (b block) canHold() bool {
 	return b.contents == Clay || b.contents == Water
@@ -86,8 +83,9 @@ func main() {
 		}
 	}
 
-	blocks, xshift := makeGrid(specs, 500, 0)
-	water := solve(blocks, 500-xshift, 0)
+	blocks, minx, miny := makeGrid(specs, 500, 0)
+	blocks = solve(blocks, 500-minx, 0)
+	water := countWater(blocks, miny)
 
 	fmt.Println("Part 1:", water)
 
@@ -105,16 +103,19 @@ func print(blocks [][]block) {
 	}
 }
 
-func solve(blocks [][]block, startx, starty int) int {
+func solve(blocks [][]block, startx, starty int) [][]block {
 	blocks = dropWater(blocks, startx, starty)
-	return countWater(blocks)
+	return blocks
 }
 
-func countWater(blocks [][]block) int {
+func countWater(blocks [][]block, miny int) int {
 	count := 0
 	for y := 0; y < len(blocks); y++ {
+		if y < miny {
+			continue
+		}
 		for x := 0; x < len(blocks[y]); x++ {
-			if blocks[y][x].isWater(){
+			if blocks[y][x].isWater() {
 				count++
 			}
 		}
@@ -122,9 +123,9 @@ func countWater(blocks [][]block) int {
 	return count
 }
 
-func dropWater(blocks [][]block, x, starty int) [][]block {
+func dropWater(blocks [][]block, x, y int) [][]block {
 	filled := false
-	y := starty
+	blocks[y][x].dropped = true
 	for !filled {
 		c := blocks[y][x].contents
 		switch c {
@@ -132,11 +133,11 @@ func dropWater(blocks [][]block, x, starty int) [][]block {
 			blocks[y][x].wet = true
 		case Water, Clay:
 			blocks, filled = fillArea(blocks, x, y-1)
-			y-=2
+			y -= 2
 		}
 		y++
 		if y == len(blocks) {
-			break
+			filled = true
 		}
 	}
 	return blocks
@@ -153,44 +154,50 @@ func fillArea(blocks [][]block, x, y int) ([][]block, bool) {
 		}
 	}
 
-	if !res && left > 0 && right < len(blocks[y]) {
+	if !res && right < len(blocks[y]) {
 		// drop water from overflow areas
 		xs := getOverflowX(blocks[y], left, right)
 		for _, ovx := range xs {
+			if blocks[y][ovx].dropped {
+				continue
+			}
+
 			blocks = dropWater(blocks, ovx, y)
 		}
+
+		depth++
 	}
 	return blocks, !res
 }
 
 func getOverflowX(row []block, left, right int) []int {
 	ret := []int{}
-	if !row[left-1].canHold() {
+	if left == 0 || !row[left-1].canHold() {
 		ret = append(ret, left)
 	}
 
-	if !row[right].canHold() {
+	if right == len(row) || !row[right].canHold() {
 		ret = append(ret, right)
 	}
 	return ret
 }
 
 func reachedBottom(blocks [][]block, y int) bool {
-	return y == len(blocks) - 1
+	return y == len(blocks)-1
 }
 
 func reservoirCheck(blocks [][]block, x, y int) (bool, int, int) {
 	reservoir := false
 	leftdone := false
 	left, right := 0, 0
-	for mx := x-1; !leftdone; mx-- {
+	for mx := x; !leftdone; mx-- {
 		if blocks[y][mx].canHold() && blocks[y+1][mx].canHold() {
 			leftdone = true
 			reservoir = true
-			left = mx+1
+			left = mx + 1
 		} else if mx == 0 || (!blocks[y][mx].canHold() && !blocks[y][mx-1].canHold() && !blocks[y+1][mx-1].canHold()) {
 			leftdone = true
-			left = mx
+			left = mx - 1
 		}
 	}
 
@@ -205,7 +212,7 @@ func reservoirCheck(blocks [][]block, x, y int) (bool, int, int) {
 			reservoir = false
 		}
 	}
-	
+
 	return reservoir, left, right // right is non-inclusive upper bound
 }
 
@@ -224,8 +231,8 @@ func waterAtBottom(blocks [][]block) bool {
 	return val
 }
 
-func makeGrid(specs []spec, springx, springy int) ([][]block, int) {
-	minx := 10000
+func makeGrid(specs []spec, springx, springy int) ([][]block, int, int) {
+	minx, miny := 10000, 10000
 	maxx, maxy := 0, 0
 
 	for _, s := range specs {
@@ -237,12 +244,18 @@ func makeGrid(specs []spec, springx, springy int) ([][]block, int) {
 			if s.origin < minx {
 				minx = s.origin
 			}
+			if s.start < miny {
+				miny = s.start
+			}
 			if s.end > maxy {
 				maxy = s.end
 			}
 		case YAxis:
 			if s.origin > maxy {
 				maxy = s.origin
+			}
+			if s.origin < miny {
+				miny = s.origin
 			}
 			if s.end > maxx {
 				maxx = s.end
@@ -253,35 +266,35 @@ func makeGrid(specs []spec, springx, springy int) ([][]block, int) {
 		}
 	}
 
-	ybound := maxy+1
-	xbound := maxx - minx + 3
+	minx = minx - 2
+	maxx = maxx - minx + 2
+
+	ybound := maxy + 1
 	blocks := make([][]block, ybound)
 	for y := 0; y < ybound; y++ {
-		blocks[y] = make([]block, xbound)
-		for x := 0; x < xbound; x++ {
+		blocks[y] = make([]block, maxx)
+		for x := 0; x < maxx; x++ {
 			blocks[y][x].contents = Sand
-			blocks[y][x].x = x
-			blocks[y][x].y = y
 		}
 	}
 
-	blocks[springy][springx-minx+1].contents = Spring
-	blocks[springy][springx-minx+1].x = springx
-	blocks[springy][springx-minx+1].y = springy
+	blocks[springy][springx-minx].contents = Spring
 
 	for _, s := range specs {
 		if s.axis == XAxis {
 			for y := s.start; y < s.end+1; y++ {
-				blocks[y][s.origin-minx+1].contents = Clay
+				adjx := s.origin - minx
+				blocks[y][adjx].contents = Clay
 			}
 		} else if s.axis == YAxis {
-			for x := s.start - minx + 1; x < s.end-minx+2; x++ {
-				blocks[s.origin][x].contents = Clay
+			for x := s.start; x <= s.end; x++ {
+				adjx := x - minx
+				blocks[s.origin][adjx].contents = Clay
 			}
 		}
 	}
 
-	return blocks, minx-1
+	return blocks, minx, miny
 }
 
 func getSpec(line string) *spec {
