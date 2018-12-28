@@ -125,6 +125,7 @@ func solve(res rescuer, grid [][]*block, goal block) int {
 }
 
 func getPath(res rescuer, goal block, grid [][]*block, travelTime, toolChangeTime int, visited map[xytool]bool) []state {
+	goalxyt := xytool{xy: goal.xy, tool: Torch}
 	curxytool := xytool{xy: res.xy, tool: res.tool}
 	start := state{current: curxytool, moves: []xytool{curxytool}, minutes: 0}
 	queue := []state{start}
@@ -146,8 +147,14 @@ func getPath(res rescuer, goal block, grid [][]*block, travelTime, toolChangeTim
 				minutes += travelTime
 			}
 
-			if mv.x == goal.x && mv.y == goal.y {
+			if mv.x == goalxyt.x && mv.y == goalxyt.y {
+				// if mv.tool != goalxyt.tool {
+				// 	mv.tool = goalxyt.tool
+				// 	minutes += toolChangeTime
+				// }
+
 				if minutes < minsolve {
+					fmt.Println(minutes)
 					minsolve = minutes
 					solves = append(solves, state{current: mv, moves: append(st.moves, mv), minutes: minutes})
 				}
@@ -184,11 +191,7 @@ func getMoves(grid [][]*block, start xy, goal xy) []xytool {
 
 		tools := []int{}
 		if tool == ClimbingGear|Torch {
-			// at end, must have torch
-			if mv.x != goal.x && mv.y != goal.y {
-				tools = append(tools, ClimbingGear)
-			}
-
+			tools = append(tools, ClimbingGear)
 			tools = append(tools, Torch)
 		} else {
 			tools = append(tools, tool)
@@ -198,9 +201,6 @@ func getMoves(grid [][]*block, start xy, goal xy) []xytool {
 		for _, tl := range tools {
 			res := xytool{xy: pt, tool: tl}
 			mvs = append(mvs, res)
-		}
-		if pt.x == goal.x && pt.y == goal.y {
-			fmt.Println("at goal", pt, toolstr(tool), tools, mvs)
 		}
 	}
 
