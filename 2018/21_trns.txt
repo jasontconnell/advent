@@ -1,0 +1,32 @@
+set ip to F
+0   set C = 123
+1   set C = C & 456
+2   set C = (C == 72 ? 1 : 0)
+3   set F = C + F
+4   set F = 0
+5   set C = 0
+6   set B = C | 65536
+7   set C = 1250634
+8   set D = B & 255   (D = 0)
+9   set C = C + D     (C = 1250634+0) (C = 1250634)
+10  set C = C & 16777215  ( C = 1250634 )
+11  set C = C * 65899   ( C = 82415529966)
+12  set C = C & 16777215   (C = 5844974)
+13  Set D = (B > 256 ? 1 : 0)
+14  set F = E + F   ( e == 0 ?)
+15  set F = F + 1
+16  set F = 27
+17  set D = 0
+18  set E = F + 1
+19  set D = D * 256
+20  set D = (D > B ? 1 : 0)
+21  set F = D + F
+22  set F = F + 1
+23  set F = 25
+24  set E = E + 1
+25  set F = 17
+26  set B = E
+27  set F = 7
+28  set E = (C==A ? 1 : 0)
+29  set F = F + E
+30  set F = 5  /// goto 5
