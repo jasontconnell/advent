@@ -117,8 +117,10 @@ func main() {
 	//draw(grid)
 
 	p1 := getLongest(grid)
+	p2 := getCountMin(grid, 1000)
 
 	fmt.Println("Part 1:", p1)
+	fmt.Println("Part 2:", p2)
 	fmt.Println("Time", time.Since(startTime))
 }
 
@@ -132,6 +134,18 @@ func getLongest(grid [][]block) int {
 		}
 	}
 	return max
+}
+
+func getCountMin(grid [][]block, min int) int {
+	cc := 0
+	for _, line := range grid {
+		for _, b := range line {
+			if b.contents == Open && b.dist >= min {
+				cc++
+			}
+		}
+	}
+	return cc
 }
 
 func draw(grid [][]block) {
