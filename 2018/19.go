@@ -58,7 +58,6 @@ func main() {
 	//p2reg := run(instreg, instrs, prog, []int{1, 0, 0, 0, 0, 0})
 	fmt.Println("Part 2:", p2crap(10551364))
 
-
 	fmt.Println("Time", time.Since(startTime))
 }
 
@@ -66,11 +65,11 @@ func p2crap(n int) int {
 	s := 0
 
 	for i := 1; i < n; i++ {
-		if n % i == 0 {
+		if n%i == 0 {
 			s += i
 		}
 	}
-	return s+n
+	return s + n
 }
 
 func run(ip int, instrs map[string]instruction, prog []op, registers []int) []int {
