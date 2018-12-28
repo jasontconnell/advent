@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 	"strconv"
 	"strings"
+	"time"
 	//"sort"
 )
 
@@ -60,7 +60,7 @@ func main() {
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func solvep1(ip int, instrs map[string]instruction, prog []op, maxcycles int) (int,int) {
+func solvep1(ip int, instrs map[string]instruction, prog []op, maxcycles int) (int, int) {
 	i := 0
 	_, c := run(ip, instrs, prog, []int{i, 0, 0, 0, 0, 0}, maxcycles)
 	return i, c
@@ -74,10 +74,10 @@ func solvep2(ip int, instrs map[string]instruction, prog []op, maxcycles int) in
 	//solves := []int{}
 	for {
 		reg, c := run(ip, instrs, prog, []int{i, 0, 0, 0, 0, 0}, maxcycles*1000)
-		if c > maxcycles * 1000 {
+		if c > maxcycles*1000 {
 			maxcycles = c
 			fmt.Println(c)
-		} else if c == -1{
+		} else if c == -1 {
 			fmt.Println("force halted", i, "at", maxcycles*1000)
 		}
 		i++

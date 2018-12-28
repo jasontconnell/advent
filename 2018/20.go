@@ -24,7 +24,7 @@ const (
 
 type block struct {
 	contents int
-	dist int
+	dist     int
 }
 
 const (
@@ -39,7 +39,7 @@ const (
 type node struct {
 	val      string
 	children []*node
-	open bool
+	open     bool
 }
 
 type xy struct {
@@ -187,13 +187,13 @@ func makeGrid(w, h int) [][]block {
 
 func traverse(grid [][]block, start xy, n *node, d int) [][]block {
 	for _, c := range n.children {
-		p,dt := path(grid, c.val, start, d)
+		p, dt := path(grid, c.val, start, d)
 		grid = traverse(grid, p, c, dt)
 	}
 	return grid
 }
 
-func path(grid [][]block, dirs string, start xy, d int) (xy,int) {
+func path(grid [][]block, dirs string, start xy, d int) (xy, int) {
 	p := start
 	dist := d
 	for _, c := range dirs {
@@ -202,28 +202,28 @@ func path(grid [][]block, dirs string, start xy, d int) (xy,int) {
 			grid[p.y+1][p.x].contents = HDoor
 			grid[p.y+2][p.x].contents = Open
 			if dist+1 < grid[p.y+2][p.x].dist {
-				grid[p.y+2][p.x].dist = dist+1
+				grid[p.y+2][p.x].dist = dist + 1
 			}
 			p.y += 2
 		case South:
 			grid[p.y-1][p.x].contents = HDoor
 			grid[p.y-2][p.x].contents = Open
 			if dist+1 < grid[p.y-2][p.x].dist {
-				grid[p.y-2][p.x].dist = dist+1
+				grid[p.y-2][p.x].dist = dist + 1
 			}
 			p.y -= 2
 		case East:
 			grid[p.y][p.x+1].contents = VDoor
 			grid[p.y][p.x+2].contents = Open
 			if dist+1 < grid[p.y][p.x+2].dist {
-				grid[p.y][p.x+2].dist = dist+1
+				grid[p.y][p.x+2].dist = dist + 1
 			}
 			p.x += 2
 		case West:
 			grid[p.y][p.x-1].contents = VDoor
 			grid[p.y][p.x-2].contents = Open
 			if dist+1 < grid[p.y][p.x-2].dist {
-				grid[p.y][p.x-2].dist = dist+1
+				grid[p.y][p.x-2].dist = dist + 1
 			}
 			p.x -= 2
 		}
@@ -254,7 +254,7 @@ func parse(line string) *node {
 		case Pipe:
 			curnode = stk.peekOpen()
 		case OpenParen:
-			n := &node{open:true}
+			n := &node{open: true}
 			curnode.children = append(curnode.children, n)
 			curnode = n
 			stk.push(curnode)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func main(){
+func main() {
 	var A, B, C, D, E, F int
 
 	cm := make(map[int]bool)
@@ -18,7 +18,7 @@ func main(){
 		C += E
 		C = C & 16777215
 		C = C * 65899
-    	C = C & 16777215
+		C = C & 16777215
 		if D < 256 {
 			if _, ok := cm[C]; !ok {
 				fmt.Println(C)
