@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
+	"container/heap"
+	"math"
 	"time"
 )
 
-var goal block = block{xy: xy{x: 12, y: 763}, gindex: 0}
+var goal xytool = xytool{xy: xy{x: 12, y: 763}, tool: Torch}
 var depth int = 7740
 
 var debug bool = true
-var dbgoal block = block{xy: xy{x: 10, y: 10}, gindex: 0}
+var dbgoal xytool = xytool{xy: xy{x: 10, y: 10}, tool: Torch}
 var dbdepth int = 510
 
 const (
@@ -47,19 +49,28 @@ type xytool struct {
 }
 
 func (xyt xytool) String() string {
-	return fmt.Sprintf("%s: %s", xyt.xy, toolstr(xyt.tool))
+	return fmt.Sprintf("(%d, %d, %s)", xyt.x, xyt.y, toolstr(xyt.tool))
 }
 
 type rescuer struct {
 	xy
-	tool int
+	tool    int
 	minutes int
+}
+
+func (r rescuer) String() string {
+	return fmt.Sprintf("rescuer at (%d, %d) with %s after %d minutes", r.x, r.y, toolstr(r.tool), r.minutes)
 }
 
 type state struct {
 	current xytool
 	moves   []xytool
+	// current xy
+	// moves   []xy
 	minutes int
+	steps   int
+	dist    int
+	// tool    int
 }
 
 func main() {
@@ -69,18 +80,36 @@ func main() {
 		depth = dbdepth
 	}
 
-	grid := makeGrid(goal.x*2, goal.y*2)
-	calcTerrain(grid, goal, depth)
+	pad := 40
+	grid := makeGrid(goal.x+pad, goal.y+pad)
+	calcTerrain(grid, goal, depth, pad)
 
 	p1 := sumTerrain(grid)
+	draw(grid)
 
 	res := rescuer{xy: xy{0, 0}, tool: Torch, minutes: 0} // You start at 0,0 (the mouth of the cave) with the torch equipped
 
 	fmt.Println("Part 1:", p1)
-	
+
 	p2 := solve(res, grid, goal)
 	fmt.Println("Part 2:", p2)
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func draw(grid [][]*block){
+	for y := 0; y < goal.y+20; y++ {
+		line := ""
+		for x := 0; x < goal.x+20; x++ {
+			var c rune
+			switch grid[y][x].terrain {
+			case Rocky: c = '.'
+			case Wet: c = '='
+			case Narrow: c = '|'
+			}
+			line += string(c)
+		}
+		fmt.Println(line)
+	}
 }
 
 func toolstr(tool int) string {
@@ -112,68 +141,108 @@ func terrstr(terrain int) string {
 	return s
 }
 
-func solve(res rescuer, grid [][]*block, goal block) int {
-	vmap := make(map[xytool]bool)
-	solves := getPath(res, goal, grid, 1, 7, vmap)
-	solve := solves[len(solves)-1]
-	
-	for _, mv := range solve.moves {
-		blk := grid[mv.y][mv.x]
-		fmt.Println("Moved to", mv.xy, "with tool", toolstr(mv.tool), "through", terrstr(blk.terrain), "terrain.")
-	}
-	return solve.minutes
+func solve(res rescuer, grid [][]*block, goal xytool) int {
+	return getPath(res, goal, grid, 1, 7)
 }
 
-func getPath(res rescuer, goal block, grid [][]*block, travelTime, toolChangeTime int, visited map[xytool]bool) []state {
-	goalxyt := xytool{xy: goal.xy, tool: Torch}
-	curxytool := xytool{xy: res.xy, tool: res.tool}
-	start := state{current: curxytool, moves: []xytool{curxytool}, minutes: 0}
-	queue := []state{start}
-	solves := []state{}
-	minsolve := 10000
+func abs(x int) int {
+	return int(math.Abs(float64(x)))
+}
 
-	for len(queue) > 0 {
-		st := queue[0]
-		queue = queue[1:]
+func distance(p1, p2 xy) int {
+	dx := abs(p1.x - p2.x)
+	dy := abs(p1.y - p2.y)
+	return dx + dy
+}
 
-		mvs := getMoves(grid, st.current.xy, goal.xy)
+type item struct {
+	pos xy
+	tool int
+	minutes int
+	index int
+	moves []xytool
+}
 
+type pqueue []*item
+
+func (pq pqueue) Len() int { return len(pq) }
+
+func (pq pqueue) Less(i, j int) bool {
+	return pq[i].minutes < pq[j].minutes
+}
+
+func (pq *pqueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	itm := old[n-1]
+	itm.index = -1
+	*pq = old[0 : n-1]
+	return itm
+}
+
+func (pq *pqueue) Push(x interface{}) {
+	n := len(*pq)
+	itm := x.(*item)
+	itm.index = n
+	*pq = append(*pq, itm)
+}
+
+func (pq pqueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].index = i
+	pq[j].index = j
+}
+
+func getPath(res rescuer, goal xytool, grid [][]*block, travelTime, toolChangeTime int) int {
+	start := xytool{xy: res.xy, tool: res.tool}
+	bail := 8
+	queue := pqueue{
+		&item{pos: start.xy, tool: start.tool, minutes: 0, index: 0, moves: []xytool{start}},
+	}
+	heap.Init(&queue)
+
+	distances := make(map[xytool]int)
+	distances[start] = 0
+
+	for queue.Len() > 0 {
+		pt := (heap.Pop(&queue)).(*item)
+		ptx := xytool{xy: pt.pos, tool: pt.tool}
+
+		if pt.pos == goal.xy && pt.tool == goal.tool {
+			fmt.Println("solved!", pt.moves)
+			return pt.minutes
+		}
+
+		if pt.pos.x > bail * goal.x || pt.pos.y > bail * goal.y {
+			continue
+		}
+
+		if minutes, ok := distances[ptx]; ok && minutes < pt.minutes {
+			continue
+		}
+
+		mvs := getMoves(grid, ptx.xy, ptx.tool)
+		fmt.Println("from", ptx, "got moves", mvs)
 		for _, mv := range mvs {
-			minutes := st.minutes
-
-			if st.current.tool != mv.tool {
-				minutes += toolChangeTime + travelTime
-			} else {
-				minutes += travelTime
+			m := 1
+			if mv.tool != ptx.tool {
+				m = 8 // move plus swap
 			}
-
-			if mv.x == goalxyt.x && mv.y == goalxyt.y {
-				// if mv.tool != goalxyt.tool {
-				// 	mv.tool = goalxyt.tool
-				// 	minutes += toolChangeTime
-				// }
-
-				if minutes < minsolve {
-					fmt.Println(minutes)
-					minsolve = minutes
-					solves = append(solves, state{current: mv, moves: append(st.moves, mv), minutes: minutes})
-				}
-			}
-
-			if _, ok := visited[mv]; !ok {
-				visited[mv] = true
-
-				if minutes+travelTime < minsolve { // assume just travel time
-					queue = append(queue, state{current: mv, moves: append(st.moves, mv), minutes: minutes})
-				}
+			if minutes, ok := distances[mv]; !ok || pt.minutes + m < minutes {
+				distances[mv] = pt.minutes + m
+				cp := make([]xytool, len(pt.moves))
+				copy(cp, pt.moves)
+				cp = append(cp, mv)
+				fmt.Println("trail from", ptx, cp)
+				heap.Push(&queue, &item{pos: mv.xy, minutes: pt.minutes+m, tool: mv.tool, moves: cp})
 			}
 		}
 	}
 
-	return solves
+	return 0
 }
 
-func getMoves(grid [][]*block, start xy, goal xy) []xytool {
+func getMoves(grid [][]*block, start xy, equipped int) []xytool {
 	maxy := len(grid)
 	maxx := len(grid[0])
 	mvs := []xytool{}
@@ -189,20 +258,24 @@ func getMoves(grid [][]*block, start xy, goal xy) []xytool {
 		}
 		tool := validTools(grid, pt)
 
-		tools := []int{}
-		if tool == ClimbingGear|Torch {
-			tools = append(tools, ClimbingGear)
-			tools = append(tools, Torch)
-		} else {
-			tools = append(tools, tool)
-			tools = append(tools, None)
-		}
-
-		for _, tl := range tools {
-			res := xytool{xy: pt, tool: tl}
-			mvs = append(mvs, res)
+		if tool == equipped || (tool&equipped) == equipped {
+			xyt := xytool{xy: pt, tool: equipped}
+			mvs = append(mvs, xyt)
 		}
 	}
+
+	v := validTools(grid, start)
+	swtool := xytool{xy: start, tool: v ^ equipped}
+	// if v == ClimbingGear|Torch {
+	// 	swtool.tool = ClimbingGear
+	// 	if equipped == ClimbingGear {
+	// 		swtool.tool = Torch
+	// 	}
+	// } else if equipped != None {
+	// 	swtool.tool = None
+	// }
+
+	mvs = append(mvs, swtool)
 
 	return mvs
 }
@@ -233,9 +306,9 @@ func validTools(grid [][]*block, pt xy) int {
 	return tools
 }
 
-func calcTerrain(grid [][]*block, goal block, depth int) {
-	for y := 0; y < goal.y+1; y++ {
-		for x := 0; x < goal.x+1; x++ {
+func calcTerrain(grid [][]*block, goal xytool, depth, pad int) {
+	for y := 0; y < goal.y+pad; y++ {
+		for x := 0; x < goal.x+pad; x++ {
 			geologicIndex(grid, grid[y][x], goal, depth)
 			erosionLevel(grid, grid[y][x], goal, depth)
 		}
@@ -252,7 +325,7 @@ func makeGrid(x, y int) [][]*block {
 	return grid
 }
 
-func geologicIndex(grid [][]*block, pt *block, goal block, depth int) int {
+func geologicIndex(grid [][]*block, pt *block, goal xytool, depth int) int {
 	if pt.gindex != 0 {
 		return pt.gindex
 	}
@@ -279,7 +352,7 @@ func geologicIndex(grid [][]*block, pt *block, goal block, depth int) int {
 	return pt.gindex
 }
 
-func erosionLevel(grid [][]*block, pt *block, goal block, depth int) int {
+func erosionLevel(grid [][]*block, pt *block, goal xytool, depth int) int {
 	if pt.erosioncheck {
 		return pt.erosion
 	}

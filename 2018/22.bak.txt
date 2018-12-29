@@ -1,0 +1,71 @@
+visited := make(map[xytool]int)
+
+	xyt := xytool{xy: res.xy, tool: res.tool}
+	start := state{current: xyt, moves: []xytool{xyt}, minutes: 0, steps: 0}
+	queue := []state{start}
+	solves := []state{}
+	minsolve := 10000
+	d := 0
+
+	for len(queue) > 0 {
+		st := queue[0]
+		queue = queue[1:]
+
+		mvs := getMoves(grid, st.current.xy, st.current.tool)
+		fmt.Println("from", st.current, "got moves", mvs)
+		fmt.Println("Current moves", st.moves)
+
+		for _, mv := range mvs {
+			minutes := st.minutes
+			//minchange := travelTime
+			steps := st.steps
+
+			if mv.tool == st.current.tool {
+				minutes += travelTime
+				steps++
+			} else {
+				minutes += toolChangeTime
+				//minchange = toolChangeTime
+			}
+
+			cp := make([]xytool, len(st.moves))
+			copy(cp, st.moves)
+			cp = append(cp, mv)
+
+			mvstate := state{current: mv, moves: cp, minutes: minutes, steps: steps, dist: distance(mv.xy, goal.xy)}
+			fmt.Println(mv, "----New moves", mvstate.moves)
+			d++
+			// if d > 400 {
+			// 	return nil
+			// }
+
+			if mv.x == goal.x && mv.y == goal.y && mv.tool == goal.tool {
+				fmt.Println("Goal reached!!", mvstate.current)
+				if minutes < minsolve {
+					minsolve = minutes
+					solves = append(solves, mvstate)
+				}
+			} else {
+				h := mvstate.minutes
+				ph, ok := visited[mv]
+				if !ok {
+					visited[mv] = h
+	
+					if mvstate.minutes+travelTime < minsolve {
+						queue = append(queue, mvstate)
+					} else {
+						fmt.Println("not queued", mvstate.moves, mvstate.minutes, minsolve)
+					}
+				} else {
+					if h < ph || h == ph+toolChangeTime { // changed
+						queue = append(queue, mvstate)
+					} else {
+						fmt.Println("not queued", mvstate.moves, mvstate.minutes, minsolve)
+					}
+				}
+	
+			}
+
+		}
+		fmt.Println("=======================================")
+	}
