@@ -38,7 +38,7 @@ type block struct {
 }
 
 const (
-	None         int =1 << iota // 00
+	None int = 1 << iota // 00
 	ClimbingGear
 	Torch
 )
