@@ -79,7 +79,7 @@ func reverse(groups []group) []group {
 func sortGroupsEffPower(groups []group) []group {
 	sfunc := func(i, j int) bool {
 		epi, epj := groups[i].effectivePower(), groups[j].effectivePower()
-		ini, inj := -groups[i].initiative, -groups[j].initiative
+		ini, inj := groups[i].initiative, groups[j].initiative
 
 		if epi == epj {
 			return ini < inj
@@ -95,7 +95,7 @@ func sortGroupsEffDamage(attacker group, groups []group) []group {
 	sfunc := func(i, j int) bool {
 		edi, edj := attacker.effectiveDamage(groups[i]), attacker.effectiveDamage(groups[j])
 		epi, epj := groups[i].effectivePower(), groups[j].effectivePower()
-		ini, inj := -groups[i].initiative, -groups[j].initiative
+		ini, inj := groups[i].initiative, groups[j].initiative
 
 		if edi == edj {
 			if epi == epj {
@@ -256,11 +256,6 @@ func attack(groups []group, m map[int]int) ([]group, int) {
 				break
 			}
 
-			if ag.units == 0 {
-				// fmt.Println(g, "Can't attack", ag)
-				continue
-			}
-
 			ed := g.effectiveDamage(ag)
 
 			killed := ed / ag.hp
@@ -329,7 +324,6 @@ func chooseAttacks(groups []group, m map[int]map[int]int) map[int]int {
 			atks[g.id] = en.id
 			chosen = true
 		}
-		m[g.team] = tm
 	}
 	return atks
 }
