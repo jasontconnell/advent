@@ -162,13 +162,11 @@ func solvePart2(groups []group) int {
 	ans := 0
 	done := false
 	for !done {
-		fmt.Println("Trying boost", boost)
 		grps := append([]group{}, groups...)
 		grps = boostTeam(grps, team, boost)
 		grps = sim(grps)
 		if teamDead(grps) && winningTeam(grps) == team {
 			ans = livingUnits(grps)
-			fmt.Println("boost is", boost, grps)
 			done = true
 		}
 		boost++
@@ -263,7 +261,6 @@ func attack(groups []group, m map[int]int) ([]group, int) {
 				killed = ag.units
 			}
 
-			// fmt.Println(g, ed, "attacked", ag, ag.units * ag.hp, "and killed", killed, g.atktype, ag.weak)
 			total += killed
 			ag.units = ag.units - killed
 			gclone = updateUnits(ag, gclone)
@@ -295,7 +292,6 @@ func chooseAttacks(groups []group, m map[int]map[int]int) map[int]int {
 		if g.effectivePower() == 0 {
 			continue
 		}
-		// fmt.Println(g, "can attack", enlist)
 		tm := m[g.team] // target map
 		chosen := false
 		for _, en := range enlist {
@@ -311,15 +307,10 @@ func chooseAttacks(groups []group, m map[int]map[int]int) map[int]int {
 				continue // can't do any damage ... because this is sorted by effective damage first, probably an end state
 			}
 
-			if g.effectiveDamage(en) < en.hp && len(atks) == 1 {
-				// fmt.Println(g, " !!! ", en )
-			}
-
 			if en.units == 0 {
 				continue // can't attack empty group
 			}
 
-			// fmt.Println(g.name, g.id, "chooses to attack", en.name, en.id)
 			tm[en.id] = g.id // mark this enemy as being attacked by this g
 			atks[g.id] = en.id
 			chosen = true
