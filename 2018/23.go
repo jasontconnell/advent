@@ -6,7 +6,6 @@ import (
 	"math"
 	"os"
 	"regexp"
-	"sort"
 	"strconv"
 	"time"
 )
@@ -16,6 +15,8 @@ var input = "23.txt"
 type xyz struct {
 	x, y, z int
 }
+
+var origin xyz = xyz{0, 0, 0}
 
 func (p xyz) String() string {
 	return fmt.Sprintf("(%d, %d, %d)", p.x, p.y, p.z)
@@ -35,6 +36,12 @@ type nanobotdist struct {
 type result struct {
 	xyz
 	num int
+}
+
+type state struct {
+	point        xyz
+	inrangeof    int
+	distfromorig int
 }
 
 func main() {
@@ -85,54 +92,129 @@ func getInRangeOfStrongest(bots []nanobot) int {
 }
 
 func getOptimal(bots []nanobot) int {
-	max := 0
-	optimal := xyz{}
-	r := 0
 
-	for _, b := range bots {
-		inrng := getInRangePoint(b.xyz, bots)
-		if inrng > max {
-			max = inrng
-			optimal = b.xyz
-			r = b.radius
+	var minsolvedist int
+	var maxsolveinrng int
+	maxdiv := 8 // 10^maxdiv
+	itr := 1
+	maxdev := 100
+	optimalfound := false
+
+	_, scalex, _, scaley, _, scalez := minmax(bots)
+	maxpt := int(math.Max(float64(scalex), float64(scaley)))
+	maxpt = int(math.Max(float64(maxpt), float64(scalez)))
+	var optimal xyz
+
+	for itr <= maxdiv {
+		scale := 1
+		if maxpt > 100 {
+			scale = int(math.Pow10(maxdiv - itr))
+		} else {
+			itr = 9
+		}
+		clone := scalePoints(bots, scale)
+
+		if !optimalfound {
+			maxinrange := 0
+			for _, b := range clone {
+				inrng := getInRangePoint(b.xyz, clone)
+				if inrng > maxinrange {
+					optimal = b.xyz
+					maxinrange = inrng
+					optimalfound = true
+				}
+			}
+		} else {
+			optimal = scalePointUp(optimal, 10)
+		}
+
+		start := optimal
+
+		solves := search(start, clone, maxdev)
+
+		minsolvedist = math.MaxInt32
+		maxsolveinrng = math.MinInt32
+
+		for _, s := range solves {
+			if s.inrangeof > maxsolveinrng || (s.inrangeof == maxsolveinrng && s.distfromorig < minsolvedist) {
+				minsolvedist = s.distfromorig
+				maxsolveinrng = s.inrangeof
+				optimal = s.point
+			}
+		}
+		itr++
+	}
+
+	return minsolvedist
+}
+
+func search(point xyz, bots []nanobot, maxdev int) []state {
+	curInRange := getInRangePoint(point, bots)
+	distorig := distance(origin, point)
+	queue := []state{state{point: point, inrangeof: curInRange, distfromorig: distorig}}
+	visited := make(map[xyz]bool)
+	solves := []state{queue[0]}
+
+	for len(queue) > 0 {
+		st := queue[0]
+		queue = queue[1:]
+
+		mvs := getMoves(st.point)
+		for _, mv := range mvs {
+			mvstate := state{point: mv, inrangeof: getInRangePoint(mv, bots), distfromorig: distance(origin, mv)}
+
+			if mvstate.inrangeof > curInRange || (mvstate.inrangeof == curInRange && mvstate.distfromorig < distorig) {
+				solves = append(solves, mvstate)
+				curInRange = mvstate.inrangeof
+			}
+
+			if _, ok := visited[mv]; !ok {
+				visited[mv] = true
+
+				dev := distance(point, mv)
+				if mvstate.inrangeof >= curInRange && dev < maxdev {
+					queue = append(queue, mvstate)
+				}
+			}
 		}
 	}
-	fmt.Println("Max in range is", max, optimal)
 
-	dists := []nanobotdist{}
-	for _, b := range bots {
-		d := distance(optimal, b.xyz)
-		inrange := d <= r
-		dists = append(dists, nanobotdist{b, d, inrange})
+	return solves
+}
+
+func scalePointUp(point xyz, scale int) xyz {
+	point.x = point.x * scale
+	point.y = point.y * scale
+	point.z = point.z * scale
+	return point
+}
+
+func scalePoints(points []nanobot, scale int) []nanobot {
+	clone := append([]nanobot{}, points...)
+	for i := 0; i < len(clone); i++ {
+		pt := clone[i]
+		pt.x = pt.x / scale
+		pt.y = pt.y / scale
+		pt.z = pt.z / scale
+		pt.radius = pt.radius / scale
+		clone[i] = pt
 	}
+	return clone
+}
 
-	sort.Slice(dists, func(i, j int) bool {
-		return dists[i].distance < dists[j].distance
-	})
-
-	// xmv := optimal.x / 2
-	// ymv := optimal.y / 2
-	// zmv := optimal.z / 2
-	// found := false
-	fmt.Println("optimal is", optimal)
-
-	// for !found {
-	// 	pt := xyz{xmv, ymv, zmv}
-	// 	num := getInRangePoint(pt, bots)
-	// 	fmt.Println(num)
-	// 	if num >= max {
-	// 		max = num
-	// 		optimal = pt
-	// 	} else {
-	// 		found = true
-	// 	}
-
-	// 	xmv--
-	// 	ymv--
-	// 	zmv--
-	// }
-
-	return distance(optimal, xyz{0, 0, 0})
+func getMoves(pt xyz) []xyz {
+	vars := []xyz{}
+	for _, p := range []xyz{
+		xyz{x: 1, y: 0, z: 0},
+		xyz{x: 0, y: 1, z: 0},
+		xyz{x: 0, y: 0, z: 1},
+		xyz{x: -1, y: 0, z: 0},
+		xyz{x: 0, y: -1, z: 0},
+		xyz{x: 0, y: 0, z: -1},
+	} {
+		vars = append(vars, xyz{x: pt.x + p.x, y: pt.y + p.y, z: pt.z + p.z})
+	}
+	return vars
 }
 
 func getInRangePoint(pt xyz, bots []nanobot) int {
@@ -183,4 +265,38 @@ func distance(p1, p2 xyz) int {
 	dy := abs(p1.y - p2.y)
 	dz := abs(p1.z - p2.z)
 	return dx + dy + dz
+}
+
+func minmax(bots []nanobot) (minx, maxx, miny, maxy, minz, maxz int) {
+	minx, maxx = math.MaxInt32, math.MinInt32
+	miny, maxy = math.MaxInt32, math.MinInt32
+	minz, maxz = math.MaxInt32, math.MinInt32
+
+	for _, b := range bots {
+		if b.x < minx {
+			minx = b.x
+		}
+
+		if b.x > maxx {
+			maxx = b.x
+		}
+
+		if b.y < miny {
+			miny = b.y
+		}
+
+		if b.y > maxy {
+			maxy = b.y
+		}
+
+		if b.z < minz {
+			minz = b.z
+		}
+
+		if b.z > maxz {
+			maxz = b.z
+		}
+	}
+
+	return
 }
