@@ -9,6 +9,7 @@ import (
 	//"strconv"
 	//"strings"
 )
+
 var input = "18.txt"
 
 type Light struct {
@@ -17,7 +18,9 @@ type Light struct {
 
 func (light Light) String() string {
 	c := "."
-	if light.On { c = "#" }
+	if light.On {
+		c = "#"
+	}
 	return c
 }
 
@@ -35,10 +38,10 @@ func main() {
 			lights = append(lights, []Light{})
 			x := 0
 
-			for _,c := range txt {
+			for _, c := range txt {
 				r := rune(c)
 
-				light := Light{ On: r == '#' }
+				light := Light{On: r == '#'}
 				lights[y] = append(lights[y], light)
 				x++
 			}
@@ -66,7 +69,7 @@ func main() {
 }
 
 // animate 1 step
-func Animate(lights [][]Light) ([][]Light) {
+func Animate(lights [][]Light) [][]Light {
 	animated := make([][]Light, len(lights))
 	for i := 0; i < len(lights); i++ {
 		animated[i] = make([]Light, len(lights[i]))
@@ -76,7 +79,7 @@ func Animate(lights [][]Light) ([][]Light) {
 	for y := 0; y < len(animated); y++ {
 		row := animated[y]
 		for x := 0; x < len(row); x++ {
-			isCorner := (y==0 || y == 99) && (x == 0 || x == 99)
+			isCorner := (y == 0 || y == 99) && (x == 0 || x == 99)
 			if isCorner {
 				continue
 			}
@@ -93,7 +96,7 @@ func Animate(lights [][]Light) ([][]Light) {
 	return animated
 }
 
-func PrintGrid(lights [][]Light){
+func PrintGrid(lights [][]Light) {
 	for y := 0; y < len(lights); y++ {
 		row := lights[y]
 		for x := 0; x < len(row); x++ {
@@ -105,14 +108,30 @@ func PrintGrid(lights [][]Light){
 
 func NeighborCount(lights [][]Light, y, x int) int {
 	count := 0
-	if x > 0 && lights[y][x-1].On { count++ }
-	if x < len(lights[y])-1 && lights[y][x+1].On { count++ }
-	if x > 0 && y > 0 && lights[y-1][x-1].On { count++ }
-	if x < len(lights[y])-1 && y < len(lights)-1 && lights[y+1][x+1].On { count++ }
-	if y > 0 && lights[y-1][x].On { count++ }
-	if y < len(lights)-1 && lights[y+1][x].On { count++ }
-	if y < len(lights)-1 && x > 0 && lights[y+1][x-1].On { count++ }
-	if y > 0 && x < len(lights[y])-1 && lights[y-1][x+1].On { count++ }
+	if x > 0 && lights[y][x-1].On {
+		count++
+	}
+	if x < len(lights[y])-1 && lights[y][x+1].On {
+		count++
+	}
+	if x > 0 && y > 0 && lights[y-1][x-1].On {
+		count++
+	}
+	if x < len(lights[y])-1 && y < len(lights)-1 && lights[y+1][x+1].On {
+		count++
+	}
+	if y > 0 && lights[y-1][x].On {
+		count++
+	}
+	if y < len(lights)-1 && lights[y+1][x].On {
+		count++
+	}
+	if y < len(lights)-1 && x > 0 && lights[y+1][x-1].On {
+		count++
+	}
+	if y > 0 && x < len(lights[y])-1 && lights[y-1][x+1].On {
+		count++
+	}
 	return count
 }
 
@@ -127,4 +146,4 @@ func Count(lights [][]Light, state bool) int {
 		}
 	}
 	return count
-} 
+}

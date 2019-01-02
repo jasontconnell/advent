@@ -4,24 +4,25 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 	"regexp"
 	"strconv"
+	"time"
 	//"strings"
 	"sort"
 )
+
 var input = "14.txt"
 
 type Deer struct {
-	Name string
-	Speed int
-	Duration int
-	Rest int
-	Distance int
+	Name       string
+	Speed      int
+	Duration   int
+	Rest       int
+	Distance   int
 	BurstStart int
-	BurstStop int
-	NextBurst int
-	Points int
+	BurstStop  int
+	NextBurst  int
+	Points     int
 }
 
 func (deer Deer) String() string {
@@ -33,6 +34,7 @@ type DeerList []Deer
 type DeerListDistanceSorter struct {
 	Entries DeerList
 }
+
 func (p DeerListDistanceSorter) Len() int {
 	return len(p.Entries)
 }
@@ -46,6 +48,7 @@ func (p DeerListDistanceSorter) Swap(i, j int) {
 type DeerListPointsSorter struct {
 	Entries DeerList
 }
+
 func (p DeerListPointsSorter) Len() int {
 	return len(p.Entries)
 }
@@ -67,11 +70,11 @@ func main() {
 		for scanner.Scan() {
 			var txt = scanner.Text()
 			if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				speed,_ := strconv.Atoi(groups[2])
-				duration,_ := strconv.Atoi(groups[3])
-				rest,_ := strconv.Atoi(groups[4])
+				speed, _ := strconv.Atoi(groups[2])
+				duration, _ := strconv.Atoi(groups[3])
+				rest, _ := strconv.Atoi(groups[4])
 
-				deer := Deer { Name: groups[1], Speed: speed, Duration: duration, Rest: rest, BurstStart: 0, BurstStop: duration }
+				deer := Deer{Name: groups[1], Speed: speed, Duration: duration, Rest: rest, BurstStart: 0, BurstStop: duration}
 				list = append(list, deer)
 			}
 		}
@@ -84,7 +87,7 @@ func main() {
 
 				if i >= deer.BurstStart && i < deer.BurstStop {
 					deer.Distance += deer.Speed
-				} 
+				}
 
 				if i == deer.BurstStop {
 					deer.BurstStart = i + deer.Rest
@@ -92,7 +95,7 @@ func main() {
 				}
 			}
 
-			sorter := DeerListDistanceSorter{ Entries: list }
+			sorter := DeerListDistanceSorter{Entries: list}
 			sort.Sort(sort.Reverse(sorter))
 
 			inLead := sorter.Entries[0].Distance
@@ -103,13 +106,11 @@ func main() {
 			}
 		}
 
-
-		sorter := DeerListDistanceSorter{ Entries: list }
+		sorter := DeerListDistanceSorter{Entries: list}
 		sort.Sort(sort.Reverse(sorter))
 		fmt.Println("First place for furthest distance:", sorter.Entries[0])
 
-
-		pointsSorter := DeerListPointsSorter{ Entries: list}
+		pointsSorter := DeerListPointsSorter{Entries: list}
 		sort.Sort(sort.Reverse(pointsSorter))
 
 		fmt.Println("First place for most points:", sorter.Entries[0])

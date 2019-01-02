@@ -9,15 +9,16 @@ import (
 	//"strings"
 	"sort"
 )
+
 var input = "9.txt"
 
 type Route struct {
-	Source string
+	Source      string
 	Destination string
-	Miles int
+	Miles       int
 }
 
-func (route Route) String() string{
+func (route Route) String() string {
 	return route.Source + " to " + route.Destination + " is " + strconv.Itoa(route.Miles) + " miles"
 }
 
@@ -27,7 +28,7 @@ func (route Route) Key() string {
 
 type FullRoute struct {
 	Cities []string
-	Miles int
+	Miles  int
 }
 
 type FullRouteList []FullRoute
@@ -35,6 +36,7 @@ type FullRouteList []FullRoute
 type FullRouteListSorter struct {
 	Entries FullRouteList
 }
+
 func (p FullRouteListSorter) Len() int {
 	return len(p.Entries)
 }
@@ -45,10 +47,9 @@ func (p FullRouteListSorter) Swap(i, j int) {
 	p.Entries[i], p.Entries[j] = p.Entries[j], p.Entries[i]
 }
 
-
 func (fullRoute FullRoute) String() string {
 	s := ""
-	for _,c := range fullRoute.Cities {
+	for _, c := range fullRoute.Cities {
 		s += c + "-> "
 	}
 	s += "=" + strconv.Itoa(fullRoute.Miles)
@@ -59,7 +60,7 @@ func main() {
 	if f, err := os.Open(input); err == nil {
 		scanner := bufio.NewScanner(f)
 
-		reg,_ := regexp.Compile(`^(.*?) to (.*?) = ([0-9]+)$`)
+		reg, _ := regexp.Compile(`^(.*?) to (.*?) = ([0-9]+)$`)
 
 		cities := []string{}
 		routes := make(map[string]Route)
@@ -67,11 +68,11 @@ func main() {
 		for scanner.Scan() {
 			var txt = scanner.Text()
 			if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				miles,err := strconv.Atoi(groups[3])
+				miles, err := strconv.Atoi(groups[3])
 				if err != nil {
 					panic(err)
 				}
-				route := Route{Source: groups[1], Destination: groups[2], Miles: miles }
+				route := Route{Source: groups[1], Destination: groups[2], Miles: miles}
 				routes[route.Key()] = route
 
 				if !Contains(cities, route.Source) {
@@ -87,7 +88,7 @@ func main() {
 		permutations := Permutate(cities)
 		list := FullRouteList{}
 
-		for _,perm := range permutations {
+		for _, perm := range permutations {
 			fullRoute := FullRoute{}
 			fullRoute.Cities = append(fullRoute.Cities, perm[0])
 
@@ -110,7 +111,7 @@ func main() {
 
 		fmt.Println(len(list))
 
-		sorter := FullRouteListSorter{ Entries: list }
+		sorter := FullRouteListSorter{Entries: list}
 		sort.Sort(sorter)
 
 		fmt.Println(sorter.Entries[0])
@@ -124,8 +125,8 @@ func Permutate(str []string) [][]string {
 	var ret [][]string
 
 	if len(str) == 2 {
-		ret = append(ret, []string{ str[0], str[1] })
-		ret = append(ret, []string{ str[1], str[0] })
+		ret = append(ret, []string{str[0], str[1]})
+		ret = append(ret, []string{str[1], str[0]})
 	} else {
 
 		for i := 0; i < len(str); i++ {
@@ -135,9 +136,9 @@ func Permutate(str []string) [][]string {
 			t := strc[i]
 			sh := append(strc[:i], strc[i+1:]...)
 			perm := Permutate(sh)
-			
-			for _,p := range perm {
-				p = append([]string{ t }, p...)
+
+			for _, p := range perm {
+				p = append([]string{t}, p...)
 				ret = append(ret, p)
 			}
 		}
@@ -147,7 +148,7 @@ func Permutate(str []string) [][]string {
 }
 
 func Contains(ss []string, s string) bool {
-	for _,t := range ss {
+	for _, t := range ss {
 		if t == s {
 			return true
 		}

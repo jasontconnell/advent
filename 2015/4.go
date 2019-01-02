@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"crypto/md5"
-	"strings"
-	"strconv"
+	"fmt"
 	"io"
+	"strconv"
+	"strings"
 )
 
 var input = "iwrupvqb"

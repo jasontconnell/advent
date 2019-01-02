@@ -4,17 +4,18 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 	"regexp"
 	"strconv"
+	"time"
 	//"strings"
 )
+
 var input = "23.txt"
 
 type Instruction struct {
-	Text string
+	Text     string
 	Register string
-	Value int
+	Value    int
 }
 
 func main() {
@@ -30,20 +31,20 @@ func main() {
 
 			reg := regexp.MustCompile(`([a-z]+) (\-?\+?[a-z0-9]+),? ?(\-?\+?[a-z0-9]+)?$`)
 			if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				instruction := Instruction{ Text: groups[1] }
+				instruction := Instruction{Text: groups[1]}
 				if groups[2] == "a" || groups[2] == "b" {
 					instruction.Register = groups[2]
 
-					if _,exists := registers[instruction.Register]; !exists {
+					if _, exists := registers[instruction.Register]; !exists {
 						registers[instruction.Register] = 0
 					}
 				} else {
-					val,_ := strconv.Atoi(groups[2])
+					val, _ := strconv.Atoi(groups[2])
 					instruction.Value = val
 				}
 
 				if groups[3] != "" {
-					val,_ := strconv.Atoi(groups[3])
+					val, _ := strconv.Atoi(groups[3])
 					instruction.Value = val
 				}
 
@@ -73,28 +74,29 @@ func Execute(list []Instruction, registers map[string]int) {
 		inst := list[current]
 
 		switch inst.Text {
-			case "hlf": 
-				registers[inst.Register] = registers[inst.Register]/2
+		case "hlf":
+			registers[inst.Register] = registers[inst.Register] / 2
+			current++
+		case "tpl":
+			registers[inst.Register] = registers[inst.Register] * 3
+			current++
+		case "inc":
+			registers[inst.Register] = registers[inst.Register] + 1
+			current++
+		case "jmp":
+			current = current + inst.Value
+		case "jie":
+			if registers[inst.Register]%2 == 0 {
+				current = current + inst.Value
+			} else {
 				current++
-			case "tpl": 
-				registers[inst.Register] = registers[inst.Register]*3
+			}
+		case "jio":
+			if registers[inst.Register] == 1 {
+				current = current + inst.Value
+			} else {
 				current++
-			case "inc": 
-				registers[inst.Register] = registers[inst.Register]+1
-				current++
-			case "jmp": current = current + inst.Value
-			case "jie": 
-				if registers[inst.Register] % 2 == 0 {
-					current = current + inst.Value
-				} else {
-					current++
-				}
-			case "jio": 
-				if registers[inst.Register] == 1 {
-					current = current + inst.Value
-				} else {
-					current++
-				}
+			}
 		}
 
 		done = current > len(list)-1

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"bufio"
+	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	//"strings"
@@ -13,18 +13,18 @@ var input = "7.txt"
 
 type Wire struct {
 	Name string
-	
+
 	LeftEvaluated bool
-	LeftString string
-	LeftWire *Wire
-	Left uint16
+	LeftString    string
+	LeftWire      *Wire
+	Left          uint16
 
 	RightEvaluated bool
-	RightString string
-	RightWire *Wire
-	Right uint16
-	
-	Gate string
+	RightString    string
+	RightWire      *Wire
+	Right          uint16
+
+	Gate   string
 	Result uint16
 
 	Original string
@@ -34,18 +34,18 @@ func (w *Wire) String() string {
 	return w.Name + ": { " + w.LeftString + " " + w.Gate + " " + w.RightString + " } ---- " + w.Original
 }
 
-func main(){
-	if f,err := os.Open(input); err == nil {
+func main() {
+	if f, err := os.Open(input); err == nil {
 		scanner := bufio.NewScanner(f)
 
 		pattern := "^([a-z0-9]*?) ?([A-Z]*?) ?([a-z0-9]*?) -> ([a-z]{1,2})$"
-		
-		numreg,rerr := regexp.Compile("^[0-9]+$")
+
+		numreg, rerr := regexp.Compile("^[0-9]+$")
 		if rerr != nil {
 			panic(rerr)
 		}
 
-		reg,rerr := regexp.Compile(pattern)
+		reg, rerr := regexp.Compile(pattern)
 		if rerr != nil {
 			panic(rerr)
 		}
@@ -58,17 +58,17 @@ func main(){
 			var txt = scanner.Text()
 
 			if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				wire :=  &Wire{ Name: groups[4], Gate: groups[2], Original: groups[0], LeftString: groups[1], RightString: groups[3] }
+				wire := &Wire{Name: groups[4], Gate: groups[2], Original: groups[0], LeftString: groups[1], RightString: groups[3]}
 
 				if numreg.Match([]byte(wire.LeftString)) {
-					if v1,perr := strconv.ParseUint(wire.LeftString, 10, 16); perr == nil {
+					if v1, perr := strconv.ParseUint(wire.LeftString, 10, 16); perr == nil {
 						wire.Left = uint16(v1)
 						wire.LeftEvaluated = true
 					}
 				}
 
 				if numreg.Match([]byte(wire.RightString)) {
-					if v2,perr := strconv.ParseUint(wire.RightString, 10, 16); perr == nil {
+					if v2, perr := strconv.ParseUint(wire.RightString, 10, 16); perr == nil {
 						wire.Right = uint16(v2)
 						wire.RightEvaluated = true
 					}
@@ -82,7 +82,7 @@ func main(){
 			lines++
 		}
 
-		for _,w := range wiremap {
+		for _, w := range wiremap {
 			if w.LeftString != "" {
 				w.LeftWire = wiremap[w.LeftString]
 			}
@@ -97,18 +97,18 @@ func main(){
 		fmt.Println(result)
 
 		//rewire
-		
+
 	}
 }
 
-func printAll(wiremap map[string]*Wire){
-	for _,w := range wiremap {
+func printAll(wiremap map[string]*Wire) {
+	for _, w := range wiremap {
 		fmt.Println(w.Name, ":", w.Result)
 	}
 }
 
-func evalAll(wiremap map[string]*Wire){
-	for _,w := range wiremap {
+func evalAll(wiremap map[string]*Wire) {
+	for _, w := range wiremap {
 		w.Result = evaluate(wiremap, w)
 	}
 }
@@ -142,15 +142,20 @@ func evaluate(wiremap map[string]*Wire, wire *Wire) uint16 {
 func bitwise(val1, val2 uint16, op string) uint16 {
 	var ret uint16
 	switch op {
-	case "AND": ret = val1 & val2
-	break
-	case "OR": ret = val1 | val2
-	break
-	case "NOT": ret = ^val2
-	break
-	case "RSHIFT": ret = val1 >> val2
-	break
-	case "LSHIFT": ret = val1 << val2
+	case "AND":
+		ret = val1 & val2
+		break
+	case "OR":
+		ret = val1 | val2
+		break
+	case "NOT":
+		ret = ^val2
+		break
+	case "RSHIFT":
+		ret = val1 >> val2
+		break
+	case "LSHIFT":
+		ret = val1 << val2
 	}
 
 	return ret

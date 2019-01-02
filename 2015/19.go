@@ -2,16 +2,17 @@ package main
 
 import (
 	"bufio"
-	"fmt"
-	"os"
-	"time"
-	"regexp"
-	"io/ioutil"
 	"crypto/md5"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"regexp"
 	"sort"
+	"time"
 	//"strconv"
 	//"strings"
 )
+
 var input = "19.txt"
 var input2 = "19.2.txt"
 
@@ -24,6 +25,7 @@ type ReplacementList []Replacement
 type ReplacementListSorter struct {
 	Entries ReplacementList
 }
+
 func (p ReplacementListSorter) Len() int {
 	return len(p.Entries)
 }
@@ -33,7 +35,6 @@ func (p ReplacementListSorter) Less(i, j int) bool {
 func (p ReplacementListSorter) Swap(i, j int) {
 	p.Entries[i], p.Entries[j] = p.Entries[j], p.Entries[i]
 }
-
 
 func main() {
 	startTime := time.Now()
@@ -45,44 +46,44 @@ func main() {
 		for scanner.Scan() {
 			var txt = scanner.Text()
 			if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				rep := Replacement{ In: groups[1], Out: groups[2] }
+				rep := Replacement{In: groups[1], Out: groups[2]}
 				list = append(list, rep)
 			}
 		}
 	}
 
-	sorter := ReplacementListSorter{ Entries: list }
+	sorter := ReplacementListSorter{Entries: list}
 	sort.Sort(sort.Reverse(sorter))
 
 	inputMolecule := ""
-	if tmp,err := ioutil.ReadFile(input2); err == nil {
+	if tmp, err := ioutil.ReadFile(input2); err == nil {
 		inputMolecule = string(tmp)
 	}
 
 	results := make(map[string]int)
-	
+
 	for _, rep := range sorter.Entries {
 		replacements := AllReplacements(rep.In, rep.Out, inputMolecule)
-		
+
 		for _, r := range replacements {
 			md5 := MD5s(r)
-			if _,exists := results[md5]; !exists {
+			if _, exists := results[md5]; !exists {
 				results[md5] = 1
 			} else {
 				results[md5]++
-			}	
+			}
 		}
 	}
 
 	maxoutput := 0
 
-	for _,rep := range list {
+	for _, rep := range list {
 		if len(rep.Out) > maxoutput {
 			maxoutput = len(rep.Out)
 		}
 	}
 
-	completed,total := Fabricate(sorter.Entries, inputMolecule, maxoutput, 0)
+	completed, total := Fabricate(sorter.Entries, inputMolecule, maxoutput, 0)
 
 	fmt.Println("Steps to build desired molecule", total, completed)
 
@@ -92,14 +93,16 @@ func main() {
 }
 
 func Fabricate(list []Replacement, current string, maxlen, step int) (completed bool, steps int) {
-	for i := len(current)-1; i >= 0; i-- {
+	for i := len(current) - 1; i >= 0; i-- {
 		if len(current) == 1 && current == "e" {
 			return true, step
 		} else {
 			for j := 2; j <= maxlen; j++ {
-				if i+j > len(current) { continue }
-				token := current[i:i+j]
-				for _,rep := range list{
+				if i+j > len(current) {
+					continue
+				}
+				token := current[i : i+j]
+				for _, rep := range list {
 					var newcur string
 					build := false
 
@@ -109,7 +112,7 @@ func Fabricate(list []Replacement, current string, maxlen, step int) (completed 
 					}
 
 					if build {
-						c,s := Fabricate(list, newcur, maxlen, step+1)
+						c, s := Fabricate(list, newcur, maxlen, step+1)
 						if c {
 							return c, s
 						} else {
@@ -123,14 +126,14 @@ func Fabricate(list []Replacement, current string, maxlen, step int) (completed 
 	return
 }
 
-func AllReplacements(in, out, input string) []string{
+func AllReplacements(in, out, input string) []string {
 	cp := input
 	repreg := regexp.MustCompile("(" + in + ")")
 
 	list := []string{}
 	loc := repreg.FindAllStringIndex(cp, -1)
 
-	for _,indices := range loc {
+	for _, indices := range loc {
 		cp2 := string(cp[:indices[0]]) + out + string(cp[indices[1]:])
 		list = append(list, cp2)
 	}

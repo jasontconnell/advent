@@ -23,14 +23,14 @@ func getValueAtOrdinal(x int) int64 {
 		return int64(20151125)
 	}
 
-	prev := getValueAtOrdinal(x-1)
+	prev := getValueAtOrdinal(x - 1)
 	mult := prev * int64(252533)
 	mod := mult % int64(33554393)
 	return mod
 }
 
 func getOrdinalForCoords(x, y int) int {
-	c := numInCol(y + x - 2) + x
+	c := numInCol(y+x-2) + x
 	return c
 }
 
