@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 	"regexp"
 	"strconv"
+	"time"
 	//"strings"
 )
+
 var input = "12.txt"
 
 func main() {
@@ -20,9 +21,9 @@ func main() {
 		sum := 0
 		for scanner.Scan() {
 			var txt = scanner.Text()
-			if str := reg.FindAllString(txt,-1); len(str) > 0 { 
-				for _,r := range str {
-					if i,err := strconv.Atoi(string(r)); err == nil {
+			if str := reg.FindAllString(txt, -1); len(str) > 0 {
+				for _, r := range str {
+					if i, err := strconv.Atoi(string(r)); err == nil {
 						sum += i
 					} else {
 						fmt.Print(string(r), "not a number")

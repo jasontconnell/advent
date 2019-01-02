@@ -1,20 +1,19 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"bufio"
+	"fmt"
+	"os"
 	"strings"
 )
 
 var input = "5.txt"
 
-var bad []string = []string{"ab","cd","pq","xy"}
-var vowels = []rune{ 'a','e','i','o','u'}
+var bad []string = []string{"ab", "cd", "pq", "xy"}
+var vowels = []rune{'a', 'e', 'i', 'o', 'u'}
 
-
-func main(){
-	if f,err := os.Open(input); err == nil {
+func main() {
+	if f, err := os.Open(input); err == nil {
 		scanner := bufio.NewScanner(f)
 		goodCount := 0
 
@@ -41,7 +40,7 @@ func appearanceCheck(s string, runes []rune, count int) bool {
 func doubleCheck(s string) bool {
 	double := false
 
-	for i,_ := range s {
+	for i, _ := range s {
 		if i > 0 && s[i-1] == s[i] {
 			double = true
 			break
@@ -52,7 +51,7 @@ func doubleCheck(s string) bool {
 
 func badCheck(s string, bad []string) bool {
 	isBad := false
-	for _,b := range bad {
+	for _, b := range bad {
 		if !isBad {
 			isBad = strings.Contains(s, b)
 		}

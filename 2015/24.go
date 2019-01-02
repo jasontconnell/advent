@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
-	"strconv"
 	"sort"
+	"strconv"
+	"time"
 )
+
 var input = "24.txt"
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 		sum := 0
 		for scanner.Scan() {
 			var txt = scanner.Text()
-			weight,_ := strconv.Atoi(txt)
+			weight, _ := strconv.Atoi(txt)
 			list = append(list, weight)
 			sum += weight
 		}
@@ -37,7 +38,7 @@ func main() {
 			cp = append(cp[:i], cp[i+1:]...)
 			filled := Fill(cp, 0, each)
 			product := 1
-			for _,num := range filled {
+			for _, num := range filled {
 				product = product * num
 			}
 			fmt.Println("product", product)
@@ -50,8 +51,8 @@ func main() {
 func Fill(list []int, bucket, max int) []int {
 	nums := []int{}
 
-	for i := len(list)-1; i >= 0; i-- {
-		if bucket + list[i] <= max {
+	for i := len(list) - 1; i >= 0; i-- {
+		if bucket+list[i] <= max {
 			bucket += list[i]
 			nums = append(nums, list[i])
 		}

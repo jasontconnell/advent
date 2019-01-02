@@ -4,16 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 	"regexp"
-	"strconv"
 	"sort"
+	"strconv"
+	"time"
 )
+
 var input = "13.txt"
 
 type Arrangement struct {
 	People []string
-	Units int
+	Units  int
 }
 
 type ArrangementList []Arrangement
@@ -21,6 +22,7 @@ type ArrangementList []Arrangement
 type ArrangementListSorter struct {
 	Entries ArrangementList
 }
+
 func (p ArrangementListSorter) Len() int {
 	return len(p.Entries)
 }
@@ -50,7 +52,7 @@ func main() {
 				name := groups[1]
 				nextTo := groups[4]
 				key := name + "-" + nextTo
-				if units,err := strconv.Atoi(groups[3]); err == nil {
+				if units, err := strconv.Atoi(groups[3]); err == nil {
 					if groups[2] == "lose" {
 						units = -units
 					}
@@ -78,21 +80,21 @@ func main() {
 		fmt.Println("got", len(perms), " permutation, finished at", time.Since(startTime))
 		arrangements := ArrangementList{}
 
-		for _,p := range perms {
-			arr := Arrangement{ People: p }
+		for _, p := range perms {
+			arr := Arrangement{People: p}
 			for i := 0; i < len(arr.People); i++ {
 				// last person sits next to first person
 				left := i
-				right := (i+1) % len(arr.People)
+				right := (i + 1) % len(arr.People)
 
 				key := arr.People[left] + "-" + arr.People[right]
 				key2 := arr.People[right] + "-" + arr.People[left]
 
-				if units,ok := list[key]; ok {
+				if units, ok := list[key]; ok {
 					arr.Units += units
 				}
 
-				if units,ok := list[key2]; ok {
+				if units, ok := list[key2]; ok {
 					arr.Units += units
 				}
 			}
@@ -100,7 +102,7 @@ func main() {
 			arrangements = append(arrangements, arr)
 		}
 
-		sorter := ArrangementListSorter{ Entries: arrangements }
+		sorter := ArrangementListSorter{Entries: arrangements}
 		sort.Sort(sorter)
 
 		fmt.Println(sorter.Entries[0])
@@ -115,8 +117,8 @@ func Permutate(str []string) [][]string {
 	var ret [][]string
 
 	if len(str) == 2 {
-		ret = append(ret, []string{ str[0], str[1] })
-		ret = append(ret, []string{ str[1], str[0] })
+		ret = append(ret, []string{str[0], str[1]})
+		ret = append(ret, []string{str[1], str[0]})
 	} else {
 
 		for i := 0; i < len(str); i++ {
@@ -126,9 +128,9 @@ func Permutate(str []string) [][]string {
 			t := strc[i]
 			sh := append(strc[:i], strc[i+1:]...)
 			perm := Permutate(sh)
-			
-			for _,p := range perm {
-				p = append([]string{ t }, p...)
+
+			for _, p := range perm {
+				p = append([]string{t}, p...)
 				ret = append(ret, p)
 			}
 		}
@@ -138,7 +140,7 @@ func Permutate(str []string) [][]string {
 }
 
 func Contains(ss []string, s string) bool {
-	for _,t := range ss {
+	for _, t := range ss {
 		if t == s {
 			return true
 		}

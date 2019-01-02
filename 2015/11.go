@@ -8,8 +8,8 @@ import (
 
 var input = "vzbxkghb"
 var start, end byte = byte(97), byte(122)
-var illegals = []rune{ 'i', 'o', 'l' }
-var illegalBytes =[]byte{ byte('i'), byte('o'), byte('l') }
+var illegals = []rune{'i', 'o', 'l'}
+var illegalBytes = []byte{byte('i'), byte('o'), byte('l')}
 
 func main() {
 	startTime := time.Now()
@@ -43,7 +43,7 @@ func hasStraight(pwd string) bool {
 
 func noIllegals(pwd string) bool {
 	pass := true
-	for i := 0; i < len(illegals); i++{
+	for i := 0; i < len(illegals); i++ {
 		pass = pass && strings.IndexByte(pwd, byte(illegals[i])) == -1
 	}
 	return pass
@@ -51,7 +51,7 @@ func noIllegals(pwd string) bool {
 
 func twoPairs(pwd string) bool {
 	pairs := 0
-	for i := 0; i < len(pwd)-1; i++{
+	for i := 0; i < len(pwd)-1; i++ {
 		if pwd[i] == pwd[i+1] {
 			pairs++
 			i++
@@ -66,11 +66,11 @@ func increment(pw string) string {
 
 func inc(pw string, ch int) string {
 	cp := pw
-	b := cp[ch]+1
+	b := cp[ch] + 1
 
-	for _,illegal := range illegalBytes {
+	for _, illegal := range illegalBytes {
 		if b == illegal {
-			b = b+1
+			b = b + 1
 		}
 	}
 

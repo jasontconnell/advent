@@ -1,8 +1,8 @@
 package main
 
 import (
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
 )
 
 var input = "3.txt"
@@ -11,8 +11,8 @@ type Point struct {
 	x, y int
 }
 
-func main(){
-	if s,err := ioutil.ReadFile(input); err == nil {
+func main() {
+	if s, err := ioutil.ReadFile(input); err == nil {
 		x := 0
 		y := 0
 
@@ -22,22 +22,23 @@ func main(){
 			dir := string(ch)
 
 			switch dir {
-			case "<": x--
+			case "<":
+				x--
 				break
 			case ">":
-					x++
+				x++
 				break
 			case "v":
-					y--
+				y--
 				break
 			case "^":
-					y++
+				y++
 				break
 			}
 
-			p := Point{ x: x, y: y }
+			p := Point{x: x, y: y}
 
-			if _,exists := houses[p]; exists {
+			if _, exists := houses[p]; exists {
 				houses[p]++
 			} else {
 				houses[p] = 1

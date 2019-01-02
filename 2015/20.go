@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"time"
 	"math"
+	"time"
 )
 
 var input = 36000000
 
 func main() {
 	startTime := time.Now()
-	
+
 	house := 100000
 	presents := 0
 
@@ -38,23 +38,23 @@ func main() {
 }
 
 func GetPresents(max int) (presents int) {
-	sqrt := int(math.Sqrt(float64(max)))+1	
+	sqrt := int(math.Sqrt(float64(max))) + 1
 	for i := 1; i <= sqrt; i++ {
-		if max % i == 0 {
+		if max%i == 0 {
 			presents += i
-			presents += max/i
+			presents += max / i
 		}
-	}	
+	}
 	return presents * 10
 }
 
 func GetPresents2(max int) (presents int) {
-	
+
 	for i := 1; i <= 50; i++ {
-		if max % i == 0 {
+		if max%i == 0 {
 			presents += i
-			presents += max/i
+			presents += max / i
 		}
-	}	
+	}
 	return presents * 11
 }

@@ -11,6 +11,7 @@ import (
 	//"sort"
 	//"math/rand"
 )
+
 var input = "17.txt"
 
 func main() {
@@ -23,16 +24,15 @@ func main() {
 
 		for scanner.Scan() {
 			var txt = scanner.Text()
-			i,_ := strconv.Atoi(txt)
+			i, _ := strconv.Atoi(txt)
 			if i > max {
 				max = i
 			}
 			ary = append(ary, i)
 		}
 
-		
 		fmt.Println(ary)
-		
+
 		buckets := count(ary, 150, len(ary), 0)
 
 		result := 0
@@ -50,7 +50,9 @@ func main() {
 }
 
 func count(list []int, total, n, i int) int {
-	if i < 0 { i = 0 }
+	if i < 0 {
+		i = 0
+	}
 
 	if n < 0 {
 		return 0
