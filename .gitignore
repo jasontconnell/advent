@@ -1,3 +1,5 @@
 *.exe
 out.txt
 work.txt
+
+go.mod
