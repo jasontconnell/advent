@@ -6,9 +6,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-	//"regexp"
-	//"strings"
-	//"math"
 )
 
 var input = "01.txt"
@@ -77,10 +74,3 @@ func getAllFuel(masses []int) int {
 
 	return total
 }
-
-// reg := regexp.MustCompile("-?[0-9]+")
-/*
-if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				fmt.Println(groups[1:])
-			}
-*/
