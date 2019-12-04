@@ -37,16 +37,15 @@ type point struct {
 	x, y int
 }
 
-type segmentdir int
-
-const (
-	horizontal segmentdir = iota
-	vertical
-)
+type intersectPoint struct {
+	point
+	steps int
+}
 
 type segment struct {
 	p1, p2 point
-	dir    segmentdir
+	dir    direction
+	steps  int
 }
 
 func main() {
@@ -87,10 +86,15 @@ func main() {
 	}
 
 	sort.Slice(intersections, func(i, j int) bool {
-		return dist(start, intersections[i]) < dist(start, intersections[j])
+		return dist(start, intersections[i].point) < dist(start, intersections[j].point)
 	})
 
-	fmt.Println("Part 1: ", dist(start, intersections[0])) // first is closest
+	fmt.Println("Part 1: ", dist(start, intersections[1].point)) // first is closest
+
+	sort.Slice(intersections, func(i, j int) bool {
+		return intersections[i].steps < intersections[j].steps
+	})
+	fmt.Println("Part 2: ", intersections[1].steps) // first is closest
 
 	fmt.Println("Time", time.Since(startTime))
 }
@@ -99,8 +103,8 @@ func dist(start, p point) int {
 	return int(math.Abs(float64((p.x - start.x) + (p.y - start.y))))
 }
 
-func intersect(path1, path2 []segment) []point {
-	points := []point{}
+func intersect(path1, path2 []segment) []intersectPoint {
+	points := []intersectPoint{}
 	for _, p := range path1 {
 		intersects := getIntersects(p, path2)
 		points = append(points, intersects...)
@@ -108,8 +112,8 @@ func intersect(path1, path2 []segment) []point {
 	return points
 }
 
-func getIntersects(s segment, test []segment) []point {
-	intersects := []point{}
+func getIntersects(s segment, test []segment) []intersectPoint {
+	intersects := []intersectPoint{}
 	for _, p := range test {
 		if s.dir == p.dir && (s.p1.x != s.p2.x || s.p1.y != s.p2.y) { // can't intersect if they are going the same way on different planes
 			continue
@@ -117,7 +121,7 @@ func getIntersects(s segment, test []segment) []point {
 
 		var check1, check2 segment
 
-		if s.dir == vertical {
+		if s.dir == up || s.dir == down {
 			check1 = s
 			check2 = p
 		} else {
@@ -135,7 +139,15 @@ func getIntersects(s segment, test []segment) []point {
 			continue
 		}
 
-		intersect := point{x: check1.p1.x, y: check2.p1.y}
+		steps := 0
+		switch s.dir {
+		case up, down:
+			steps = int(math.Abs(float64(check1.p1.y-check2.p1.y))) + int(math.Abs(float64(check1.p1.x-check2.p1.x)))
+		case left, right:
+			steps = int(math.Abs(float64(check1.p1.x-check2.p1.x))) + int(math.Abs(float64(check1.p1.y-check2.p1.y)))
+		}
+
+		intersect := intersectPoint{point{x: check1.p1.x, y: check2.p1.y}, check1.steps + check2.steps + steps}
 		intersects = append(intersects, intersect)
 	}
 
@@ -145,28 +157,28 @@ func getIntersects(s segment, test []segment) []point {
 func traverse(wp wirepath) []segment {
 	segments := []segment{}
 	last := wp.start
+	steps := 0
 	for _, m := range wp.moves {
 		var n point = last
 		s := segment{p1: last}
 		switch m.dir {
 		case left:
 			n.x -= m.units
-			s.dir = horizontal
 		case right:
 			n.x += m.units
-			s.dir = horizontal
 		case up:
 			n.y += m.units
-			s.dir = vertical
 		case down:
 			n.y -= m.units
-			s.dir = vertical
 		}
 
+		s.dir = m.dir
 		s.p2 = n
-
+		s.steps = steps //+ m.units
 		segments = append(segments, s)
+
 		last = n
+		steps += m.units
 	}
 
 	return segments
