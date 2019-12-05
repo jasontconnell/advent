@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -153,7 +152,7 @@ func digits(val int) []int {
 	for !done {
 		//x := c / div
 		if c > div {
-			x = int(math.Remainder(float64(c), float64(div)))
+			x = c % div
 			if x < 0 {
 				x = div + x
 			}
