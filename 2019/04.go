@@ -153,9 +153,6 @@ func digits(val int) []int {
 		//x := c / div
 		if c > div {
 			x = c % div
-			if x < 0 {
-				x = div + x
-			}
 		} else {
 			x = c
 		}
