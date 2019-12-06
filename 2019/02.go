@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/jasontconnell/advent/2019/intcode"
 )
 
 var input = "02.txt"
@@ -43,7 +44,7 @@ func main() {
 	copy(p1in, opcodes)
 	p1in[1] = 12
 	p1in[2] = 2
-	out1 := exec(p1in)
+	out1 := intcode.Exec(p1in)
 
 	out2 := part2(opcodes, 19690720)
 
@@ -68,7 +69,7 @@ func part2(opcodes []int, goal int) int {
 			vals[0] = i
 			vals[1] = j
 
-			t := exec(c)
+			t := intcode.Exec(c)
 
 			if t == goal {
 				done = true
@@ -78,24 +79,4 @@ func part2(opcodes []int, goal int) int {
 	}
 
 	return 100*vals[0] + vals[1]
-}
-
-func exec(ops []int) int {
-	done := false
-	for i := 0; i < len(ops) && !done; i += 4 {
-		op := ops[i]
-		switch op {
-		case 1:
-			ops[ops[i+3]] = ops[ops[i+1]] + ops[ops[i+2]]
-			break
-		case 2:
-			ops[ops[i+3]] = ops[ops[i+1]] * ops[ops[i+2]]
-			break
-		case 99:
-			done = true
-			break
-		}
-	}
-
-	return ops[0]
 }

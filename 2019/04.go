@@ -150,7 +150,6 @@ func digits(val int) []int {
 
 	var x int
 	for !done {
-		//x := c / div
 		x = c % div
 		v = append(v, x)
 		c = c / div
