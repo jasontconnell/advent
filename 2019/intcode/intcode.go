@@ -1,7 +1,11 @@
 package intcode
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 )
 
 type op struct {
@@ -15,7 +19,6 @@ const (
 	position  mode = 0
 	immediate mode = 1
 )
-
 
 func Exec(ops []int) int {
 	done := false
@@ -34,16 +37,45 @@ func Exec(ops []int) int {
 			step = 4
 			break
 		case 3:
-			value := getValue(ops, opcode, i, 1)
-			setValue(ops, opcode, i, 3, value)
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print("system id: ")
+			text, _ := reader.ReadString('\r')
+			value, err := strconv.Atoi(strings.Trim(text, "\r\n"))
+			if err != nil {
+				panic("not integer " + text + strconv.Itoa(value) + err.Error())
+			}
+			setValue(ops, opcode, i, 1, value)
 			step = 2
+			break
 		case 4:
 			outval := getValue(ops, opcode, i, 1)
-			fmt.Println("output", outval)
+			fmt.Println("diagnostic code: ", outval)
 			step = 2
+			break
+		case 5, 6:
+			value := getValue(ops, opcode, i, 1)
+			if (opcode.code == 5 && value != 0) || (opcode.code == 6 && value == 0) {
+				i = getValue(ops, opcode, i, 2)
+				step = 0
+			} else {
+				step = 3
+			}
+			break
+		case 7, 8:
+			value1 := getValue(ops, opcode, i, 1)
+			value2 := getValue(ops, opcode, i, 2)
+			if (opcode.code == 7 && value1 < value2) || (opcode.code == 8 && value1 == value2) {
+				setValue(ops, opcode, i, 3, 1)
+			} else {
+				setValue(ops, opcode, i, 3, 0)
+			}
+			step = 4
+			break
 		case 99:
 			done = true
 			break
+		default:
+			step = 4
 		}
 	}
 
@@ -73,7 +105,7 @@ func setValue(ops []int, opcode op, index, pos, value int) {
 
 func getMode(opcode op, pos int) mode {
 	max := len(opcode.params)
-	fp := pos-1 // pos is 1 based index
+	fp := pos - 1 // pos is 1 based index
 	if fp >= max || fp < 0 {
 		return position
 	}

@@ -3,15 +3,14 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/jasontconnell/advent/2019/intcode"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/jasontconnell/advent/2019/intcode"
 )
 
 var input = "05.txt"
-
 
 func main() {
 	startTime := time.Now()
@@ -27,8 +26,9 @@ func main() {
 
 	opcodes := []int{}
 	if scanner.Scan() {
+		//var txt = "3,9,8,9,10,9,4,9,99,-1,8"
 		var txt = scanner.Text()
-		//var txt = "1,9,10,3,2,3,11,0,99,30,40,50"
+		// var txt = "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99"
 		sopcodes := strings.Split(txt, ",")
 		for _, s := range sopcodes {
 			i, err := strconv.Atoi(s)
@@ -41,9 +41,9 @@ func main() {
 		}
 	}
 
-	intcode.Exec(opcodes)
+	ret := intcode.Exec(opcodes)
 
-	fmt.Println(opcodes)
+	fmt.Println("Part 2: ", ret)
 
 	fmt.Println("Time", time.Since(startTime))
 }
