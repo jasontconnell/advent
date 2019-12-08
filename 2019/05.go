@@ -39,8 +39,16 @@ func main() {
 		}
 	}
 
-	fmt.Println("Part 1 is achieved by disabled op codes 5,6,7,8")
-	intcode.Exec(opcodes)
+	cp := make([]int, len(opcodes))
+	cp2 := make([]int, len(opcodes))
+	copy(cp, opcodes)
+	copy(cp2, opcodes)
+
+
+	_, outs1 := intcode.Exec(cp, 1)
+	fmt.Println("Part 1: ", outs1[len(outs1)-1])
+	_, outs := intcode.Exec(cp2, 5)
+	fmt.Println("Part 2: ", outs[0])
 
 	fmt.Println("Time", time.Since(startTime))
 }
