@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/jasontconnell/advent/2019/intcode"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/jasontconnell/advent/2019/intcode"
 )
 
 var input = "02.txt"
@@ -44,11 +44,11 @@ func main() {
 	copy(p1in, opcodes)
 	p1in[1] = 12
 	p1in[2] = 2
-	out1 := intcode.Exec(p1in)
+	out1, _ := intcode.Exec(p1in, 0)
 
 	out2 := part2(opcodes, 19690720)
 
-	fmt.Println("Part 1: ", out1)
+	fmt.Println("Part 1: ", out1[0])
 	fmt.Println("Part 2: ", out2)
 
 	fmt.Println("Time", time.Since(startTime))
@@ -69,9 +69,9 @@ func part2(opcodes []int, goal int) int {
 			vals[0] = i
 			vals[1] = j
 
-			t := intcode.Exec(c)
+			t, _ := intcode.Exec(c, 0)
 
-			if t == goal {
+			if t[0] == goal {
 				done = true
 				break
 			}

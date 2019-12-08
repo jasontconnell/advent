@@ -1,13 +1,5 @@
 package intcode
 
-import (
-	"bufio"
-	"fmt"
-	"os"
-	"strconv"
-	"strings"
-)
-
 type op struct {
 	code   int
 	params []int
@@ -20,7 +12,8 @@ const (
 	immediate mode = 1
 )
 
-func Exec(ops []int) int {
+func Exec(ops []int, input int) ([]int, []int) {
+	outputs := []int{}
 	done := false
 	step := 4
 	for i := 0; i < len(ops) && !done; i += step {
@@ -37,19 +30,12 @@ func Exec(ops []int) int {
 			step = 4
 			break
 		case 3:
-			reader := bufio.NewReader(os.Stdin)
-			fmt.Print("system id: ")
-			text, _ := reader.ReadString('\r')
-			value, err := strconv.Atoi(strings.Trim(text, "\r\n"))
-			if err != nil {
-				panic("not integer " + text + strconv.Itoa(value) + err.Error())
-			}
-			setValue(ops, opcode, i, 1, value)
+			setValue(ops, opcode, i, 1, input)
 			step = 2
 			break
 		case 4:
 			outval := getValue(ops, opcode, i, 1)
-			fmt.Println("diagnostic code: ", outval)
+			outputs = append(outputs, outval)
 			step = 2
 			break
 		case 5, 6:
@@ -79,7 +65,7 @@ func Exec(ops []int) int {
 		}
 	}
 
-	return ops[0]
+	return ops, outputs
 }
 
 func getValue(ops []int, opcode op, index, pos int) int {
@@ -116,12 +102,12 @@ func getMode(opcode op, pos int) mode {
 func getOp(val int) op {
 	opcode := val % 100
 
-	params := digits(val / 100)
+	params := Digits(val / 100)
 
 	return op{opcode, params}
 }
 
-func digits(val int) []int {
+func Digits(val int) []int {
 	v := []int{}
 	c := val
 	div := 10
