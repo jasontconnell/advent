@@ -44,7 +44,7 @@ func main() {
 	copy(p1in, opcodes)
 	p1in[1] = 12
 	p1in[2] = 2
-	out1, _ := intcode.Exec(p1in, 0)
+	out1, _ := intcode.Exec(p1in, []int{0})
 
 	out2 := part2(opcodes, 19690720)
 
@@ -69,7 +69,7 @@ func part2(opcodes []int, goal int) int {
 			vals[0] = i
 			vals[1] = j
 
-			t, _ := intcode.Exec(c, 0)
+			t, _ := intcode.Exec(c, []int{0})
 
 			if t[0] == goal {
 				done = true
