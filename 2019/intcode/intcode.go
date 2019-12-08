@@ -12,10 +12,11 @@ const (
 	immediate mode = 1
 )
 
-func Exec(ops []int, input int) ([]int, []int) {
+func Exec(ops []int, inputs []int) ([]int, []int) {
 	outputs := []int{}
 	done := false
 	step := 4
+	inputIndex := 0
 	for i := 0; i < len(ops) && !done; i += step {
 		opcode := getOp(ops[i])
 		switch opcode.code {
@@ -30,7 +31,11 @@ func Exec(ops []int, input int) ([]int, []int) {
 			step = 4
 			break
 		case 3:
-			setValue(ops, opcode, i, 1, input)
+			setValue(ops, opcode, i, 1, inputs[inputIndex])
+			inputIndex++
+			if inputIndex > len(inputs) - 1 {
+				inputIndex = len(inputs) - 1
+			}
 			step = 2
 			break
 		case 4:

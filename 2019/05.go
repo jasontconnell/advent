@@ -45,9 +45,9 @@ func main() {
 	copy(cp2, opcodes)
 
 
-	_, outs1 := intcode.Exec(cp, 1)
+	_, outs1 := intcode.Exec(cp, []int{1})
 	fmt.Println("Part 1: ", outs1[len(outs1)-1])
-	_, outs := intcode.Exec(cp2, 5)
+	_, outs := intcode.Exec(cp2, []int{5})
 	fmt.Println("Part 2: ", outs[0])
 
 	fmt.Println("Time", time.Since(startTime))
