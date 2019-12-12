@@ -38,11 +38,11 @@ func main() {
 		}
 	}
 
-	// part1([]int{109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99})
-	// return
 	p1 := part1(opcodes)
-
 	fmt.Println("Part 1: ", p1)
+
+	p2 := part2(opcodes)
+	fmt.Println("Part 2: ", p2)
 
 	fmt.Println("Time", time.Since(startTime))
 }
@@ -53,6 +53,17 @@ func part1(opcodes []int) int {
 	copy(prog, opcodes)
 	c := intcode.NewComputer(prog)
 	c.Ins = append(c.Ins, 1)
+	c.Exec()
+
+	return c.Outs[0]
+}
+
+func part2(opcodes []int) int {
+	prog := make([]int, len(opcodes))
+
+	copy(prog, opcodes)
+	c := intcode.NewComputer(prog)
+	c.Ins = append(c.Ins, 2)
 	c.Exec()
 
 	return c.Outs[0]
