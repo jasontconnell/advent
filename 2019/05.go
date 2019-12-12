@@ -44,11 +44,15 @@ func main() {
 	copy(cp, opcodes)
 	copy(cp2, opcodes)
 
+	c1 := intcode.NewComputer(cp)
+	c1.Ins = []int{1}
+	c1.Exec()
+	fmt.Println("Part 1: ", c1.Outs[0])
 
-	_, outs1 := intcode.Exec(cp, []int{1})
-	fmt.Println("Part 1: ", outs1[len(outs1)-1])
-	_, outs := intcode.Exec(cp2, []int{5})
-	fmt.Println("Part 2: ", outs[0])
+	c2 := intcode.NewComputer(cp2)
+	c2.Ins = []int{5}
+	c2.Exec()
+	fmt.Println("Part 2: ", c2.Outs[0])
 
 	fmt.Println("Time", time.Since(startTime))
 }

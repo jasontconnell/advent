@@ -1,5 +1,16 @@
 package intcode
 
+type Computer struct {
+	Name     string
+	Ops      []int
+	Outs     []int
+	Ins      []int
+	InstPtr  int
+	Prev     *Computer
+	Next     *Computer
+	Complete bool
+}
+
 type op struct {
 	code   int
 	params []int
@@ -12,85 +23,106 @@ const (
 	immediate mode = 1
 )
 
-func Exec(ops []int, inputs []int) ([]int, []int) {
-	outputs := []int{}
-	done := false
-	step := 4
-	inputIndex := 0
-	for i := 0; i < len(ops) && !done; i += step {
-		opcode := getOp(ops[i])
-		switch opcode.code {
-		case 1:
-			value := getValue(ops, opcode, i, 1) + getValue(ops, opcode, i, 2)
-			setValue(ops, opcode, i, 3, value)
-			step = 4
-			break
-		case 2:
-			value := getValue(ops, opcode, i, 1) * getValue(ops, opcode, i, 2)
-			setValue(ops, opcode, i, 3, value)
-			step = 4
-			break
-		case 3:
-			setValue(ops, opcode, i, 1, inputs[inputIndex])
-			inputIndex++
-			if inputIndex > len(inputs) - 1 {
-				inputIndex = len(inputs) - 1
-			}
-			step = 2
-			break
-		case 4:
-			outval := getValue(ops, opcode, i, 1)
-			outputs = append(outputs, outval)
-			step = 2
-			break
-		case 5, 6:
-			value := getValue(ops, opcode, i, 1)
-			if (opcode.code == 5 && value != 0) || (opcode.code == 6 && value == 0) {
-				i = getValue(ops, opcode, i, 2)
-				step = 0
-			} else {
-				step = 3
-			}
-			break
-		case 7, 8:
-			value1 := getValue(ops, opcode, i, 1)
-			value2 := getValue(ops, opcode, i, 2)
-			if (opcode.code == 7 && value1 < value2) || (opcode.code == 8 && value1 == value2) {
-				setValue(ops, opcode, i, 3, 1)
-			} else {
-				setValue(ops, opcode, i, 3, 0)
-			}
-			step = 4
-			break
-		case 99:
-			done = true
-			break
-		default:
-			step = 4
-		}
-	}
-
-	return ops, outputs
+func NewComputer(ops []int) *Computer {
+	c := &Computer{Ops: ops, InstPtr: 0, Complete: false}
+	return c
 }
 
-func getValue(ops []int, opcode op, index, pos int) int {
+func (c *Computer) Exec() {
+	for !c.Complete {
+		c.ExecOne()
+	}
+}
+
+func (c *Computer) GetNextOutput() int {
+	for !c.Complete && len(c.Outs) == 0 {
+		c.ExecOne()
+	}
+	out := c.Outs[0]
+	c.Outs = c.Outs[1:]
+	return out
+}
+
+func (c *Computer) ExecOne() {
+	if c.Complete {
+		return
+	}
+
+	opcode := getOp(c.Ops[c.InstPtr])
+	switch opcode.code {
+	case 1:
+		value := c.getValue(1) + c.getValue(2)
+		c.setValue(3, value)
+		c.InstPtr += 4
+		break
+	case 2:
+		value := c.getValue(1) * c.getValue(2)
+		c.setValue(3, value)
+		c.InstPtr += 4
+		break
+	case 3:
+		if len(c.Ins) == 0 && c.Prev != nil {
+			out := c.Prev.GetNextOutput()
+			c.Ins = append(c.Ins, out)
+		}
+		c.setValue(1, c.Ins[0])
+		c.Ins = c.Ins[1:]
+		c.InstPtr += 2
+		break
+	case 4:
+		outval := c.getValue(1)
+		c.Outs = append([]int{outval}, c.Outs...)
+		c.InstPtr += 2
+		break
+	case 5, 6:
+		value := c.getValue(1)
+		if (opcode.code == 5 && value != 0) || (opcode.code == 6 && value == 0) {
+			c.InstPtr = c.getValue(2)
+		} else {
+			c.InstPtr += 3
+		}
+		break
+	case 7, 8:
+		value1 := c.getValue(1)
+		value2 := c.getValue(2)
+		if (opcode.code == 7 && value1 < value2) || (opcode.code == 8 && value1 == value2) {
+			c.setValue(3, 1)
+		} else {
+			c.setValue(3, 0)
+		}
+		c.InstPtr += 4
+		break
+	case 99:
+		c.Complete = true
+		break
+	default:
+		c.InstPtr += 4
+	}
+}
+
+func (c *Computer) getValue(pos int) int {
 	var val int
+	opcode := getOp(c.Ops[c.InstPtr])
 	mode := getMode(opcode, pos)
+	index := c.InstPtr
 
 	if mode == position {
-		val = ops[ops[index+pos]]
+		val = c.Ops[c.Ops[index+pos]]
 	} else {
-		val = ops[index+pos]
+		val = c.Ops[index+pos]
 	}
 	return val
 }
 
-func setValue(ops []int, opcode op, index, pos, value int) {
+func (c *Computer) setValue(pos, value int) {
+	opcode := getOp(c.Ops[c.InstPtr])
 	mode := getMode(opcode, pos)
+	index := c.InstPtr
+
 	if mode == position {
-		ops[ops[index+pos]] = value
+		c.Ops[c.Ops[index+pos]] = value
 	} else {
-		ops[index+pos] = value
+		c.Ops[index+pos] = value
 	}
 }
 

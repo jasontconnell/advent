@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/jasontconnell/advent/2019/intcode"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/jasontconnell/advent/2019/intcode"
 )
 
 var input = "07.txt"
@@ -47,6 +47,44 @@ func main() {
 	fmt.Println("Time", time.Since(startTime))
 }
 
+func run(ops, amps []int) int {
+	var out int
+	names := "ABCDE"
+	comps := []*intcode.Computer{}
+	for i, a := range amps {
+		prog := make([]int, len(ops))
+		copy(prog, ops)
+
+		c := intcode.NewComputer(prog)
+		c.Name = string(names[i])
+		c.Ins =  []int{a}
+
+		comps = append(comps, c)
+	}
+
+	for i := 0; i < len(comps); i++ {
+		dp := i-1
+		dn := i+1
+		if dp < 0 {
+			dp = len(comps)-1
+		}
+		if dn > len(comps)-1 {
+			dn = 0
+		}
+		comps[i].Prev = comps[dp]
+		comps[i].Next = comps[dn]
+	}
+
+	comps[0].Ins = append(comps[0].Ins, 0)
+
+	for _, c := range comps {
+		c.Exec()
+	}
+
+	out = comps[len(comps)-1].Outs[0]
+	return out
+}
+
 func part1(ops []int) int {
 	perms := Permutate([]int{0, 1, 2, 3, 4})
 	output := 0
@@ -60,31 +98,13 @@ func part1(ops []int) int {
 }
 
 func part2(ops []int) int {
-	perms := Permutate([]int{5,6,7,8,9})
+	perms := Permutate([]int{5, 6, 7, 8, 9})
 	output := 0
-	done := false
 
 	for _, perm := range perms {
 		o := run(ops, perm)
 		if o > output {
 			output = o
-		}
-	}
-	return output
-}
-
-func run(ops []int, amps []int, input int) int {
-	input2 := input
-	output := 0
-	for i, amp := range amps {
-		prog := make([]int, len(ops))
-		copy(prog, ops)
-		
-		_, outs := intcode.Exec(prog, []int{amp, input2})
-
-		input2 = outs[0]
-		if i == len(amps)-1 {
-			output = input2
 		}
 	}
 	return output
