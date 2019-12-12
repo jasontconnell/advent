@@ -1,14 +1,17 @@
 package intcode
 
 type Computer struct {
-	Name     string
-	Ops      []int
-	Outs     []int
-	Ins      []int
-	InstPtr  int
-	Prev     *Computer
-	Next     *Computer
-	Complete bool
+	Name         string
+	Ops          []int
+	Outs         []int
+	Ins          []int
+	InstPtr      int
+	Prev         *Computer
+	Next         *Computer
+	Complete     bool
+	RelativeBase int
+
+	memory map[int]int
 }
 
 type op struct {
@@ -21,10 +24,11 @@ type mode int
 const (
 	position  mode = 0
 	immediate mode = 1
+	relative  mode = 2
 )
 
 func NewComputer(ops []int) *Computer {
-	c := &Computer{Ops: ops, InstPtr: 0, Complete: false}
+	c := &Computer{Ops: ops, InstPtr: 0, Complete: false, memory: make(map[int]int)}
 	return c
 }
 
@@ -92,37 +96,88 @@ func (c *Computer) ExecOne() {
 		}
 		c.InstPtr += 4
 		break
+	case 9:
+		value1 := c.getValue(1)
+		c.RelativeBase += value1
+		c.InstPtr += 2
+		break
 	case 99:
 		c.Complete = true
 		break
 	default:
-		c.InstPtr += 4
+		panic("unknown op " + string(opcode.code))
 	}
 }
 
 func (c *Computer) getValue(pos int) int {
+	if m, ok := c.memory[pos]; ok {
+		return m
+	}
+
+	if pos > len(c.Ops) {
+		return 0
+	}
+
 	var val int
 	opcode := getOp(c.Ops[c.InstPtr])
 	mode := getMode(opcode, pos)
 	index := c.InstPtr
 
-	if mode == position {
-		val = c.Ops[c.Ops[index+pos]]
-	} else {
-		val = c.Ops[index+pos]
+	switch mode {
+	case position:
+		//val = c.Ops[c.Ops[index+pos]]
+		v1 := c.access(index + pos)
+		val = c.access(v1)
+	case immediate:
+		// val = c.Ops[index+pos]
+		val = c.access(index + pos)
+	case relative:
+		ridx := c.RelativeBase + c.access(index+pos)
+
+		val = c.access(ridx)
 	}
 	return val
 }
 
+func (c *Computer) access(index int) int {
+	if index > len(c.Ops) {
+		if m, ok := c.memory[index]; ok {
+			return m
+		} else {
+			return 0
+		}
+	}
+	return c.Ops[index]
+}
+
+func (c *Computer) write(index int, value int) {
+	if index > len(c.Ops) {
+		c.memory[index] = value
+		return
+	}
+	c.Ops[index] = value
+}
+
 func (c *Computer) setValue(pos, value int) {
+	if pos > len(c.Ops) {
+		c.memory[pos] = value
+	}
 	opcode := getOp(c.Ops[c.InstPtr])
 	mode := getMode(opcode, pos)
 	index := c.InstPtr
 
-	if mode == position {
-		c.Ops[c.Ops[index+pos]] = value
-	} else {
-		c.Ops[index+pos] = value
+	switch mode {
+	case position:
+		//c.Ops[c.Ops[index+pos]] = value
+		v1 := c.access(index + pos)
+		c.write(v1, value)
+	case immediate:
+		//c.Ops[index+pos] = value
+		c.write(index+pos, value)
+	case relative:
+		//c.Ops[c.Ops[index+c.RelativeBase]] = value
+		ridx := c.RelativeBase + c.access(index+pos)
+		c.write(ridx, value)
 	}
 }
 
@@ -157,12 +212,5 @@ func Digits(val int) []int {
 		c = c / div
 		done = c == 0
 	}
-
-	// reverse slice
-	// not reversed: "read right-to-left from the opcode"
-	// for i := 0; i < len(v)/2; i++ {
-	// 	v[i], v[len(v)-i-1] = v[len(v)-i-1], v[i]
-	// }
-
 	return v
 }
