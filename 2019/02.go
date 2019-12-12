@@ -44,11 +44,15 @@ func main() {
 	copy(p1in, opcodes)
 	p1in[1] = 12
 	p1in[2] = 2
-	out1, _ := intcode.Exec(p1in, []int{0})
+
+	c := intcode.NewComputer(p1in)
+	c.Ins = []int{0}
+	c.Exec()
+	out1 := c.Ops[0] // c.Outs[0]
 
 	out2 := part2(opcodes, 19690720)
 
-	fmt.Println("Part 1: ", out1[0])
+	fmt.Println("Part 1: ", out1)
 	fmt.Println("Part 2: ", out2)
 
 	fmt.Println("Time", time.Since(startTime))
@@ -60,18 +64,20 @@ func part2(opcodes []int, goal int) int {
 
 	for i := 0; i < 100 && !done; i++ {
 		for j := 0; j < 100 && !done; j++ {
-			c := make([]int, len(opcodes))
-			copy(c, opcodes)
+			prog := make([]int, len(opcodes))
+			copy(prog, opcodes)
 
-			c[1] = i
-			c[2] = j
+			prog[1] = i
+			prog[2] = j
 
 			vals[0] = i
 			vals[1] = j
 
-			t, _ := intcode.Exec(c, []int{0})
+			c := intcode.NewComputer(prog)
+			c.Ins = vals
+			c.Exec()
 
-			if t[0] == goal {
+			if prog[0] == goal {
 				done = true
 				break
 			}
