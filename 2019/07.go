@@ -57,16 +57,16 @@ func run(ops, amps []int) int {
 
 		c := intcode.NewComputer(prog)
 		c.Name = string(names[i])
-		c.Ins =  []int{a}
+		c.Ins = []int{a}
 
 		comps = append(comps, c)
 	}
 
 	for i := 0; i < len(comps); i++ {
-		dp := i-1
-		dn := i+1
+		dp := i - 1
+		dn := i + 1
 		if dp < 0 {
-			dp = len(comps)-1
+			dp = len(comps) - 1
 		}
 		if dn > len(comps)-1 {
 			dn = 0
