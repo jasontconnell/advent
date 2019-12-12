@@ -19,6 +19,14 @@ type layer struct {
 	rows [][]int
 }
 
+type color int
+
+const (
+	black       color = 0
+	white       color = 1
+	transparent color = 2
+)
+
 func main() {
 	startTime := time.Now()
 
@@ -41,6 +49,12 @@ func main() {
 	p1 := part1(img)
 
 	fmt.Println("Part 1: ", p1)
+
+	p2 := part2(img)
+	fmt.Println("Part 2")
+	for _, s := range p2 {
+		fmt.Println(s)
+	}
 	fmt.Println("Time", time.Since(startTime))
 }
 
@@ -90,6 +104,32 @@ func part1(img image) int {
 	}
 
 	return ones * twos
+}
+
+func part2(img image) []string {
+	ret := make([]string, len(img.layers[0].rows))
+	for r := 0; r < img.h; r++ {
+		for c := 0; c < img.w; c++ {
+			for lidx := range img.layers {
+				clr := color(img.layers[lidx].rows[r][c])
+
+				match := false
+				switch clr {
+				case white:
+					ret[r] += "#"
+					match = true
+				case black:
+					ret[r] += " "
+					match = true
+				}
+
+				if match {
+					break
+				}
+			}
+		}
+	}
+	return ret
 }
 
 func getImage(pixels []int, w, h int) image {
