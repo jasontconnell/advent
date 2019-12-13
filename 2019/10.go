@@ -157,7 +157,7 @@ func main() {
 
 	p2 := vaporize(space, p, 200)
 
-	fmt.Println("Part 2: ", p2)
+	fmt.Println("Part 2: ", p2.x*100+p2.y, p2)
 	fmt.Println("Time", time.Since(startTime))
 }
 
