@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"sort"
 	"time"
 )
 
@@ -13,8 +14,9 @@ var input = "10.txt"
 type contents int
 
 const (
-	blank    contents = 0
-	asteroid contents = 1
+	blank     contents = 0
+	asteroid  contents = 1
+	vaporized contents = 2
 )
 
 type visibility int
@@ -32,6 +34,7 @@ type point struct {
 
 type result struct {
 	point      point
+	vector     point
 	visibility visibility
 }
 
@@ -66,7 +69,7 @@ func (p point) awayvector(p2, max point) point {
 		}
 	} else if absx != absy {
 		for d := max.x; d > 1; d-- {
-			if absx % d == 0 && absy % d == 0 {
+			if absx%d == 0 && absy%d == 0 {
 				absx = absx / d
 				absy = absy / d
 
@@ -74,15 +77,13 @@ func (p point) awayvector(p2, max point) point {
 				if xs {
 					v.x = -v.x
 				}
-	
+
 				v.y = absy
 				if ys {
 					v.y = -v.y
 				}
 			}
-	
 		}
-
 	} else if absx == absy {
 		v.x = 1
 		v.y = 1
@@ -152,9 +153,92 @@ func main() {
 	}
 
 	p, count := getResults(space)
-
 	fmt.Println("Part 1: ", count, p)
+
+	p2 := vaporize(space, p, 200)
+
+	fmt.Println("Part 2: ", p2)
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func getDegrees(start, p point) float64 {
+	deg := (math.Atan2(float64(start.y-p.y), float64(start.x-p.x)) * 180 / math.Pi) + 180
+	//deg = math.Abs(360 - deg)
+	return deg
+}
+
+func vaporize(space [][]point, start point, n int) point {
+	cp := make([][]point, len(space))
+	for i := 0; i < len(cp); i++ {
+		cp[i] = make([]point, len(space[i]))
+	}
+
+	for r := range space {
+		for c := range space[r] {
+			cp[r][c] = space[r][c]
+		}
+	}
+
+	s := 0
+	destroyed := []point{}
+
+	index, max := 0, 60
+
+	for index < max {
+		results := mapVisible(cp, start)
+
+		var check func(p point) bool
+
+		switch s {
+		case 0:
+			check = func(p point) bool {
+				d := getDegrees(p, start)
+				return d >= 90 && d < 180
+			}
+		case 1:
+			check = func(p point) bool {
+				d := getDegrees(p, start)
+				return d >= 180 && d < 270
+			}
+		case 2:
+			check = func(p point) bool {
+				d := getDegrees(p, start)
+				return d >= 270 && d <= 360
+			}
+		case 3:
+			check = func(p point) bool {
+				d := getDegrees(p, start)
+				return d < 90
+			}
+		}
+
+		targets := []point{}
+		for _, row := range results {
+			for _, col := range row {
+				if col.visibility == visible && check(col.point) {
+					targets = append(targets, col.point)
+				}
+			}
+		}
+
+		less := func(i, j int) bool {
+			a1 := getDegrees(start, targets[i])
+			a2 := getDegrees(start, targets[j])
+			return a1 < a2
+		}
+
+		sort.Slice(targets, less)
+
+		for _, p := range targets {
+			cp[p.y][p.x].content = vaporized
+			destroyed = append(destroyed, cp[p.y][p.x])
+		}
+
+		s = (s + 1) % 4
+		index++
+	}
+
+	return destroyed[n-1]
 }
 
 func getResults(space [][]point) (point, int) {
@@ -164,7 +248,8 @@ func getResults(space [][]point) (point, int) {
 		for c := range line {
 			if space[r][c].content == asteroid {
 				p := point{x: c, y: r}
-				vis, _ := countVisible(space, p)
+				res := mapVisible(space, p)
+				vis := countVisible(res)
 
 				if vis > max {
 					best = p
@@ -177,7 +262,19 @@ func getResults(space [][]point) (point, int) {
 	return best, max
 }
 
-func countVisible(space [][]point, p point) (int, [][]result) {
+func countVisible(results [][]result) int {
+	count := 0
+	for i := range results {
+		for j := 0; j < len(results[i]); j++ {
+			if results[i][j].visibility == visible {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func mapVisible(space [][]point, p point) [][]result {
 	maxx, maxy := len(space[0])-1, len(space)-1
 	maxp := point{x: maxx, y: maxy}
 	results := make([][]result, len(space))
@@ -206,19 +303,12 @@ func countVisible(space [][]point, p point) (int, [][]result) {
 				next := p2.nextAway(v)
 				for next.inGraph(maxp) {
 					results[next.y][next.x].visibility = invisible
+					results[next.y][next.x].vector = v
 					next = next.nextAway(v)
 				}
 			}
 		}
 	}
 
-	count := 0
-	for i := range space {
-		for j := 0; j < len(results[i]); j++ {
-			if results[i][j].visibility == visible && space[i][j].content == asteroid {
-				count++
-			}
-		}
-	}
-	return count, results
+	return results
 }
