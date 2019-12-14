@@ -148,7 +148,7 @@ func (c *Computer) getValue(pos int) int {
 }
 
 func (c *Computer) access(index int) int {
-	if index > len(c.Ops) {
+	if index >= len(c.Ops) {
 		if m, ok := c.memory[index]; ok {
 			return m
 		} else {
@@ -159,7 +159,7 @@ func (c *Computer) access(index int) int {
 }
 
 func (c *Computer) write(index int, value int) {
-	if index > len(c.Ops) {
+	if index >= len(c.Ops) {
 		c.memory[index] = value
 		return
 	}

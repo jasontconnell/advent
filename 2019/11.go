@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/jasontconnell/advent/2019/intcode"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -15,8 +16,8 @@ var input = "11.txt"
 type color int
 
 const (
-	black     color = 0
-	white     color = 1
+	black color = 0
+	white color = 1
 )
 
 type xy struct {
@@ -25,7 +26,7 @@ type xy struct {
 
 type point struct {
 	xy
-	color color
+	color   color
 	painted bool
 }
 
@@ -117,20 +118,27 @@ func main() {
 		}
 	}
 
-	c := intcode.NewComputer(opcodes)
-	p1 := paint(c)
+	prog := make([]int, len(opcodes))
+	copy(prog, opcodes)
 
+	c := intcode.NewComputer(prog)
+	p1, _ := paint(c, 0)
 	fmt.Println("Part 1: ", p1)
+
+	c2 := intcode.NewComputer(opcodes)
+	_, r := paint(c2, 1)
+	fmt.Println("Part 2: ")
+	printMessage(r)
 
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func paint(c *intcode.Computer) int {
+func paint(c *intcode.Computer, input int) (int, *robot) {
 	outtype := 0
 
 	r := &robot{position: point{xy{x: 0, y: 0}, black, false}, dir: point{xy: xy{y: 1, x: 0}}, visited: make(map[xy]point)}
 
-	c.AddInput(0)
+	c.AddInput(input)
 	c.OnOutput = func(val int) {
 		if outtype == 0 {
 			r.doPaint(color(val))
@@ -151,5 +159,54 @@ func paint(c *intcode.Computer) int {
 			painted++
 		}
 	}
-	return painted
+	return painted, r
+}
+
+func printMessage(r *robot) {
+	minx, miny := 10000, 10000
+	maxx, maxy := -10000, -10000
+
+	for _, p := range r.visited {
+		if p.color == black {
+			continue
+		}
+		if p.x < minx {
+			minx = p.x
+		}
+		if p.y < miny {
+			miny = p.y
+		}
+		if p.x > maxx {
+			maxx = p.x
+		}
+		if p.y > maxy {
+			maxy = p.y
+		}
+	}
+	yrange := int(math.Abs(float64(miny))+math.Abs(float64(maxy))) + 1
+	xrange := int(math.Abs(float64(minx))+math.Abs(float64(maxx))) + 1
+
+	grid := make([][]rune, yrange)
+	for i := range grid {
+		grid[i] = make([]rune, xrange)
+	}
+
+	for _, p := range r.visited {
+		if p.x < minx || p.y < miny || p.x > maxx || p.y > maxy {
+			continue
+		}
+		c := ' '
+		if p.color == white {
+			c = '#'
+		}
+
+		x, y := p.x+int(math.Abs(float64(minx))), p.y+int(math.Abs(float64(miny)))
+		//x = int(math.Abs(float64(x - maxx)))
+		y = int(math.Abs(float64(y - maxy)))
+		grid[y][x] = c
+	}
+
+	for r := len(grid) - 1; r >= 0; r-- {
+		fmt.Println(string(grid[r]))
+	}
 }
