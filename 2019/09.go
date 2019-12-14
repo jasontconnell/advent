@@ -52,7 +52,7 @@ func part1(opcodes []int) int {
 
 	copy(prog, opcodes)
 	c := intcode.NewComputer(prog)
-	c.Ins = append(c.Ins, 1)
+	c.AddInput(1)
 	c.Exec()
 
 	return c.Outs[0]
@@ -63,7 +63,7 @@ func part2(opcodes []int) int {
 
 	copy(prog, opcodes)
 	c := intcode.NewComputer(prog)
-	c.Ins = append(c.Ins, 2)
+	c.AddInput(2)
 	c.Exec()
 
 	return c.Outs[0]

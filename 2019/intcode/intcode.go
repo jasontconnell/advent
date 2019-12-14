@@ -10,6 +10,7 @@ type Computer struct {
 	Next         *Computer
 	Complete     bool
 	RelativeBase int
+	OnOutput     func(int)
 
 	memory map[int]int
 }
@@ -30,6 +31,10 @@ const (
 func NewComputer(ops []int) *Computer {
 	c := &Computer{Ops: ops, InstPtr: 0, Complete: false, memory: make(map[int]int)}
 	return c
+}
+
+func (c *Computer) AddInput(ins ...int) {
+	c.Ins = append(c.Ins, ins...)
 }
 
 func (c *Computer) Exec() {
@@ -67,7 +72,7 @@ func (c *Computer) ExecOne() {
 	case 3:
 		if len(c.Ins) == 0 && c.Prev != nil {
 			out := c.Prev.GetNextOutput()
-			c.Ins = append(c.Ins, out)
+			c.AddInput(out)
 		}
 		c.setValue(1, c.Ins[0])
 		c.Ins = c.Ins[1:]
@@ -76,6 +81,9 @@ func (c *Computer) ExecOne() {
 	case 4:
 		outval := c.getValue(1)
 		c.Outs = append([]int{outval}, c.Outs...)
+		if c.OnOutput != nil {
+			c.OnOutput(outval)
+		}
 		c.InstPtr += 2
 		break
 	case 5, 6:
