@@ -57,7 +57,7 @@ func run(ops, amps []int) int {
 
 		c := intcode.NewComputer(prog)
 		c.Name = string(names[i])
-		c.Ins = []int{a}
+		c.AddInput(a)
 
 		comps = append(comps, c)
 	}

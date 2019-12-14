@@ -46,7 +46,7 @@ func main() {
 	p1in[2] = 2
 
 	c := intcode.NewComputer(p1in)
-	c.Ins = []int{0}
+	c.AddInput(0)
 	c.Exec()
 	out1 := c.Ops[0] // c.Outs[0]
 
@@ -74,7 +74,7 @@ func part2(opcodes []int, goal int) int {
 			vals[1] = j
 
 			c := intcode.NewComputer(prog)
-			c.Ins = vals
+			c.AddInput(vals...)
 			c.Exec()
 
 			if prog[0] == goal {
