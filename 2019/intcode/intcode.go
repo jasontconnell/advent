@@ -11,6 +11,7 @@ type Computer struct {
 	Complete     bool
 	RelativeBase int
 	OnOutput     func(int)
+	RequestInput func() int
 
 	memory map[int]int
 }
@@ -74,6 +75,12 @@ func (c *Computer) ExecOne() {
 			out := c.Prev.GetNextOutput()
 			c.AddInput(out)
 		}
+
+		if len(c.Ins) == 0 && c.RequestInput != nil {
+			in := c.RequestInput()
+			c.AddInput(in)
+		}
+
 		c.setValue(1, c.Ins[0])
 		c.Ins = c.Ins[1:]
 		c.InstPtr += 2
