@@ -72,7 +72,21 @@ func main() {
 	p1 := part1(cp, 1)
 	fmt.Println("Part 1: ", p1)
 
-	p2 := part2(cp, p1) // 1_000_000_000_000)
+	var p2a int64 = 0
+	var i int64 = 75110000
+	for i < 757000000 {
+		var tmp int64 = part1(cp, i)
+		fmt.Println(tmp)
+		if tmp < 1_000_000_000_000 {
+			p2a = i
+		} else {
+			break
+		}
+		i++
+	}
+	fmt.Println("Part 2 a:", p2a)
+
+	p2 := part2(cp, 1_000_000_000_000)
 	fmt.Println("Part 2: ", p2)
 
 	fmt.Println("Time", time.Since(startTime))
@@ -95,59 +109,20 @@ func part1(reactions []reaction, fuelNeeded int64) int64 {
 }
 
 func part2(reactions []reaction, oreProvided int64) int64 {
-	rmap := make(map[string]reaction)
+	omap := make(map[string][]chemical)
 	for _, r := range reactions {
-		rmap[r.output.name] = r
+		omap[r.output.name] = r.input
 	}
 
-	// needed := make(map[string]int64)
-	provided := make(map[string]int64)
+	nmap := make(map[string]int64)
+	nmap["FUEL"] = 2
 
-	provided["ORE"] = oreProvided
-	provided["FUEL"] = 0
+	// fuel := omap["FUEL"]
+	// for _, c := range fuel {
+	// 	fmt.Println(c.name)
+	// }
 
-	var total int64
-	pfuel := int64(1)
-	for provided["ORE"] > 0 {
-		total += pfuel
-		fulfill2(rmap["FUEL"].output, pfuel, rmap, provided)
-		if provided["ORE"]%100000 == 0 {
-			fmt.Println(provided["ORE"])
-		}
-
-		if provided["ORE"] < 1000 {
-			fmt.Println("less then 1 thousand", provided["ORE"])
-			pfuel = 1
-		} else if provided["ORE"] < 100_000 {
-			fmt.Println("less then 100 thousand", provided["ORE"])
-			pfuel = 1
-		} else if provided["ORE"] < 100_000_000 {
-			fmt.Println("less then 10 million", provided["ORE"])
-			pfuel = 100
-		}
-	}
-
-	return total
-}
-
-func fulfill2(chem chemical, count int64, rmap map[string]reaction, provided map[string]int64) {
-	// fmt.Println(chem.name, count)
-	r := rmap[chem.name]
-	for _, i := range r.input {
-		re, ok := rmap[i.name]
-		var c int64 = count
-		for provided[i.name] < count {
-			fulfill2(i, i.count*count, rmap, provided)
-			if ok {
-				c = re.output.count * count
-				provided[i.name] += c
-			} else {
-				c = i.count * count
-				provided[i.name] += c
-			}
-		}
-		provided[i.name] -= c
-	}
+	return 0
 }
 
 func fulfill(chem chemical, count int64, rmap map[string]reaction, provided map[string]int64, needed map[string]int64) {
