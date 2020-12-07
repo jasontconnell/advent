@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"os"
 	"time"
-	//"regexp"
-	//"strconv"
-	//"strings"
-	//"math"
 )
+
 var input = ".txt"
 
 func main() {
@@ -24,11 +21,13 @@ func main() {
 	
 	scanner := bufio.NewScanner(f)
 
+	lines := []string{}
 	for scanner.Scan() {
 		var txt = scanner.Text()
-		fmt.Println(txt)
+		lines = append(lines, txt)
 	}
 
+	fmt.Println("read", len(lines), "lines")
 	fmt.Println("Time", time.Since(startTime))
 }
 
