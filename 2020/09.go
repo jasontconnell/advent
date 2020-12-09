@@ -80,11 +80,7 @@ func firstInvalidNumber(nums []int, size int) int {
 func findContiguousSum(num int, nums []int) []int {
 	q := []int{}
 	for i := 0; i < len(nums); i++ {
-		if nums[i] == num {
-			continue
-		}
-
-		if nums[i] > num {
+		if nums[i] >= num {
 			break
 		}
 
