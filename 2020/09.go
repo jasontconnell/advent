@@ -95,7 +95,6 @@ func findContiguousSum(num int, nums []int) []int {
 		}
 
 		q = append(q, nums[i])
-
 	}
 	return nil
 }
