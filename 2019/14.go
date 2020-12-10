@@ -109,20 +109,21 @@ func part1(reactions []reaction, fuelNeeded int64) int64 {
 }
 
 func part2(reactions []reaction, oreProvided int64) int64 {
-	omap := make(map[string][]chemical)
-	for _, r := range reactions {
-		omap[r.output.name] = r.input
+	avail := make(map[string]int64)
+	avail["ORE"] = oreProvided
+
+	rmap := make(map[string]reaction)
+	for _, r := reactions {
+		rmap[r.output.name] = r
 	}
 
-	nmap := make(map[string]int64)
-	nmap["FUEL"] = 2
+	for avail["ORE"] > 0 {
+		makeN("FUEL", avail, rmap, 1)
+	}
+}
 
-	// fuel := omap["FUEL"]
-	// for _, c := range fuel {
-	// 	fmt.Println(c.name)
-	// }
-
-	return 0
+func makeN(chem string, avail map[string]int64, rmap map[string]reaction, n int64) {
+	
 }
 
 func fulfill(chem chemical, count int64, rmap map[string]reaction, provided map[string]int64, needed map[string]int64) {
