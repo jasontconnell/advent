@@ -54,8 +54,10 @@ func main() {
 
 	grid := getGrid(lines)
 	p1 := sim(grid, 100)
-
 	fmt.Println("Part 1:", p1)
+
+	p2 := simFull(grid, 200)
+	fmt.Println("Part 2:", p2)
 	fmt.Println("Time", time.Since(startTime))
 }
 
@@ -64,13 +66,10 @@ func sim(grid [][]gridblock, threshold int) int {
 	prev := 0
 	g := copyGrid(grid)
 
-	//printGrid(g)
-
 	streak := 0
 	done := false
 	for !done {
 		g = simOne(g)
-		//printGrid(g)
 		changed = totalOccupied(g)
 
 		if changed == prev {
@@ -78,11 +77,58 @@ func sim(grid [][]gridblock, threshold int) int {
 		}
 
 		prev = changed
-
 		done = streak > threshold
 	}
 
 	return changed
+}
+
+func simFull(grid [][]gridblock, threshold int) int {
+	changed := 0
+	prev := 0
+	g := copyGrid(grid)
+
+	streak := 0
+	done := false
+	for !done {
+		g = simOneFull(g)
+		changed = totalOccupied(g)
+
+		if changed == prev {
+			streak++
+		}
+
+		prev = changed
+		done = streak > threshold
+	}
+
+	return changed
+}
+
+func simOneFull(grid [][]gridblock) [][]gridblock {
+	gcopy := copyGrid(grid)
+	for y := 0; y < len(grid); y++ {
+		for x := 0; x < len(grid[y]); x++ {
+			s := grid[y][x]
+			if s.block == floor {
+				continue
+			}
+
+			nocc := filterCountFull(grid, x, y, func(adj gridblock) bool {
+				return adj.block == seat && adj.occupied
+			})
+
+			if nocc == 0 && !s.occupied {
+				gcopy[y][x].occupied = true
+			}
+
+			if nocc > 4 && s.occupied {
+				gcopy[y][x].occupied = false
+			}
+		}
+	}
+
+	return gcopy
 }
 
 func simOne(grid [][]gridblock) [][]gridblock {
@@ -102,10 +148,6 @@ func simOne(grid [][]gridblock) [][]gridblock {
 			if nocc == 0 && !s.occupied {
 				gcopy[y][x].occupied = true
 			}
-
-			// nvac := filterCount(grid, x, y, func(adj gridblock) bool {
-			// 	return adj.block == seat && !adj.occupied
-			// })
 
 			if nocc > 3 && s.occupied {
 				gcopy[y][x].occupied = false
@@ -139,6 +181,57 @@ func copyGrid(grid [][]gridblock) [][]gridblock {
 	return c
 }
 
+func firstSeatInDir(grid [][]gridblock, x, y, w, h int, dir xy) *xy {
+	i := 1
+	invalid := x+i*dir.x < 0 || x+i*dir.x > w || y+i*dir.y < 0 || y+i*dir.y > h
+	cpt := xy{i*dir.x + x, i*dir.y + y}
+
+	var pt *xy
+	for !invalid {
+		s := grid[cpt.y][cpt.x]
+		if s.block == seat {
+			pt = &cpt
+			break
+		}
+
+		i++
+		invalid = x+i*dir.x < 0 || x+i*dir.x > w || y+i*dir.y < 0 || y+i*dir.y > h
+		cpt = xy{i*dir.x + x, i*dir.y + y}
+	}
+	return pt
+}
+
+func filterCountFull(grid [][]gridblock, x, y int, test func(gb gridblock) bool) int {
+	w, h := len(grid[0])-1, len(grid)-1
+	dirs := []xy{
+		{0, -1},
+		{0, 1},
+		{1, 0},
+		{-1, 0},
+		{1, 1},
+		{1, -1},
+		{-1, 1},
+		{-1, -1},
+	}
+
+	pts := make(map[xy]xy)
+	for _, dir := range dirs {
+		sxy := firstSeatInDir(grid, x, y, w, h, dir)
+		if sxy != nil {
+			pts[*sxy] = *sxy
+		}
+	}
+
+	count := 0
+	for _, pt := range pts {
+		b := grid[pt.y][pt.x]
+		if test(b) {
+			count++
+		}
+	}
+	return count
+}
+
 func filterCount(grid [][]gridblock, x, y int, test func(gb gridblock) bool) int {
 	w, h := len(grid[0])-1, len(grid)-1
 	pts := []xy{
@@ -163,7 +256,6 @@ func filterCount(grid [][]gridblock, x, y int, test func(gb gridblock) bool) int
 		if test(b) {
 			count++
 		}
-
 	}
 	return count
 }
@@ -190,26 +282,4 @@ func getGrid(lines []string) [][]gridblock {
 	}
 
 	return grid
-}
-
-func printGrid(grid [][]gridblock) {
-	for y := 0; y < len(grid); y++ {
-		for x := 0; x < len(grid[y]); x++ {
-			b := grid[y][x]
-
-			c := '.'
-
-			if b.block == seat {
-				if b.occupied {
-					c = '#'
-				} else {
-					c = 'L'
-				}
-			}
-
-			fmt.Print(string(c))
-		}
-		fmt.Print("\n")
-	}
-	fmt.Print("\n")
 }
