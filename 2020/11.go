@@ -53,15 +53,15 @@ func main() {
 	}
 
 	grid := getGrid(lines)
-	p1 := sim(grid, 100)
+	p1 := sim(grid, false, 3, 100)
 	fmt.Println("Part 1:", p1)
 
-	p2 := simFull(grid, 200)
+	p2 := sim(grid, true, 4, 200)
 	fmt.Println("Part 2:", p2)
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func sim(grid [][]gridblock, threshold int) int {
+func sim(grid [][]gridblock, nearestseat bool, occseats int, threshold int) int {
 	changed := 0
 	prev := 0
 	g := copyGrid(grid)
@@ -69,7 +69,7 @@ func sim(grid [][]gridblock, threshold int) int {
 	streak := 0
 	done := false
 	for !done {
-		g = simOne(g)
+		g = simOne(g, nearestseat, occseats)
 		changed = totalOccupied(g)
 
 		if changed == prev {
@@ -83,55 +83,7 @@ func sim(grid [][]gridblock, threshold int) int {
 	return changed
 }
 
-func simFull(grid [][]gridblock, threshold int) int {
-	changed := 0
-	prev := 0
-	g := copyGrid(grid)
-
-	streak := 0
-	done := false
-	for !done {
-		g = simOneFull(g)
-		changed = totalOccupied(g)
-
-		if changed == prev {
-			streak++
-		}
-
-		prev = changed
-		done = streak > threshold
-	}
-
-	return changed
-}
-
-func simOneFull(grid [][]gridblock) [][]gridblock {
-	gcopy := copyGrid(grid)
-	for y := 0; y < len(grid); y++ {
-		for x := 0; x < len(grid[y]); x++ {
-			s := grid[y][x]
-			if s.block == floor {
-				continue
-			}
-
-			nocc := filterCountFull(grid, x, y, func(adj gridblock) bool {
-				return adj.block == seat && adj.occupied
-			})
-
-			if nocc == 0 && !s.occupied {
-				gcopy[y][x].occupied = true
-			}
-
-			if nocc > 4 && s.occupied {
-				gcopy[y][x].occupied = false
-			}
-		}
-	}
-
-	return gcopy
-}
-
-func simOne(grid [][]gridblock) [][]gridblock {
+func simOne(grid [][]gridblock, nearest bool, seatthreshold int) [][]gridblock {
 	gcopy := copyGrid(grid)
 
 	for y := 0; y < len(grid); y++ {
@@ -141,15 +93,22 @@ func simOne(grid [][]gridblock) [][]gridblock {
 				continue
 			}
 
-			nocc := filterCount(grid, x, y, func(adj gridblock) bool {
+			filter := func(adj gridblock) bool {
 				return adj.block == seat && adj.occupied
-			})
+			}
+
+			var nocc int
+			if nearest {
+				nocc = filterCountFull(grid, x, y, filter)
+			} else {
+				nocc = filterCount(grid, x, y, filter)
+			}
 
 			if nocc == 0 && !s.occupied {
 				gcopy[y][x].occupied = true
 			}
 
-			if nocc > 3 && s.occupied {
+			if nocc > seatthreshold && s.occupied {
 				gcopy[y][x].occupied = false
 			}
 		}
