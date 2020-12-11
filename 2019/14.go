@@ -3,13 +3,14 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
-var input = "14_test.txt"
+var input = "14.txt"
 
 type reaction struct {
 	output chemical
@@ -72,20 +73,6 @@ func main() {
 	p1 := part1(cp, 1)
 	fmt.Println("Part 1: ", p1)
 
-	var p2a int64 = 0
-	var i int64 = 75110000
-	for i < 757000000 {
-		var tmp int64 = part1(cp, i)
-		fmt.Println(tmp)
-		if tmp < 1_000_000_000_000 {
-			p2a = i
-		} else {
-			break
-		}
-		i++
-	}
-	fmt.Println("Part 2 a:", p2a)
-
 	p2 := part2(cp, 1_000_000_000_000)
 	fmt.Println("Part 2: ", p2)
 
@@ -113,17 +100,78 @@ func part2(reactions []reaction, oreProvided int64) int64 {
 	avail["ORE"] = oreProvided
 
 	rmap := make(map[string]reaction)
-	for _, r := reactions {
+	for _, r := range reactions {
 		rmap[r.output.name] = r
+		avail[r.output.name] = 0
 	}
 
+	var start int64 = 5
+	i := 0
 	for avail["ORE"] > 0 {
-		makeN("FUEL", avail, rmap, 1)
+		made := makeN("FUEL", avail, rmap, start)
+
+		// if i%10 == 0 {
+		// 	start = start - 5
+		// }
+
+		if start <= 0 {
+			start = 1
+		}
+		i++
+
+		if !made {
+			break
+		}
 	}
+
+	fmt.Println(avail)
+	return avail["FUEL"]
 }
 
-func makeN(chem string, avail map[string]int64, rmap map[string]reaction, n int64) {
-	
+func makeN(name string, avail map[string]int64, rmap map[string]reaction, n int64) bool {
+	reaction, ok := rmap[name]
+
+	if !ok || len(reaction.input) == 0 {
+		avail[name] = 0
+		fmt.Println(avail)
+		return false
+	}
+
+	for _, ichem := range reaction.input {
+		chemr := rmap[ichem.name]
+		req := ichem.count * n
+		if av, ok := avail[ichem.name]; ok && av < req {
+			if chemr.output.count == 0 {
+				continue
+			}
+			req = req - av // only make what we need
+			numreq := int64(math.Ceil(float64(req) / float64(chemr.output.count)))
+
+			makeN(ichem.name, avail, rmap, numreq)
+		}
+	}
+
+	avail[reaction.output.name] += reaction.output.count * n
+
+	madeAll := true
+	for _, ichem := range reaction.input {
+		req := n * ichem.count
+		if avail[ichem.name] >= req {
+			avail[ichem.name] -= req
+		} else {
+			madeAll = false
+		}
+	}
+
+	if madeAll {
+		//fmt.Println(avail)
+	} else {
+		avail[reaction.output.name] -= reaction.output.count * n
+		fmt.Println("couldn't make all", reaction.output.name, reaction.input, n)
+		fmt.Println(avail)
+	}
+
+	return madeAll
 }
 
 func fulfill(chem chemical, count int64, rmap map[string]reaction, provided map[string]int64, needed map[string]int64) {
