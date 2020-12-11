@@ -31,55 +31,79 @@ func main() {
 	}
 
 	adapters := getAdapters(lines)
-	p1map := getRatings(0, 3, adapters)
+	p1map := getRatings(3, adapters)
 	j1, j3 := p1map[1], p1map[3]+1
 	fmt.Println("Part 1:", j1*j3)
+	p2 := getCombinations(3, adapters)
+	fmt.Println("Part 2:", p2)
 
-	fmt.Println("read", len(lines), "lines")
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func getRatings(start, maxdiff int, adapters []int) map[int]int {
+func getRatings(maxdiff int, adapters []int) map[int]int {
 	m := make(map[int]int)
-	cur := start
+	cur := 0
 	for i := 0; i < len(adapters); i++ {
-		idx, jolt, diff := nextAdapter(cur, i, maxdiff, adapters)
+		jolt, diff := nextAdapter(cur, i, maxdiff, adapters)
 		if jolt > 0 && diff <= maxdiff {
 			m[diff]++
 			cur = jolt
-			i = idx
 		}
 	}
 	return m
 }
 
-func getCombinations(start, maxdiff int, adapters []int) int64 {
+func getCombinations(maxdiff int, adapters []int) int64 {
+	total := append([]int{0}, adapters...)
+	total = append(total, adapters[len(adapters)-1])
 	var x int64
-
+	allOnes := [][]int{}
+	allOnes = append(allOnes, []int{})
+	cur := 0
+	for i := 0; i < len(total); i++ {
+		jolt, diff := nextAdapter(cur, i, maxdiff, total)
+		cur = jolt
+		if diff == 1 {
+			allOnes[len(allOnes)-1] = append(allOnes[len(allOnes)-1], jolt)
+		} else {
+			allOnes = append(allOnes, []int{jolt})
+		}
+	}
+	x = 1
+	for _, a := range allOnes {
+		x = x * combos(a)
+	}
 	return x
 }
 
-func permutateCount(adapters []int) int64 {
-	perms := [][]int{}
-
-	if len(adapters) == 2 {
-		perms = append(perms, []int{adapters[0], adapters[1]})
-		perms = append(perms, []int{adapters[1], adapters[0]})
-	} else {
-
+func combos(a []int) int64 {
+	var c int64 = 1
+	switch len(a) {
+	case 3:
+		c = 2
+	case 4:
+		c = 4
+	case 5:
+		c = 7
 	}
-
-	return int64(len(perms))
+	return c
 }
 
-func nextAdapter(curjolt, start, maxdiff int, adapters []int) (index, joltage, diff int) {
-	loop := math.Min(float64(start+maxdiff), float64(len(adapters)))
-	for i := start; i < int(loop); i++ {
-		if adapters[i]-curjolt <= 3 {
-			return i, adapters[i], adapters[i] - curjolt
+func fact(i int) int {
+	if i < 3 {
+		return i
+	}
+	return i * fact(i-1)
+}
+
+func nextAdapter(curjolt, curidx, maxdiff int, adapters []int) (joltage, diff int) {
+	loop := math.Min(float64(curidx+maxdiff), float64(len(adapters)))
+	for i := curidx; i < int(loop); i++ {
+		if adapters[i]-curjolt <= maxdiff {
+			return adapters[i], adapters[i] - curjolt
 		}
 	}
-	return start, -1, -1
+	return -1, -1
 }
 
 func getAdapters(lines []string) []int {
