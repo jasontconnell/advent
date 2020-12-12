@@ -96,82 +96,81 @@ func part1(reactions []reaction, fuelNeeded int64) int64 {
 }
 
 func part2(reactions []reaction, oreProvided int64) int64 {
-	avail := make(map[string]int64)
-	avail["ORE"] = oreProvided
-
 	rmap := make(map[string]reaction)
 	for _, r := range reactions {
 		rmap[r.output.name] = r
-		avail[r.output.name] = 0
 	}
 
-	var start int64 = 5
-	i := 0
-	for avail["ORE"] > 0 {
+	done := false
+	var low, high int64
+	low = 0
+	high = 20_000_000
+
+	var result int64 = 0
+
+	for !done {
+		avail := make(map[string]int64)
+		for _, r := range reactions {
+			avail[r.output.name] = 0
+		}
+
+		avail["ORE"] = oreProvided
+		start := (low + high) / 2
+
 		made := makeN("FUEL", avail, rmap, start)
 
-		// if i%10 == 0 {
-		// 	start = start - 5
-		// }
-
-		if start <= 0 {
-			start = 1
+		if made > result {
+			result = made
+			low = start + 1
+		} else {
+			high = start - 1
 		}
-		i++
 
-		if !made {
-			break
+		m := makeN("FUEL", avail, rmap, 1)
+		if m > 0 {
+			result += m
 		}
+		done = low == high || (high-low) == 1
 	}
 
-	fmt.Println(avail)
-	return avail["FUEL"]
+	return result
 }
 
-func makeN(name string, avail map[string]int64, rmap map[string]reaction, n int64) bool {
+func makeN(name string, avail map[string]int64, rmap map[string]reaction, n int64) int64 {
 	reaction, ok := rmap[name]
 
 	if !ok || len(reaction.input) == 0 {
-		avail[name] = 0
-		fmt.Println(avail)
-		return false
+		return avail[name]
 	}
-
-	for _, ichem := range reaction.input {
-		chemr := rmap[ichem.name]
-		req := ichem.count * n
-		if av, ok := avail[ichem.name]; ok && av < req {
-			if chemr.output.count == 0 {
-				continue
-			}
-			req = req - av // only make what we need
-			numreq := int64(math.Ceil(float64(req) / float64(chemr.output.count)))
-
-			makeN(ichem.name, avail, rmap, numreq)
-		}
-	}
-
-	avail[reaction.output.name] += reaction.output.count * n
 
 	madeAll := true
 	for _, ichem := range reaction.input {
-		req := n * ichem.count
-		if avail[ichem.name] >= req {
-			avail[ichem.name] -= req
+		chemr := rmap[ichem.name]
+		output := chemr.output.count
+		req := ichem.count * n
+
+		if av, ok := avail[ichem.name]; ok && av < req {
+			if output == 0 { // can't make any m'ore
+				madeAll = false
+				continue
+			}
+			numreq := int64(math.Ceil(float64(req) / float64(output)))
+			made := makeN(ichem.name, avail, rmap, numreq)
+			if made >= req {
+				avail[ichem.name] += (made - req) // will be leftover, update for all immediately
+			} else {
+				madeAll = false
+			}
 		} else {
-			madeAll = false
+			avail[ichem.name] -= req
 		}
 	}
 
 	if madeAll {
-		//fmt.Println(avail)
-	} else {
-		avail[reaction.output.name] -= reaction.output.count * n
-		fmt.Println("couldn't make all", reaction.output.name, reaction.input, n)
-		fmt.Println(avail)
+		return reaction.output.count * n
 	}
 
-	return madeAll
+	return 0
 }
 
 func fulfill(chem chemical, count int64, rmap map[string]reaction, provided map[string]int64, needed map[string]int64) {
