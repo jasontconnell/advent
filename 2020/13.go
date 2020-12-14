@@ -48,6 +48,9 @@ func firstBus(sched schedule) int {
 	bid := 0
 
 	for _, b := range sched.buses {
+		if b == -1 {
+			continue
+		}
 		x := sched.timestamp / b
 		y := x*b + b - sched.timestamp
 
@@ -59,6 +62,10 @@ func firstBus(sched schedule) int {
 	return bid * min
 }
 
+func matchTimestamp(sched schedule) int {
+	return 0
+}
+
 func getSchedule(lines []string) schedule {
 	ts, _ := strconv.Atoi(lines[0])
 
@@ -67,11 +74,10 @@ func getSchedule(lines []string) schedule {
 	sched := schedule{timestamp: ts}
 
 	for _, bb := range bbs {
-		if bb == "x" {
-			continue
+		b, err := strconv.Atoi(bb)
+		if err != nil {
+			b = -1
 		}
-
-		b, _ := strconv.Atoi(bb)
 
 		sched.buses = append(sched.buses, b)
 	}
