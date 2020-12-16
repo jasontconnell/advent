@@ -42,8 +42,10 @@ func main() {
 
 	masks := getMasks(lines)
 	p1 := compute(masks)
+	p2 := computeV2(masks)
 
 	fmt.Println("Part 1:", p1)
+	fmt.Println("Part 2:", p2)
 	fmt.Println("Time", time.Since(startTime))
 }
 
@@ -94,6 +96,89 @@ func compute(masks []*mask) int {
 		result += x
 	}
 	return result
+}
+
+func computeV2(masks []*mask) int {
+	mem := make(map[int]int)
+
+	for _, m := range masks {
+		for _, inst := range m.instructions {
+			locs := getVariations(inst.loc, m.overrides)
+			for _, loc := range locs {
+				mem[loc] = inst.value
+			}
+		}
+	}
+
+	result := 0
+	for _, x := range mem {
+		result += x
+	}
+	return result
+}
+
+func addBit(bit int, arrs [][]int) {
+	for i := 0; i < len(arrs); i++ {
+		arrs[i] = append(arrs[i], bit)
+	}
+}
+
+func getVariations(val int, ovr []int) []int {
+	bits := getBits(val, 36)
+	vmap := make(map[int][]int)
+
+	for idx, v := range ovr {
+		vmap[idx] = pvalues(v)
+	}
+
+	perms := getPermutations(bits, vmap)
+
+	variations := []int{}
+	for _, p := range perms {
+		variations = append(variations, getNum(p))
+	}
+
+	return variations
+}
+
+func getPermutations(bits []int, vmap map[int][]int) [][]int {
+	arrs := [][]int{}
+	arrs = append(arrs, []int{})
+
+	for i, b := range bits {
+		if ov, ok := vmap[i]; ok {
+			if len(ov) == 2 {
+				olen := len(arrs)
+				for x := 0; x < olen; x++ {
+					c := make([]int, len(arrs[x]))
+					copy(c, arrs[x])
+					arrs[x] = append(arrs[x], ov[0])
+
+					c = append(c, ov[1])
+					arrs = append(arrs, c)
+				}
+			} else if len(ov) == 1 {
+				for j := 0; j < len(arrs); j++ {
+					nb := b
+					if ov[0] == 1 {
+						nb = 1
+					}
+					arrs[j] = append(arrs[j], nb)
+				}
+			}
+		} else {
+			panic("wrong")
+		}
+	}
+
+	return arrs
+}
+
+func pvalues(b int) []int {
+	if b == -1 {
+		return []int{0, 1}
+	}
+	return []int{b}
 }
 
 var maskreg *regexp.Regexp = regexp.MustCompile("^mask = ([X01]+)$")
