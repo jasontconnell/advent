@@ -81,8 +81,10 @@ func (c *Computer) ExecOne() {
 			c.AddInput(in)
 		}
 
-		c.setValue(1, c.Ins[0])
-		c.Ins = c.Ins[1:]
+		if len(c.Ins) > 0 {
+			c.setValue(1, c.Ins[0])
+			c.Ins = c.Ins[1:]
+		}
 		c.InstPtr += 2
 		break
 	case 4:

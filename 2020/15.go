@@ -29,10 +29,8 @@ func main() {
 		lines = append(lines, txt)
 	}
 
-	start := getStart(lines)
-	start = fill(start, 2020)
-
-	fmt.Println("Part 1:", start[len(start)-1])
+	p1 := fill(getStart(lines), 2020)
+	fmt.Println("Part 1:", p1[len(p1)-1])
 
 	p2 := fill(getStart(lines), 30000000)
 	fmt.Println("Part 2:", p2[len(p2)-1])
