@@ -161,16 +161,14 @@ func simulate4d(m map[point4d]bool, count int) map[point4d]bool {
 func simulateOne3d(m map[point3d]bool) map[point3d]bool {
 	mc := make(map[point3d]bool, len(m))
 
-	for k, _ := range m {
-		for _, n := range getNeighbors3d(k) {
-			if _, ok := m[n]; !ok {
-				m[n] = false
+	for k, v := range m {
+		if v {
+			for _, n := range getNeighbors3d(k) {
+				if _, ok := m[n]; !ok {
+					m[n] = false
+				}
 			}
 		}
-	}
-
-	for k, v := range m {
-		mc[k] = v
 	}
 
 	// read over m, write to mc
@@ -197,16 +195,14 @@ func simulateOne3d(m map[point3d]bool) map[point3d]bool {
 func simulateOne4d(m map[point4d]bool) map[point4d]bool {
 	mc := make(map[point4d]bool, len(m))
 
-	for k, _ := range m {
-		for _, n := range getNeighbors4d(k) {
-			if _, ok := m[n]; !ok {
-				m[n] = false
+	for k, v := range m {
+		if v {
+			for _, n := range getNeighbors4d(k) {
+				if _, ok := m[n]; !ok {
+					m[n] = false
+				}
 			}
 		}
-	}
-
-	for k, v := range m {
-		mc[k] = v
 	}
 
 	// read over m, write to mc
@@ -225,6 +221,14 @@ func simulateOne4d(m map[point4d]bool) map[point4d]bool {
 				mc[k] = false
 			}
 		}
+
+		// if mc[k] {
+		// 	for _, n := range getNeighbors4d(k) {
+		// 		if _, ok := mc[n]; !ok {
+		// 			mc[n] = false
+		// 		}
+		// 	}
+		// }
 	}
 
 	return mc
