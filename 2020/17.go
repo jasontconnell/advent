@@ -99,9 +99,8 @@ func main() {
 
 	fmt.Println("Part 1:", p1)
 
-	m2 := readMap(lines)
 	m4d := make(map[point4d]bool)
-	for k, v := range m2 {
+	for k, v := range m {
 		p4d := point4d{x: k.x, y: k.y, z: 0, w: 0}
 		m4d[p4d] = v
 	}
