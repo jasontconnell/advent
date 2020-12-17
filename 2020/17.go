@@ -14,11 +14,8 @@ type point3d struct {
 }
 
 type point4d struct {
-	x, y, z, w int
-}
-
-func (p point3d) String() string {
-	return fmt.Sprintf("(%d,%d,%d)", p.x, p.y, p.z)
+	point3d
+	w int
 }
 
 var matrix []point3d
@@ -55,13 +52,13 @@ func permMatrix4d() []point4d {
 	list := []point4d{}
 	visited := make(map[point4d]bool)
 	// center piece isn't a neighbor
-	visited[point4d{0, 0, 0, 0}] = true
+	visited[point4d{point3d{0, 0, 0}, 0}] = true
 
 	for w := -1; w <= 1; w++ {
 		for z := -1; z <= 1; z++ {
 			for y := -1; y <= 1; y++ {
 				for x := -1; x <= 1; x++ {
-					p := point4d{x, y, z, w}
+					p := point4d{point3d{x, y, z}, w}
 					if _, ok := visited[p]; !ok {
 						list = append(list, p)
 						visited[p] = true
@@ -101,7 +98,7 @@ func main() {
 
 	m4d := make(map[point4d]bool)
 	for k, v := range m {
-		p4d := point4d{x: k.x, y: k.y, z: 0, w: 0}
+		p4d := point4d{point3d{x: k.x, y: k.y, z: 0}, 0}
 		m4d[p4d] = v
 	}
 
@@ -220,14 +217,6 @@ func simulateOne4d(m map[point4d]bool) map[point4d]bool {
 				mc[k] = false
 			}
 		}
-
-		// if mc[k] {
-		// 	for _, n := range getNeighbors4d(k) {
-		// 		if _, ok := mc[n]; !ok {
-		// 			mc[n] = false
-		// 		}
-		// 	}
-		// }
 	}
 
 	return mc
@@ -245,7 +234,7 @@ func getNeighbors3d(p point3d) []point3d {
 func getNeighbors4d(p point4d) []point4d {
 	list := []point4d{}
 	for _, mp := range matrix4d {
-		np := point4d{x: p.x + mp.x, y: p.y + mp.y, z: p.z + mp.z, w: p.w + mp.w}
+		np := point4d{point3d: point3d{x: p.x + mp.x, y: p.y + mp.y, z: p.z + mp.z}, w: p.w + mp.w}
 		list = append(list, np)
 	}
 	return list
