@@ -48,8 +48,71 @@ func main() {
 	probs := parseProblems(lines)
 	p1 := solveAll(probs)
 
+	grouped := changeAddPrecedence(probs)
+	p2 := solveAll(grouped)
+
 	fmt.Println("Part 1:", p1)
+	fmt.Println("Part 2:", p2)
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func changeAddPrecedence(ps []expr) []expr {
+	grouped := []expr{}
+
+	for _, ex := range ps {
+		gex := groupAdd(ex.exprs)
+		p := expr{exprs: gex}
+		grouped = append(grouped, p)
+	}
+
+	return grouped
+}
+
+func groupAdd(exprs []*expr) []*expr {
+	grouped := []*expr{}
+
+	done := false
+	i := 0
+	for !done {
+		ex := exprs[i]
+
+		switch ex.op {
+		case add:
+			left := grouped[len(grouped)-1]
+			right := exprs[i+1]
+
+			if right.op == group {
+				rexps := groupAdd(right.exprs)
+				right = &expr{op: group, exprs: rexps}
+			}
+
+			g := []*expr{
+				left,
+				ex,
+				right,
+			}
+
+			grouped = grouped[:len(grouped)-1]
+			ng := &expr{op: group, exprs: g}
+			grouped = append(grouped, ng)
+			i += 2
+		case mult:
+			grouped = append(grouped, ex)
+			i++
+		case group:
+			g := groupAdd(ex.exprs)
+
+			ng := &expr{op: group, exprs: g}
+			grouped = append(grouped, ng)
+			i++
+		case num:
+			grouped = append(grouped, ex)
+			i++
+		}
+
+		done = i >= len(exprs)
+	}
+	return grouped
 }
 
 func solveAll(ps []expr) int {
@@ -109,15 +172,15 @@ func printExprs(exs []*expr) string {
 func printExpr(ex expr) string {
 	val := ""
 	if ex.sym != "" {
-		val += fmt.Sprint(" ", ex.sym, " ")
+		val += fmt.Sprint(ex.sym)
 	} else if len(ex.exprs) > 0 {
 		val += "( "
 		for _, ec := range ex.exprs {
 			val += printExpr(*ec)
 		}
-		val += ") "
+		val += " )"
 	} else {
-		val += fmt.Sprint(" ", ex.val, " ")
+		val += fmt.Sprint(ex.val)
 	}
 	return val
 }
