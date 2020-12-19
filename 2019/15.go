@@ -110,12 +110,80 @@ func main() {
 	prog := make([]int, len(opcodes))
 	copy(prog, opcodes)
 
-	r := solve(prog)
+	r := solve(prog, false)
 
-	fmt.Println("Part 1:", len(r.moves))
-	fmt.Println("got past solve")
+	generatorPosition := r.pos
+	p1 := len(r.moves)
+
+	oxyprog := make([]int, len(opcodes))
+	copy(oxyprog, opcodes)
+
+	rexp := solve(oxyprog, true)
+	p2 := fillOxygen(rexp.visited, generatorPosition)
+
+	fmt.Println("Part 1:", p1)
+	fmt.Println("Part 2:", p2)
 
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func fillOxygen(m map[xy]block, start xy) int {
+	openCount := 0
+	for _, b := range m {
+		if b.contents == wall {
+			continue
+		}
+		openCount++
+	}
+
+	omap := make(map[xy]bool)
+	omap[start] = true
+	minutes := 0
+
+	q := [][]xy{[]xy{start}}
+
+	for len(q) > 0 {
+		pts := q[0]
+		q = q[1:]
+		opts := []xy{}
+		oreached := false
+
+		if len(pts) == 0 {
+			break
+		}
+
+		for _, pt := range pts {
+			n := getNeighbors(pt)
+
+			for _, np := range n {
+				b, inMap := m[np.xy]
+				_, ox := omap[np.xy]
+				if ox {
+					continue
+				}
+
+				if !inMap {
+					continue
+				}
+
+				if b.contents == wall {
+					continue
+				}
+
+				if _, ok := omap[np.xy]; !ok {
+					opts = append(opts, np.xy)
+					omap[np.xy] = true
+					oreached = true
+				}
+			}
+		}
+		if oreached {
+			minutes++
+		}
+		q = append(q, opts)
+	}
+
+	return minutes
 }
 
 func getDirXy(dir int) xy {
@@ -137,10 +205,12 @@ func getBacktrack(dir int) int {
 	return bt
 }
 
-func solve(prog []int) robot {
+func solve(prog []int, exploreMode bool) robot {
 	c := intcode.NewComputer(prog)
 	m := make(map[xy]block)
 	r := robot{dir: north, pos: xy{0, 0}, path: []xy{}, moves: []int{}, mode: forward, visited: m}
+
+	homeCount := 1
 
 	c.OnOutput = func(out int) {
 		switch out {
@@ -149,38 +219,37 @@ func solve(prog []int) robot {
 			r.pos = xy{r.pos.x + mxy.x, r.pos.y + mxy.y}
 
 			var bt blocktype = path
-			if out == 2 {
+			if out == 2 && !exploreMode {
 				bt = goal
 			}
-			b := block{contents: bt}
 
-			// record visited
+			b := block{contents: bt}
 			r.visited[r.pos] = b
 
 			if r.mode == forward {
-				// record path
 				r.path = append(r.path, r.pos)
-				// record move
 				r.moves = append(r.moves, r.dir)
 			} else {
-				// drop path
 				r.path = r.path[:len(r.path)-1]
-				// drop move
 				r.moves = r.moves[:len(r.moves)-1]
-				// check neighbors
-				// get a good direction
-				// or back track again
 			}
 
-			if out == 2 {
+			if out == 2 && !exploreMode {
 				c.Complete = true
 				break
+			}
+
+			if exploreMode && (r.pos.x == 0 && r.pos.y == 0) {
+				homeCount++
+				c.Complete = homeCount == 5 // start at 0,0, plus come back to it 4 times maybe.
+				if c.Complete {
+					break
+				}
 			}
 
 			d, m := bestDir(r)
 			r.dir = d
 			r.mode = m
-
 		case 0:
 			mxy := getDirXy(r.dir)
 			wpos := xy{r.pos.x + mxy.x, r.pos.y + mxy.y}
@@ -218,7 +287,7 @@ func bestDir(r robot) (int, mode) {
 		}
 	}
 
-	if !unvisited {
+	if !unvisited && len(r.moves) > 0 {
 		best = getBacktrack(r.moves[len(r.moves)-1])
 		m = backtrack
 	}
