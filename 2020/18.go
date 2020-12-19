@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var input = "18_test.txt"
+var input = "18.txt"
 
 type operation int
 
@@ -16,6 +16,7 @@ const (
 	num operation = iota
 	add
 	mult
+	group
 )
 
 type expr struct {
@@ -54,35 +55,71 @@ func main() {
 func solveAll(ps []expr) int {
 	sum := 0
 	for _, p := range ps {
-		sum += solveProblem(p)
+		sum += solveExpressions(p.exprs)
 	}
 	return sum
 }
 
-func solveProblem(p expr) int {
-	ans := 0
-	for _, ex := range p.exprs {
-		switch ex.op {
-		case add:
-		case mult:
-		}
+func solveExpressions(exprs []*expr) int {
+	var i, ans int
+	done := false
+	for !done {
+		nval, nidx := exprVal(i, ans, exprs)
+
+		i = nidx
+		ans = nval
+
+		done = nidx == -1
 	}
 	return ans
 }
 
-func printExpr(ex expr, end string) {
+func exprVal(i int, curval int, exprs []*expr) (nval, nidx int) {
+	if i >= len(exprs) {
+		return curval, -1
+	}
+	ex := exprs[i]
+
+	switch ex.op {
+	case num:
+		nval = ex.val
+		nidx = i + 1
+	case add:
+		nval, nidx = exprVal(i+1, curval, exprs)
+		nval += curval
+	case mult:
+		nval, nidx = exprVal(i+1, curval, exprs)
+		nval *= curval
+	case group:
+		nval = solveExpressions(ex.exprs)
+		nidx = i + 1
+	}
+
+	return nval, nidx
+}
+
+func printExprs(exs []*expr) string {
+	val := ""
+	for _, ex := range exs {
+		val += printExpr(*ex)
+	}
+	return val
+}
+
+func printExpr(ex expr) string {
+	val := ""
 	if ex.sym != "" {
-		fmt.Print(" ", ex.sym, " ")
+		val += fmt.Sprint(" ", ex.sym, " ")
 	} else if len(ex.exprs) > 0 {
+		val += "( "
 		for _, ec := range ex.exprs {
-			printExpr(*ec, "")
+			val += printExpr(*ec)
 		}
+		val += ") "
 	} else {
-		fmt.Print(" ", ex.val, " ")
+		val += fmt.Sprint(" ", ex.val, " ")
 	}
-	if end != "" {
-		fmt.Print(end)
-	}
+	return val
 }
 
 func parseProblems(lines []string) []expr {
@@ -103,7 +140,7 @@ func parseProblem(line string) expr {
 	p := &expr{}
 	curgroup := p
 
-	for _, ch := range line {
+	for i, ch := range line {
 		switch ch {
 		case ' ':
 			if innum {
@@ -119,11 +156,10 @@ func parseProblem(line string) expr {
 			curgroup.exprs = append(curgroup.exprs, &expr{sym: string(ch), op: mult})
 		case '(':
 			parent := curgroup
-			curgroup = &expr{}
-			curgroup.parent = parent
+			curgroup = &expr{parent: parent, op: group}
 
 			parent.exprs = append(parent.exprs, curgroup)
-			curgroup.exprs = append(curgroup.exprs, &expr{sym: string(ch)})
+			// curgroup.exprs = append(curgroup.exprs, &expr{sym: string(ch)})
 			level++
 		case ')':
 			if innum {
@@ -132,7 +168,7 @@ func parseProblem(line string) expr {
 				curnum = ""
 				innum = false
 			}
-			curgroup.exprs = append(curgroup.exprs, &expr{sym: string(ch)})
+			// curgroup.exprs = append(curgroup.exprs, &expr{sym: string(ch)})
 			curgroup = curgroup.parent
 		default:
 			if !innum {
@@ -141,6 +177,14 @@ func parseProblem(line string) expr {
 
 			curnum += string(ch)
 		}
+
+		if i == len(line)-1 && innum {
+			n, _ := strconv.Atoi(curnum)
+			curgroup.exprs = append(curgroup.exprs, &expr{val: n, op: num})
+			curnum = ""
+			innum = false
+		}
 	}
+
 	return *p
 }
