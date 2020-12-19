@@ -32,11 +32,30 @@ func main() {
 	}
 
 	nums := getNums(lines[0])
-	p1ary := solve(100, nums)
+	p1ary := solve(100, false, nums)
 
 	fmt.Println("Part 1:", printnums(p1ary, 8))
 
+	offset, _ := strconv.Atoi(printnums(nums, 7))
+
+	nums = repeat(nums, 10000)
+	p2ary := solve(100, true, nums[offset:])
+
+	fmt.Println("Part 2:", printnums(p2ary, 8))
+
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func repeat(nums []int, c int) []int {
+	dnums := []int{}
+
+	for i := 0; i < c; i++ {
+		for i := 0; i < len(nums); i++ {
+			dnums = append(dnums, nums[i])
+		}
+	}
+
+	return dnums
 }
 
 func printnums(ns []int, nlen int) string {
@@ -50,14 +69,30 @@ func printnums(ns []int, nlen int) string {
 	return s
 }
 
-func solve(phases int, nums []int) []int {
+func solve(phases int, rpt bool, nums []int) []int {
 	input := make([]int, len(nums))
 	copy(input, nums)
 
 	for p := 0; p < phases; p++ {
-		input = runPhase(input)
+		if !rpt {
+			input = runPhase(input)
+		} else {
+			input = runPhase2(input)
+		}
 	}
 	return input
+}
+
+func runPhase2(nums []int) []int {
+	out := make([]int, len(nums))
+	copy(out, nums)
+
+	sum := 0
+	for i := len(out) - 1; i >= 0; i-- {
+		sum += out[i]
+		out[i] = sum % 10
+	}
+	return out
 }
 
 func runPhase(nums []int) []int {
@@ -65,11 +100,13 @@ func runPhase(nums []int) []int {
 	var steps int = len(nums)
 
 	for i := 0; i < steps; i++ {
-		mults := getPatternStep(basePattern, i, len(nums))
+		mults := getPatternStep(basePattern, i)
 		stepSum := 0
 
 		for j := 0; j < len(nums); j++ {
-			x := nums[j] * mults[j]
+			nidx := j % len(nums)
+			midx := j % len(mults)
+			x := nums[nidx] * mults[midx]
 			stepSum += x
 		}
 		results = append(results, int(math.Abs(float64(stepSum)))%10)
@@ -78,25 +115,25 @@ func runPhase(nums []int) []int {
 	return results
 }
 
-func getPatternStep(pattern []int, step, length int) []int {
+func getPatternStep(pattern []int, step int) []int {
 	pstep := 0
 	stepPattern := []int{}
+	tolen := (step + 1) * len(pattern)
 
 	// add one extra so we can trim it from the front
-	for i := 0; len(stepPattern) < length+1; i++ {
-		for j := 0; j < step+1 && len(stepPattern) < length+1; j++ {
+	for i := 0; i < len(pattern)+1; i++ {
+		for j := 0; j < step+1; j++ {
 			stepPattern = append(stepPattern, pattern[pstep])
 		}
 		pstep = (pstep + 1) % len(pattern)
 	}
-	return stepPattern[1:]
+	return stepPattern[1 : tolen+1]
 }
 
 func getNums(line string) []int {
 	nums := []int{}
 	for _, ch := range line {
-		n, _ := strconv.Atoi(string(ch))
-		nums = append(nums, n)
+		nums = append(nums, int(ch-'0'))
 	}
 	return nums
 }
