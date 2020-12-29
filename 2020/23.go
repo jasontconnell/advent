@@ -12,9 +12,8 @@ import (
 var input = "23.txt"
 
 type cup struct {
-	id      int
-	next    *cup
-	removed bool
+	id   int
+	next *cup
 }
 
 func main() {
@@ -36,6 +35,42 @@ func main() {
 	}
 
 	cupvals := getCups(lines[0])
+	first := fillCups(cupvals)
+
+	result := play(first, 100, 9)
+	for result.next.id != 1 {
+		result = result.next
+	}
+
+	fmt.Println("Part 1:", strings.Replace(prints(result), "1", "", 1))
+
+	max := 0
+	for _, cv := range cupvals {
+		if cv > max {
+			max = cv
+		}
+	}
+
+	cur := max + 1
+	for len(cupvals) < 1_000_000 {
+		cupvals = append(cupvals, cur)
+		cur++
+	}
+
+	p2first := fillCups(cupvals)
+	p2result := play(p2first, 10_000_000, cur-1)
+	p2cur := p2result
+	for p2cur.id != 1 {
+		p2cur = p2cur.next
+	}
+	p2 := p2cur.next.id * p2cur.next.next.id
+
+	fmt.Println("Part 2:", p2)
+
+	fmt.Println("Time", time.Since(startTime))
+}
+
+func fillCups(cupvals []int) *cup {
 	var first *cup
 	var cur *cup
 	for _, cv := range cupvals {
@@ -53,14 +88,7 @@ func main() {
 
 	cur.next = first
 
-	result := play(first, 100)
-	for result.next.id != 1 {
-		result = result.next
-	}
-
-	fmt.Println("Part 1:", strings.Replace(prints(result), "1", "", 1))
-
-	fmt.Println("Time", time.Since(startTime))
+	return first
 }
 
 func prints(c *cup) string {
@@ -76,55 +104,47 @@ func prints(c *cup) string {
 	return s
 }
 
-func play(c *cup, moves int) *cup {
+func play(c *cup, moves, max int) *cup {
 	mv := 0
 	cur := c
+	m := make(map[int]*cup)
+
+	for cur.next != c {
+		m[cur.id] = cur
+		cur = cur.next
+	}
+	m[cur.id] = cur
+
+	cur = c
+
 	for mv < moves {
+		// if mv%1000 == 0 {
+		// 	fmt.Println(mv)
+		// }
 		v := cur.id
 		start := cur
-		remove := cur
 
-		var after *cup
-		var firstremoved *cup
-		var lastremoved *cup
-		for j := 0; j < 3; j++ {
-			remove = remove.next
-			if firstremoved == nil {
-				firstremoved = remove // keep track of removed
-			}
+		var firstremoved *cup = cur.next
+		var lastremoved *cup = cur.next.next.next
 
-			if j == 2 {
-				after = remove.next
-				lastremoved = remove
-				lastremoved.next = nil
-			}
-		}
-
-		start.next = after
+		start.next = lastremoved.next
+		lastremoved.next = nil
 
 		v = v - 1
 		if v == 0 {
-			v = 9
+			v = max
 		}
 
-		ptr := cur
-		for {
-			ptr = ptr.next
-			if ptr.id == v {
-				break
+		ptr := m[v]
+		for ptr == nil || ptr.next == nil || ptr.next.next == nil || ptr.next.next.next == nil {
+			v = v - 1
+			if v == 0 {
+				v = max
 			}
-
-			if ptr == cur {
-				v = v - 1
-				if v == 0 {
-					v = 9
-				}
-			}
+			ptr = m[v]
 		}
 
-		cur = ptr
 		curnext := ptr.next
-
 		ptr.next = firstremoved
 		lastremoved.next = curnext
 
