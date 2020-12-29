@@ -11,17 +11,63 @@ import (
 
 var input = "20.txt"
 
+type block struct {
+	id        int
+	grid      [][]bool
+	neighbors map[edge]*block
+	oriented  bool
+}
+
+func (b *block) String() string {
+	return fmt.Sprintf("id: %d", b.id)
+}
+
+func newBlock(id, d int) *block {
+	b := &block{id: id}
+	b.neighbors = make(map[edge]*block)
+	b.grid = make([][]bool, d)
+	return b
+}
+
+type neighbor struct {
+	block *block
+	side  edge
+}
+
+func (n neighbor) String() string {
+	return fmt.Sprintf("[id: %d]", n.block.id)
+}
+
+type xy struct {
+	x, y int
+}
+
 type edge int
 
 const (
-	top edge = iota
+	undefined edge = iota
+	top
 	bottom
 	left
 	right
-	undefined
 )
 
-var edges []edge = []edge{top, bottom, left, right}
+func (e edge) String() string {
+	s := ""
+	switch e {
+	case top:
+		s = "top"
+	case bottom:
+		s = "bottom"
+	case left:
+		s = "left"
+	case right:
+		s = "right"
+	case undefined:
+		s = "nil side"
+	}
+	return s
+}
 
 func (e edge) opposite() edge {
 	switch e {
@@ -35,6 +81,11 @@ func (e edge) opposite() edge {
 		return left
 	}
 	return undefined
+}
+
+var seaMonster []xy = []xy{
+	{0, 0}, {1, 1}, {4, 1}, {5, 0}, {6, 0}, {7, 1}, {10, 1}, {11, 0},
+	{12, 0}, {13, 1}, {16, 1}, {17, 0}, {18, 0}, {19, 0}, {18, -1},
 }
 
 func main() {
@@ -61,114 +112,227 @@ func main() {
 
 	fmt.Println("Part 1:", p1)
 
-	fmt.Println("Time", time.Since(startTime))
-}
+	joined := joinGrids(ms, d)
+	mcount := findSeaMonsters(joined)
 
-func solve(m map[int][][]bool, d int) int {
-	blocks := make(map[int]map[edge]int)
+	smcount := len(seaMonster) * mcount
 
-	unmatched := []int{}
-
-	for k := range m {
-		unmatched = append(unmatched, k)
-		blocks[k] = make(map[edge]int)
-	}
-
-	for len(unmatched) > 0 {
-		k := unmatched[0]
-		unmatched = unmatched[1:]
-		exclude := []int{k}
-
-		for _, found := range blocks[k] {
-			exclude = append(exclude, found)
-		}
-
-		mid, side := getMatch(m[k], m, d, exclude)
-
-		if mid != 0 && side != undefined {
-			blocks[k][side] = mid
-			if len(blocks[k]) < 4 {
-				unmatched = append(unmatched, k)
+	tcount := 0
+	for _, r := range joined {
+		for _, c := range r {
+			if c {
+				tcount++
 			}
 		}
 	}
+
+	p2 := tcount - smcount
+	fmt.Println("Part 2:", p2)
+
+	fmt.Println("Time", time.Since(startTime))
+}
+
+func findSeaMonsters(grid [][]bool) int {
+	c := 0
+	rotates := 0
+	for c == 0 {
+		for y := 0; y < len(grid); y++ {
+			for x := 0; x < len(grid[y]); x++ {
+				ismonster := true
+				for i := 0; i < len(seaMonster); i++ {
+					smxy := seaMonster[i]
+
+					if y+smxy.y >= len(grid) || y+smxy.y < 0 || x+smxy.x >= len(grid[y]) {
+						ismonster = false
+						break
+					}
+
+					if !grid[y+smxy.y][x+smxy.x] {
+						ismonster = false
+						break
+					}
+				}
+				if ismonster {
+					c++
+				}
+			}
+		}
+		if c == 0 {
+			grid = rotate(grid)
+			rotates++
+		}
+
+		if rotates == 4 {
+			grid = flipVertical(grid)
+		}
+	}
+	return c
+}
+
+func solve(m map[int]*block, d int) int {
+	q := []int{}
+	for k := range m {
+		if len(q) == 0 {
+			q = append(q, k)
+			m[k].oriented = true
+			break
+		}
+	}
+
+	done := false
+	for !done {
+		k := q[0]
+		q = q[1:]
+		b := m[k]
+		b.oriented = true
+
+		exclude := []int{k}
+		for _, n := range b.neighbors {
+			if (n.neighbors[top] != nil && n.neighbors[bottom] != nil) ||
+				(n.neighbors[left] != nil && n.neighbors[right] != nil) {
+				exclude = append(exclude, n.id)
+			}
+		}
+		ns := getNeighbors(b, exclude, m)
+		for _, n := range ns {
+			n.block.oriented = b.oriented
+			b.neighbors[n.side] = n.block
+			n.block.neighbors[n.side.opposite()] = b
+			if len(n.block.neighbors) < 2 {
+				q = append(q, n.block.id)
+			}
+		}
+		done = len(q) == 0
+	}
+
 	prod := 1
-	for k, v := range blocks {
-		if len(v) == 2 {
-			prod *= k
+	for _, b := range m {
+		if len(b.neighbors) == 2 {
+			prod *= b.id
 		}
 	}
 	return prod
 }
 
-// rearrange the image after all things are lined up
-func rearrange(m map[int][][]bool, d int) {
-
-}
-
-func getMatch(list [][]bool, m map[int][][]bool, d int, exclude []int) (int, edge) {
-	matched := 0
-	exmap := make(map[int]int)
-	for _, ex := range exclude {
-		exmap[ex] = ex
-	}
-	var side edge
-	for k := range m {
-		if _, ok := exmap[k]; ok {
-			continue
-		}
-		test := m[k]
-
-		ok, s := isMatch(list, test, d)
-
-		if ok {
-			//m[k] = test // new orientation?
-			matched = k
-			side = s
+func joinGrids(m map[int]*block, d int) [][]bool {
+	var cur *block
+	for _, b := range m {
+		if b.neighbors[top] == nil && b.neighbors[left] == nil {
+			cur = b
 			break
 		}
 	}
-	return matched, side
+
+	rows, cols := 1, 1
+	ptr := cur
+
+	counted := false
+	for !counted {
+		if ptr.neighbors[right] != nil {
+			cols++
+			ptr = ptr.neighbors[right]
+		}
+
+		if ptr.neighbors[bottom] != nil {
+			rows++
+			ptr = ptr.neighbors[bottom]
+		}
+
+		counted = ptr.neighbors[right] == nil && ptr.neighbors[bottom] == nil
+	}
+
+	ret := make([][]bool, rows*(d-2))
+	for i := 0; i < rows*(d-2); i++ {
+		ret[i] = make([]bool, cols*(d-2))
+	}
+	done := false
+	row, col := 0, 0
+	for !done {
+		for y := 1; y < d-1; y++ {
+			for x := 1; x < d-1; x++ {
+				ny := row*(d-2) + y - 1
+				nx := col*(d-2) + x - 1
+				ret[ny][nx] = cur.grid[y][x]
+			}
+		}
+
+		if cur.neighbors[right] != nil {
+			cur = cur.neighbors[right]
+			col++
+		} else {
+			for cur.neighbors[left] != nil {
+				cur = cur.neighbors[left]
+			}
+			cur = cur.neighbors[bottom]
+			row++
+			col = 0
+		}
+
+		done = cur == nil
+	}
+	return ret
 }
 
-func isMatch(list [][]bool, test [][]bool, d int) (bool, edge) {
-	b := false
+func getNeighbors(b *block, exclude []int, m map[int]*block) []neighbor {
+	ns := []neighbor{}
+
+	exmap := make(map[int]int)
+	for _, id := range exclude {
+		exmap[id] = id
+	}
+	for k, v := range m {
+		if _, ok := exmap[k]; ok {
+			continue
+		}
+
+		ok, side := isMatch(b, v)
+		if ok {
+			n := neighbor{block: v, side: side}
+			ns = append(ns, n)
+		}
+	}
+	return ns
+}
+
+func isMatch(b, test *block) (bool, edge) {
+	match := false
 	e := top
 	i := 0
 	for i < 4 {
-		b, e = checkEdges(list, test, d)
+		match, e = checkEdges(b.grid, test.grid)
 
-		if !b {
-			test = flipVertical(test, d)
-			b, e = checkEdges(list, test, d)
+		if !match && !test.oriented {
+			test.grid = flipVertical(test.grid)
+			match, e = checkEdges(b.grid, test.grid)
 
-			if !b {
-				test = flipVertical(test, d)
-				test = rotate(test, d)
+			if !match && !test.oriented {
+				test.grid = flipVertical(test.grid)
+				test.grid = rotate(test.grid)
 			}
 		}
 		i++
 	}
-	return b, e
+
+	return match, e
 }
 
-func checkEdges(list [][]bool, test [][]bool, d int) (bool, edge) {
+func checkEdges(b, test [][]bool) (bool, edge) {
 	edgemap := make(map[edge]int)
 
-	for i := 0; i < d; i++ {
-		if list[i][0] == test[i][0] {
+	for i := 0; i < len(b); i++ {
+		if b[i][0] == test[i][len(b)-1] {
 			edgemap[left]++
 		}
 
-		if list[0][i] == test[0][i] {
+		if b[0][i] == test[len(b)-1][i] {
 			edgemap[top]++
 		}
 
-		if list[d-1][i] == test[d-1][i] {
+		if b[len(b)-1][i] == test[0][i] {
 			edgemap[bottom]++
 		}
 
-		if list[i][d-1] == test[i][d-1] {
+		if b[i][len(b)-1] == test[i][0] {
 			edgemap[right]++
 		}
 	}
@@ -176,19 +340,20 @@ func checkEdges(list [][]bool, test [][]bool, d int) (bool, edge) {
 	matched := false
 	side := undefined
 	for k, v := range edgemap {
-		if v == d {
+		if v == len(b) {
 			matched = true
 			side = k
 			break
 		}
 	}
+
 	return matched, side
 }
 
-func printGrid(m [][]bool, d int) {
-	for y := 0; y < d; y++ {
-		for x := 0; x < d; x++ {
-			on := m[y][x]
+func printGrid(grid [][]bool) {
+	for y := 0; y < len(grid); y++ {
+		for x := 0; x < len(grid[y]); x++ {
+			on := grid[y][x]
 			if on {
 				fmt.Print("#")
 			} else {
@@ -200,51 +365,51 @@ func printGrid(m [][]bool, d int) {
 	fmt.Println()
 }
 
-func flipVertical(m [][]bool, d int) [][]bool {
-	m2 := make([][]bool, d)
-	for y := 0; y < d; y++ {
-		m2[y] = make([]bool, d)
+func flipVertical(m [][]bool) [][]bool {
+	m2 := make([][]bool, len(m))
+	for y := 0; y < len(m); y++ {
+		m2[y] = make([]bool, len(m[y]))
 	}
-	for y := 0; y < d; y++ {
-		for x := 0; x < d; x++ {
-			m2[d-y-1][x] = m[y][x]
+	for y := 0; y < len(m); y++ {
+		for x := 0; x < len(m[y]); x++ {
+			m2[len(m)-y-1][x] = m[y][x]
 		}
 	}
 	return m2
 }
 
-func rotate(m [][]bool, d int) [][]bool {
-	m2 := make([][]bool, d)
-	for y := 0; y < d; y++ {
-		m2[y] = make([]bool, d)
-		for x := 0; x < d; x++ {
-			m2[y][x] = m[d-x-1][y]
+func rotate(m [][]bool) [][]bool {
+	m2 := make([][]bool, len(m))
+	for y := 0; y < len(m); y++ {
+		m2[y] = make([]bool, len(m[y]))
+		for x := 0; x < len(m[y]); x++ {
+			m2[y][x] = m[len(m[y])-x-1][y]
 		}
 	}
 	return m2
 }
 
-func readGrids(lines []string, d int) map[int][][]bool {
-	m := make(map[int][][]bool)
+func readGrids(lines []string, d int) map[int]*block {
+	m := make(map[int]*block)
 	curId := 0
-	curm := make([][]bool, d)
 	x, y := 0, 0
+	var curb *block
 	for _, line := range lines {
 		if len(line) == 0 {
 			continue
 		}
 		if strings.HasPrefix(line, "Tile ") {
 			curId, _ = strconv.Atoi(line[5 : len(line)-1])
-			curm = make([][]bool, d)
-			m[curId] = curm
+			curb = newBlock(curId, d)
+			m[curId] = curb
 			y = 0
 			continue
 		}
 
 		x = 0
-		curm[y] = make([]bool, d)
+		curb.grid[y] = make([]bool, d)
 		for _, ch := range line {
-			curm[y][x] = ch == '#'
+			curb.grid[y][x] = ch == '#'
 			x++
 		}
 		y++
