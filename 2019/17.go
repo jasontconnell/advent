@@ -48,6 +48,9 @@ func main() {
 	copy(prog, opcodes)
 
 	grid := getMap(prog)
+	for _, s := range grid {
+		fmt.Println(s)
+	}
 
 	list := getIntersections(grid)
 
@@ -58,7 +61,60 @@ func main() {
 
 	fmt.Println("Part 1:", p1)
 
+	opcodes[0] = 2 // update program
+	p2 := getDust(grid, opcodes)
+
+	fmt.Println("Part 2:", p2)
+
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func getDust(grid []string, prog []int) int {
+	var start xy
+	for y := 0; y < len(grid); y++ {
+		for x := 0; x < len(grid[y]); x++ {
+			ch := grid[y][x]
+			if ch == 'v' || ch == '^' || ch == '<' || ch == '>' {
+				start = xy{x, y}
+				break
+			}
+		}
+	}
+
+	afunc := []int{1, 10}
+	bfunc := []int{int('L'), 10}
+	cfunc := []int{int('R'), 10}
+
+	c := intcode.NewComputer(prog)
+
+	c.OnOutput = func(out int) {
+		fmt.Print(string(rune(out)))
+	}
+
+	fmt.Println(start, afunc, bfunc, cfunc)
+
+	input = `B,A,B,C,A,C,A,C,B,C
+R,6,R,10,L,10
+L,10,R,12,R,12
+R,10,L,10,L,12,R,6
+`
+	fmt.Println("inputs")
+	for _, ch := range input {
+		fmt.Println(int(ch))
+		c.Ins = append(c.Ins, int(ch))
+	}
+
+	c.Exec()
+
+	dust := 0
+
+	for _, i := range c.Outs {
+		dust += i
+	}
+
+	fmt.Println(dust)
+
+	return dust
 }
 
 func getIntersections(grid []string) []xy {
