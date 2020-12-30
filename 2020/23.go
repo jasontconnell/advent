@@ -118,9 +118,6 @@ func play(c *cup, moves, max int) *cup {
 	cur = c
 
 	for mv < moves {
-		// if mv%1000 == 0 {
-		// 	fmt.Println(mv)
-		// }
 		v := cur.id
 		start := cur
 
