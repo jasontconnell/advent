@@ -28,6 +28,15 @@ type path struct {
 	moves []xy
 }
 
+var deltas []xy = []xy{
+	{-1, 0},    // west
+	{1, 0},     // east
+	{-.5, -.5}, // sw
+	{.5, .5},   // ne
+	{-.5, .5},  // nw
+	{.5, -.5},  // se
+}
+
 func main() {
 	startTime := time.Now()
 
@@ -52,6 +61,9 @@ func main() {
 
 	fmt.Println("Part 1:", p1)
 
+	p2 := simulate(paths, 100)
+	fmt.Println("Part 2:", p2)
+
 	fmt.Println("Time", time.Since(startTime))
 }
 
@@ -70,6 +82,80 @@ func getBlack(paths []path) int {
 		}
 	}
 	return count
+}
+
+func countBlack(m map[xy]bool) int {
+	count := 0
+	for _, v := range m {
+		if v {
+			count++
+		}
+	}
+	return count
+}
+
+func simulate(paths []path, count int) int {
+	m := make(map[xy]bool)
+	for _, path := range paths {
+		last := path.moves[len(path.moves)-1]
+		m[last] = !m[last]
+	}
+
+	fmt.Println("black to start", countBlack(m))
+	for i := 0; i < count; i++ {
+		m = fillSurrounding(m)
+		m = simulateOne(m)
+		if i < 11 || (i+1)%10 == 0 {
+			fmt.Println("day", i+1, countBlack(m), "map size", len(m))
+		}
+	}
+
+	return countBlack(m)
+}
+
+func fillSurrounding(m map[xy]bool) map[xy]bool {
+	bps := []xy{}
+	for k, v := range m {
+		if v {
+			bps = append(bps, k)
+		}
+	}
+
+	for _, pt := range bps {
+		for _, d := range deltas {
+			dv := xy{pt.x + d.x, pt.y + d.y}
+			if _, ok := m[dv]; !ok {
+				m[dv] = false
+			}
+		}
+	}
+	return m
+}
+
+func simulateOne(m map[xy]bool) map[xy]bool {
+	cm := make(map[xy]bool, len(m))
+
+	for k, v := range m {
+		blkcnt := 0
+
+		for _, d := range deltas {
+			pt := xy{k.x + d.x, k.y + d.y}
+			if dv, ok := m[pt]; ok && dv {
+				blkcnt++
+			}
+		}
+
+		// true is black
+		wv := v
+		if v && (blkcnt == 0 || blkcnt > 2) {
+			wv = false
+		} else if !v && blkcnt == 2 {
+			wv = true
+		}
+
+		cm[k] = wv
+	}
+	return cm
 }
 
 func getPaths(directions [][]direction) []path {
