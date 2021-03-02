@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,7 +13,7 @@ var input = "2.txt"
 
 func main() {
 
-	if s, err := ioutil.ReadFile(input); err == nil {
+	if s, err := os.ReadFile(input); err == nil {
 		totalArea := 0
 		totalRibbon := 0
 

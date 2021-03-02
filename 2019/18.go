@@ -33,7 +33,6 @@ var deltas []xy = []xy{
 type block struct {
 	pt   xy
 	ch   rune
-	open bool
 	kind blocktype
 }
 
@@ -70,9 +69,152 @@ func main() {
 	}
 
 	blocks, entrypoint := readGrid(lines)
-	p1 := solve(blocks, entrypoint)
+	p1 := 0 //solve(blocks, entrypoint)
 	fmt.Println("Part 1:", p1)
+
+	b := blocks[entrypoint.y][entrypoint.x]
+	b.ch = '#'
+	b.kind = wall
+	blocks[entrypoint.y][entrypoint.x] = b
+
+	for _, d := range deltas {
+		p := xy{entrypoint.x + d.x, entrypoint.y + d.y}
+		dp := blocks[p.y][p.x]
+		dp.ch = '#'
+		dp.kind = wall
+		blocks[p.y][p.x] = dp
+	}
+
+	robots := []xy{
+		{entrypoint.x + 1, entrypoint.y + 1},
+		{entrypoint.x + 1, entrypoint.y - 1},
+		{entrypoint.x - 1, entrypoint.y - 1},
+		{entrypoint.x - 1, entrypoint.y + 1},
+	}
+	for _, pt := range robots {
+		blocks[pt.y][pt.x].kind = entrance
+	}
+
+	p2 := fourRobotSolve(blocks, robots)
+	fmt.Println("Part 2:", p2)
+
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func fourRobotSolve(blocks [][]block, entrypoints []xy) int {
+	allkeys := getKeyMap(blocks)
+	foundKeys := make(map[rune]bool)
+	visited := make(map[vkey]bool)
+
+	robot := 0
+	robots := len(entrypoints)
+	rstates := []*state{}
+	for _, pt := range entrypoints {
+		rstates = append(rstates, newState(pt))
+	}
+
+	rq := make([]queue, robots)
+	for i, s := range rstates {
+		rq[i] = append(rq[i], s)
+	}
+
+	minpaths := []int{}
+	for range rstates {
+		minpaths = append(minpaths, 100000)
+	}
+
+	goalReached := make([]bool, robots)
+	goalStates := make([]*state, robots)
+
+	alllen := 4
+	for alllen > 0 {
+		if len(rq[robot]) == 0 {
+			robot = (robot + 1) % robots
+			continue
+		}
+		cur := rq[robot][0]
+		rq[robot] = rq[robot][1:]
+		alllen--
+
+		if len(cur.moves) >= minpaths[robot] {
+			continue
+		}
+
+		curb := blocks[cur.position.y][cur.position.x]
+		if _, ok := foundKeys[curb.ch+tolower]; curb.kind == door && !ok {
+			fmt.Println(robot, "door. waiting for", string(curb.ch+tolower))
+			rq[robot] = append(rq[robot], cur)
+			alllen++
+			robot = (robot + 1) % robots
+			continue
+		}
+
+		mvs := getValidMoves(blocks, cur.position, cur, false)
+		// fmt.Println(mvs)
+
+		for _, mv := range mvs {
+			cp := copyState(cur)
+			vk := getVisitedKey(mv, cp.keys)
+
+			if _, ok := visited[vk]; ok {
+				continue
+			}
+
+			// fmt.Println(robot, "visiting", mv, len(cp.moves), "found keys", len(foundKeys))
+			visited[vk] = true
+
+			b := blocks[mv.y][mv.x]
+
+			nextRobot := false
+
+			if b.kind == key {
+				if _, ok := cp.keys[b.ch]; !ok {
+					fmt.Println("found a key", string(b.ch))
+					cp.keys[b.ch] = true
+					cp.opendoors[b.ch-tolower] = true
+					foundKeys[b.ch] = true
+					// nextRobot = true
+				}
+			} else if b.kind == door {
+				fmt.Println("came across a door", string(b.ch))
+				if _, ok := foundKeys[b.ch+tolower]; !ok {
+					nextRobot = true
+					fmt.Println("no key for", string(b.ch))
+				}
+			}
+
+			if !nextRobot {
+				cp.position = mv
+				cp.moves = append(cp.moves, mv)
+				goalReached[robot] = len(foundKeys) == len(allkeys)
+
+				if goalReached[robot] {
+					if len(cp.moves) < minpaths[robot] {
+						goalStates[robot] = cp
+						minpaths[robot] = len(cp.moves)
+
+						fmt.Println("new goal reached. minpath", minpaths[robot])
+					}
+				} else {
+					rq[robot] = append(rq[robot], cp)
+					alllen++
+				}
+			} else {
+				rq[robot] = append(rq[robot], cp)
+				alllen++
+				robot = (robot + 1) % robots
+			}
+		}
+	}
+
+	x := 0
+	for _, gs := range goalStates {
+		if gs == nil {
+			continue
+		}
+		x += len(gs.moves)
+	}
+	return x
 }
 
 func solve(blocks [][]block, entrypoint xy) int {
@@ -94,7 +236,7 @@ func solve(blocks [][]block, entrypoint xy) int {
 			continue
 		}
 
-		mvs := getValidMoves(blocks, cur.position, cur)
+		mvs := getValidMoves(blocks, cur.position, cur, true)
 
 		for _, mv := range mvs {
 			cp := copyState(cur)
@@ -106,8 +248,6 @@ func solve(blocks [][]block, entrypoint xy) int {
 
 			visited[vk] = true
 
-			doMove := len(cur.moves)+1 < minpath
-
 			b := blocks[mv.y][mv.x]
 
 			if b.kind == key {
@@ -115,10 +255,6 @@ func solve(blocks [][]block, entrypoint xy) int {
 					cp.keys[b.ch] = true
 					cp.opendoors[b.ch-tolower] = true
 				}
-			}
-
-			if !doMove {
-				continue
 			}
 
 			cp.position = mv
@@ -209,7 +345,7 @@ func getDoorMap(blocks [][]block) map[xy]rune {
 	return dm
 }
 
-func getValidMoves(blocks [][]block, pt xy, s *state) []xy {
+func getValidMoves(blocks [][]block, pt xy, s *state, keycheck bool) []xy {
 	maxx, maxy := len(blocks[0]), len(blocks)
 	valid := []xy{}
 	for _, d := range deltas {
@@ -225,7 +361,11 @@ func getValidMoves(blocks [][]block, pt xy, s *state) []xy {
 		case path, key:
 			add = true
 		case door:
-			add = s.opendoors[b.ch] || s.keys[rune(b.ch+tolower)]
+			if keycheck {
+				add = s.opendoors[b.ch] || s.keys[rune(b.ch+tolower)]
+			} else {
+				add = true
+			}
 		case entrance:
 			add = true
 		}
@@ -235,6 +375,27 @@ func getValidMoves(blocks [][]block, pt xy, s *state) []xy {
 		}
 	}
 	return valid
+}
+
+func drawGrid(blocks [][]block) {
+	for y := 0; y < len(blocks); y++ {
+		for x := 0; x < len(blocks[y]); x++ {
+			ch := "#"
+			b := blocks[y][x]
+
+			if b.kind == key {
+				ch = string(b.ch)
+			} else if b.kind == entrance {
+				ch = "@"
+			} else if b.kind == path {
+				ch = "."
+			}
+
+			fmt.Print(ch)
+		}
+		fmt.Println()
+	}
+	fmt.Println()
 }
 
 func readGrid(lines []string) ([][]block, xy) {
@@ -258,7 +419,7 @@ func readGrid(lines []string) ([][]block, xy) {
 				bt = wall
 			}
 
-			b := block{pt: pt, ch: rune(ch), open: bt != wall, kind: bt}
+			b := block{pt: pt, ch: rune(ch), kind: bt}
 			blocks[y][x] = b
 		}
 	}

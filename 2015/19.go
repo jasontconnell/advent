@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/md5"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"sort"
@@ -56,7 +55,7 @@ func main() {
 	sort.Sort(sort.Reverse(sorter))
 
 	inputMolecule := ""
-	if tmp, err := ioutil.ReadFile(input2); err == nil {
+	if tmp, err := os.ReadFile(input2); err == nil {
 		inputMolecule = string(tmp)
 	}
 

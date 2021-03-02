@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 var input = "3.txt"
@@ -12,7 +12,7 @@ type Point struct {
 }
 
 func main() {
-	if s, err := ioutil.ReadFile(input); err == nil {
+	if s, err := os.ReadFile(input); err == nil {
 		santa := Point{x: 0, y: 0}
 		robo := Point{x: 0, y: 0}
 
