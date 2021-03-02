@@ -3,8 +3,9 @@ package main
 import (
 	//"bufio"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
+
 	//"regexp"
 	//"strconv"
 	"encoding/json"
@@ -15,7 +16,7 @@ var input = "12.txt"
 
 func main() {
 	startTime := time.Now()
-	if bytes, err := ioutil.ReadFile(input); err == nil {
+	if bytes, err := os.ReadFile(input); err == nil {
 		var data interface{}
 		var sum int
 
