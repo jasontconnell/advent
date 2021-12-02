@@ -13,7 +13,8 @@ type Computer struct {
 	OnOutput     func(int)
 	RequestInput func() int
 
-	memory map[int]int
+	memory   map[int]int
+	original []int
 }
 
 type op struct {
@@ -30,8 +31,20 @@ const (
 )
 
 func NewComputer(ops []int) *Computer {
-	c := &Computer{Ops: ops, InstPtr: 0, Complete: false, memory: make(map[int]int)}
+	cp := make([]int, len(ops))
+
+	copy(cp, ops)
+	c := &Computer{Ops: cp, InstPtr: 0, Complete: false, memory: make(map[int]int), original: ops}
 	return c
+}
+
+func (c *Computer) Reset() {
+	c.Ops = c.original
+	c.InstPtr = 0
+	c.Complete = false
+	c.memory = make(map[int]int)
+	c.Ins = []int{}
+	c.Outs = []int{}
 }
 
 func (c *Computer) AddInput(ins ...int) {
