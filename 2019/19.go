@@ -45,7 +45,7 @@ func main() {
 		}
 	}
 
-	p1 := countPart1(opcodes, 50)
+	p1 := part1(opcodes, 50)
 	p2 := part2(opcodes, 100)
 
 	fmt.Println("Part 1:", p1)
@@ -54,7 +54,7 @@ func main() {
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func countPart1(ops []int, size int) int {
+func part1(ops []int, size int) int {
 	count := 0
 
 	for y := 0; y < size; y++ {
@@ -79,21 +79,15 @@ func part2(ops []int, size int) int {
 }
 
 func findSquare(ops []int, size int) xy {
-	threshold := size + 2
+	threshold := size * 2
 	x, y := 0, 0
 	found := false
-
-	pos := xy{}
-	itr := 0
+	var pos xy
 
 	lastx := 0
 
 	for !found {
-		itr++
 		at := atPos(ops, x, y)
-		if itr%10000 == 0 {
-			fmt.Println(itr, x, y, at)
-		}
 
 		if at == 0 {
 			x++
@@ -106,7 +100,8 @@ func findSquare(ops []int, size int) xy {
 			}
 		} else {
 			lastx = x
-			if !checkSquare(ops, x, y, size) {
+			sq, sp := checkSquare(ops, x, y, size)
+			if !sq {
 				y++
 				x = lastx
 				if x < 0 {
@@ -114,19 +109,19 @@ func findSquare(ops []int, size int) xy {
 				}
 			} else {
 				found = true
-				pos.x = x
-				pos.y = y
+				pos = sp
 			}
 		}
 	}
 	return pos
 }
 
-func checkSquare(ops []int, x, y, size int) bool {
-	bottom := xy{x, y + size}
+func checkSquare(ops []int, x, y, size int) (bool, xy) {
+	c := size - 1
+	bottom := xy{x, y + c}
 
 	shift := 0
-	for i := bottom.x; i < bottom.x+size; i++ {
+	for i := bottom.x; i < bottom.x+c; i++ {
 		p := atPos(ops, i, bottom.y)
 		if p == 1 {
 			shift = i - bottom.x
@@ -136,20 +131,21 @@ func checkSquare(ops []int, x, y, size int) bool {
 
 	corners := []xy{
 		xy{x + shift, y},
-		xy{x + shift + size, y},
-		xy{x + shift, y + size},
-		xy{x + shift + size, y + size},
+		xy{x + shift + c, y},
+		xy{x + shift, y + c},
+		xy{x + shift + c, y + c},
 	}
+
 	val := true
 	for _, corner := range corners {
 		p := atPos(ops, corner.x, corner.y)
-		// fmt.Println("checking corner", corner, "for ", xy{x, y}, "p is", p, "shift is", shift)
 		if p == 0 {
 			val = false
 			break
 		}
 	}
-	return val
+
+	return val, corners[0]
 }
 
 func atPos(ops []int, x, y int) int {
