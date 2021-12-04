@@ -5,30 +5,37 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/jasontconnell/advent/common"
 )
 
-var input = ".txt"
+var inputFilename = "input.txt"
+
+type input []string
 
 func main() {
 	startTime := time.Now()
 
-	f, err := os.Open(input)
-
+	lines, err := common.ReadStrings(inputFilename)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	
-	scanner := bufio.NewScanner(f)
-
-	lines := []string{}
-	for scanner.Scan() {
-		var txt = scanner.Text()
-		lines = append(lines, txt)
+		fmt.Println("error reading file", err)
 	}
 
-	fmt.Println("read", len(lines), "lines")
+	p1 := part1(lines)
+	p2 := part2(lines)
+
+	fmt.Println("Part 1:", p1)
+	fmt.Println("Part 2:", p2)
+
 	fmt.Println("Time", time.Since(startTime))
+}
+
+func part1(in input) int {
+	return 0
+}
+
+func part2(in input) int {
+	return 0
 }
 
 
