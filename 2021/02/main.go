@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"time"
@@ -35,7 +36,7 @@ func main() {
 
 	lines, err := common.ReadStrings(inputFilename)
 	if err != nil {
-		fmt.Println("error reading file", err)
+		log.Fatal(err)
 	}
 
 	p1 := part1(lines)
