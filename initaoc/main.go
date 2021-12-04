@@ -34,7 +34,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	runInit(*year, *day, session, boilerplate, *pbaseUrl, *pinput, *pmain)
+	err = runInit(*year, *day, session, boilerplate, *pbaseUrl, *pinput, *pmain)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("couldn't init aoc with the params day: %d year %d err: %s", *day, *year, err.Error()))
+	}
 }
 
 func runInit(year, day int, session, boilerplate, baseUrl, inputFilename, mainFilename string) error {
@@ -45,6 +48,9 @@ func runInit(year, day int, session, boilerplate, baseUrl, inputFilename, mainFi
 
 	fullUrl := strings.Join([]string{baseUrl, inputPath}, "/")
 	input, err := getInput(fullUrl, session)
+	if err != nil {
+		return fmt.Errorf("can't get input at %s %w", fullUrl, err)
+	}
 
 	dirPath := filepath.Join(syear, pathDay)
 	err = os.MkdirAll(dirPath, os.ModePerm)
@@ -55,10 +61,14 @@ func runInit(year, day int, session, boilerplate, baseUrl, inputFilename, mainFi
 	err = initFile(dirPath, mainFilename, boilerplate, true)
 	if err != nil {
 		log.Println("main file error", err)
+	} else {
+		log.Printf("init'd file %s\\%s", dirPath, mainFilename)
 	}
 	err = initFile(dirPath, inputFilename, input, false)
 	if err != nil {
 		log.Println("input file error", err)
+	} else {
+		log.Printf("init'd file %s\\%s", dirPath, inputFilename)
 	}
 
 	return nil
@@ -96,6 +106,10 @@ func getInput(url, session string) (string, error) {
 		return "", err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("couldn't get file contents at url: %s  status: %s", url, res.Status)
+	}
 
 	b, err := io.ReadAll(res.Body)
 	if err != nil {

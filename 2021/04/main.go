@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -45,7 +46,7 @@ func main() {
 
 	lines, err := common.ReadStrings(inputFilename)
 	if err != nil {
-		fmt.Println("error reading file", err)
+		log.Fatal(err)
 	}
 	nums, boards := getInput(lines)
 
