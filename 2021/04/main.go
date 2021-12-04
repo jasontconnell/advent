@@ -11,8 +11,6 @@ import (
 
 var inputFilename = "input.txt"
 
-type input []string
-
 var size int = 5
 
 type xy struct {

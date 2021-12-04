@@ -1,44 +1,33 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strconv"
 	"time"
+
+	"github.com/jasontconnell/advent/common"
 )
 
-var input = "01.txt"
+var inputFilename = "input.txt"
+
+type input []int
 
 func main() {
 	startTime := time.Now()
 
-	f, err := os.Open(input)
-
+	vals, err := common.ReadInts(inputFilename)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		fmt.Println("error reading file", err)
 	}
 
-	scanner := bufio.NewScanner(f)
-
-	vals := []int{}
-	for scanner.Scan() {
-		var txt = scanner.Text()
-		i, _ := strconv.Atoi(txt)
-		vals = append(vals, i)
-	}
-
-	p1 := getIncs(vals)
-	p2 := getIncSums(vals)
+	p1 := part1(vals)
+	p2 := part2(vals)
 
 	fmt.Println("Part 1:", p1)
 	fmt.Println("Part 2:", p2)
 
 	fmt.Println("Time", time.Since(startTime))
 }
-
-func getIncs(vals []int) int {
+func part1(vals input) int {
 	if len(vals) < 2 {
 		return -1
 	}
@@ -51,7 +40,7 @@ func getIncs(vals []int) int {
 	return incs
 }
 
-func getIncSums(vals []int) int {
+func part2(vals input) int {
 	if len(vals) < 2 {
 		return -1
 	}
