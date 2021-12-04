@@ -142,12 +142,6 @@ func checkBoard(b board, nums []int, itr int) bool {
 		}
 	}
 
-	dm := checkDiags(matches)
-
-	if dm {
-		match = true
-	}
-
 	return match
 }
 
@@ -171,29 +165,6 @@ func checkCol(matches map[xy]bool, p xy) bool {
 		}
 	}
 	return val == size
-}
-
-func checkDiags(matches map[xy]bool) bool {
-	diags := [][]xy{
-		{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}},
-		{{1, 5}, {2, 4}, {1, 5}, {4, 2}, {5, 1}},
-	}
-
-	ret := false
-	for _, diag := range diags {
-		val := 0
-		for _, cp := range diag {
-			if _, ok := matches[cp]; ok {
-				val++
-			}
-		}
-
-		if val == size {
-			ret = true
-			break
-		}
-	}
-	return ret
 }
 
 func getInput(lines []string) ([]int, []board) {
