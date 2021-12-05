@@ -2,6 +2,7 @@ package common
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -23,6 +24,19 @@ func ReadStrings(filename string) ([]string, error) {
 	}
 
 	return lines, nil
+}
+
+func ReadString(filename string) (string, error) {
+	lines, err := ReadStrings(filename)
+	if err != nil {
+		return "", err
+	}
+
+	if len(lines) == 0 {
+		return "", fmt.Errorf("no lines to read")
+	}
+
+	return lines[0], nil
 }
 
 func ReadInts(filename string) ([]int, error) {
