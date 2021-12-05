@@ -9,20 +9,37 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
 func main() {
-	year := flag.Int("year", time.Now().Year(), "the year")
-	day := flag.Int("day", time.Now().Day(), "day number")
+	year := flag.Int("y", time.Now().Year(), "the year")
+	day := flag.Int("d", time.Now().Day(), "day number")
 	sessionFilename := flag.String("session", "session.txt", "the filename holding the AoC session key")
 	boilerplateFilename := flag.String("b", "boilerplate.txt", "boilerplate filename")
 	pbaseUrl := flag.String("url", "https://adventofcode.com", "aoc url")
 	pinput := flag.String("input", "input.txt", "input filename")
 	pmain := flag.String("main", "main.go", "main go filename")
 	flag.Parse()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(fmt.Errorf("getwd failed for some reason %w", err))
+	}
+
+	y := *year
+	// check if we're in a year folder
+	_, folder := filepath.Split(cwd)
+	reg := regexp.MustCompile("([0-9]{4})")
+	m := reg.FindStringSubmatch(folder)
+	createYearDir := true
+	if len(m) == 2 {
+		y, _ = strconv.Atoi(folder)
+		createYearDir = false
+	}
 
 	session, err := readFile(*sessionFilename)
 	if err != nil {
@@ -34,13 +51,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = runInit(*year, *day, session, boilerplate, *pbaseUrl, *pinput, *pmain)
+	err = runInit(y, *day, createYearDir, session, boilerplate, *pbaseUrl, *pinput, *pmain)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("couldn't init aoc with the params day: %d year %d err: %s", *day, *year, err.Error()))
 	}
 }
 
-func runInit(year, day int, session, boilerplate, baseUrl, inputFilename, mainFilename string) error {
+func runInit(year, day int, createYearDir bool, session, boilerplate, baseUrl, inputFilename, mainFilename string) error {
 	syear, sday := strconv.Itoa(year), strconv.Itoa(day)
 	pathDay := "0" + sday
 	pathDay = pathDay[len(pathDay)-2:]
@@ -53,6 +70,10 @@ func runInit(year, day int, session, boilerplate, baseUrl, inputFilename, mainFi
 	}
 
 	dirPath := filepath.Join(syear, pathDay)
+	if !createYearDir {
+		dirPath = pathDay
+	}
+
 	err = os.MkdirAll(dirPath, os.ModePerm)
 	if err != nil {
 		return err
