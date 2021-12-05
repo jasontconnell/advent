@@ -52,3 +52,12 @@ func ReadInts(filename string) ([]int, error) {
 	}
 	return vals, nil
 }
+
+func ReadInt(filename string) (int, error) {
+	ints, err := ReadInts(filename)
+	if err != nil {
+		return -1, err
+	}
+
+	return ints[0], nil
+}
