@@ -11,17 +11,18 @@ import (
 var inputFilename = "input.txt"
 
 type input []string
+type output int
 
 func main() {
 	startTime := time.Now()
 
-	lines, err := common.ReadStrings(inputFilename)
+	in, err := common.ReadStrings(inputFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	p1 := part1(lines)
-	p2 := part2(lines)
+	p1 := part1(input(in))
+	p2 := part2(input(in))
 
 	fmt.Println("Part 1:", p1)
 	fmt.Println("Part 2:", p2)
@@ -29,12 +30,12 @@ func main() {
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func part1(in input) int {
-	return 0
+func part1(in input) output {
+	return output(0)
 }
 
-func part2(in input) int {
-	return 0
+func part2(in input) output {
+	return output(0)
 }
 
 
