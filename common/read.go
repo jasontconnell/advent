@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func ReadStrings(filename string) ([]string, error) {
@@ -60,4 +61,19 @@ func ReadInt(filename string) (int, error) {
 	}
 
 	return ints[0], nil
+}
+
+func ReadIntCsv(filename string) ([]int, error) {
+	s, err := ReadString(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := []int{}
+	sp := strings.Split(s, ",")
+	for _, x := range sp {
+		i, _ := strconv.Atoi(x)
+		ret = append(ret, i)
+	}
+	return ret, nil
 }
