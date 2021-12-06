@@ -51,6 +51,12 @@ func (c *Computer) AddInput(ins ...int) {
 	c.Ins = append(c.Ins, ins...)
 }
 
+func (c *Computer) AddInputs(ins ...[]int) {
+	for _, a := range ins {
+		c.AddInput(a...)
+	}
+}
+
 func (c *Computer) Exec() {
 	for !c.Complete {
 		c.ExecOne()
