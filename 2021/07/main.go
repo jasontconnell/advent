@@ -32,14 +32,14 @@ func main() {
 }
 
 func part1(in input) output {
-	return getOptimalFuel(in)
+	return getOptimalFuel(in, false)
 }
 
 func part2(in input) output {
-	return 0
+	return getOptimalFuel(in, true)
 }
 
-func getOptimalFuel(crabs input) int {
+func getOptimalFuel(crabs input, acc bool) int {
 	min, max := minmax(crabs)
 	optfuel := math.MaxInt32
 	for i := min; i < max; i++ {
@@ -51,6 +51,9 @@ func getOptimalFuel(crabs input) int {
 			}
 
 			abs := int(math.Abs(float64(diff)))
+			if acc {
+				abs += doAcc(abs)
+			}
 			freq += abs
 		}
 
@@ -61,8 +64,16 @@ func getOptimalFuel(crabs input) int {
 	return optfuel
 }
 
-func diff(i, j int) {
+func doAcc(diff int) int {
+	if diff == 0 {
+		return 0
+	}
 
+	acc := 0
+	for i := diff - 1; i > 0; i-- {
+		acc += i
+	}
+	return acc
 }
 
 func minmax(in input) (int, int) {
