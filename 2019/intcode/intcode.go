@@ -1,17 +1,24 @@
 package intcode
 
+import "fmt"
+
 type Computer struct {
-	Name         string
-	Ops          []int
-	Outs         []int
-	Ins          []int
-	InstPtr      int
-	Prev         *Computer
-	Next         *Computer
-	Complete     bool
-	RelativeBase int
-	OnOutput     func(int)
-	RequestInput func() int
+	ID              int
+	Name            string
+	Ops             []int
+	Outs            []int
+	Ins             []int
+	InstPtr         int
+	Prev            *Computer
+	Next            *Computer
+	Complete        bool
+	RelativeBase    int
+	OnOutput        func(int)
+	OnOutputCtx     func(*Computer, int)
+	RequestInput    func() int
+	RequestInputCtx func(*Computer) int
+
+	paused bool
 
 	memory   map[int]int
 	original []int
@@ -58,7 +65,7 @@ func (c *Computer) AddInputs(ins ...[]int) {
 }
 
 func (c *Computer) Exec() {
-	for !c.Complete {
+	for !c.Complete && !c.paused {
 		c.ExecOne()
 	}
 }
@@ -73,7 +80,7 @@ func (c *Computer) GetNextOutput() int {
 }
 
 func (c *Computer) ExecOne() {
-	if c.Complete {
+	if c.Complete || c.paused {
 		return
 	}
 
@@ -100,6 +107,11 @@ func (c *Computer) ExecOne() {
 			c.AddInput(in)
 		}
 
+		if len(c.Ins) == 0 && c.RequestInputCtx != nil {
+			in := c.RequestInputCtx(c)
+			c.AddInput(in)
+		}
+
 		if len(c.Ins) > 0 {
 			c.setValue(1, c.Ins[0])
 			c.Ins = c.Ins[1:]
@@ -111,6 +123,9 @@ func (c *Computer) ExecOne() {
 		c.Outs = append([]int{outval}, c.Outs...)
 		if c.OnOutput != nil {
 			c.OnOutput(outval)
+		}
+		if c.OnOutputCtx != nil {
+			c.OnOutputCtx(c, outval)
 		}
 		c.InstPtr += 2
 		break
@@ -141,8 +156,16 @@ func (c *Computer) ExecOne() {
 		c.Complete = true
 		break
 	default:
-		panic("unknown op " + string(opcode.code))
+		panic("unknown op " + fmt.Sprint(opcode.code))
 	}
+}
+
+func (c *Computer) Pause() {
+	c.paused = true
+}
+
+func (c *Computer) Resume() {
+	c.paused = false
 }
 
 func (c *Computer) getValue(pos int) int {

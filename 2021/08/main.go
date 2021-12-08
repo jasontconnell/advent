@@ -101,45 +101,38 @@ func determineDigits(sig signal) map[string]int {
 	}
 
 	digits := map[string]int{one: 1, four: 4, seven: 7, eight: 8}
-	maxloops, loops := 15, 0
-	for loops < maxloops {
-		for _, s := range unified {
-			if _, ok := digits[s]; ok {
-				continue
-			}
-
-			switch len(s) {
-			case 5:
-				if three == "" && numcommon(four, s) == 3 && numcommon(seven, s) == 3 && numcommon(one, s) == 2 {
-					three = s
-					digits[three] = 3
-				}
-				if five == "" && numcommon(four, s) == 3 && numcommon(one, s) == 1 && numcommon(seven, s) == 2 {
-					five = s
-					digits[five] = 5
-				}
-				if two == "" && numcommon(four, s) == 2 && numcommon(one, s) == 1 && numcommon(seven, s) == 2 {
-					two = s
-					digits[two] = 2
-				}
-			case 6:
-				if nine == "" && numcommon(four, s) == 4 {
-					nine = s
-					digits[nine] = 9
-				}
-				if zero == "" && numcommon(four, s) == 3 && numcommon(eight, s) == 6 && numcommon(one, s) == 2 {
-					zero = s
-					digits[zero] = 0
-				}
-				if six == "" && numcommon(one, s) == 1 {
-					six = s
-					digits[six] = 6
-				}
-			}
+	for _, s := range unified {
+		if _, ok := digits[s]; ok {
+			continue
 		}
-		loops++
-		if loops > maxloops {
-			break
+
+		switch len(s) {
+		case 5:
+			if three == "" && numcommon(four, s) == 3 && numcommon(seven, s) == 3 && numcommon(one, s) == 2 {
+				three = s
+				digits[three] = 3
+			}
+			if five == "" && numcommon(four, s) == 3 && numcommon(one, s) == 1 && numcommon(seven, s) == 2 {
+				five = s
+				digits[five] = 5
+			}
+			if two == "" && numcommon(four, s) == 2 && numcommon(one, s) == 1 && numcommon(seven, s) == 2 {
+				two = s
+				digits[two] = 2
+			}
+		case 6:
+			if nine == "" && numcommon(four, s) == 4 {
+				nine = s
+				digits[nine] = 9
+			}
+			if zero == "" && numcommon(four, s) == 3 && numcommon(eight, s) == 6 && numcommon(one, s) == 2 {
+				zero = s
+				digits[zero] = 0
+			}
+			if six == "" && numcommon(one, s) == 1 {
+				six = s
+				digits[six] = 6
+			}
 		}
 	}
 
