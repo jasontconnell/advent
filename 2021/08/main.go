@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -71,14 +71,13 @@ func getOutputs(signals []signal) []output {
 	for _, sig := range signals {
 		digits := determineDigits(sig)
 
-		v := ""
-		for _, s := range sig.outvalue {
+		v := 0
+		for d, s := range sig.outvalue {
 			if i, ok := digits[s]; ok {
-				v += strconv.Itoa(i)
+				v += i * (int(math.Pow(10, float64(len(sig.outvalue)-d-1))))
 			}
 		}
-		vi, _ := strconv.Atoi(v)
-		outs = append(outs, vi)
+		outs = append(outs, v)
 	}
 	return outs
 }
