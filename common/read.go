@@ -77,3 +77,16 @@ func ReadIntCsv(filename string) ([]int, error) {
 	}
 	return ret, nil
 }
+
+func ReadStringsCsv(filename string) ([]string, error) {
+	s, err := ReadString(filename)
+	if err != nil {
+		return nil, err
+	}
+	ret := []string{}
+	sp := strings.Split(s, ",")
+	for _, s := range sp {
+		ret = append(ret, strings.Trim(s, " "))
+	}
+	return ret, nil
+}
