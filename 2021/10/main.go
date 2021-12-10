@@ -39,9 +39,15 @@ func part1(in input) output {
 		'}': 1197,
 		'>': 25137,
 	}
+	match := map[rune]rune{
+		'(': ')',
+		'[': ']',
+		'{': '}',
+		'<': '>',
+	}
 	score := 0
 	for _, s := range in {
-		_, sc := getSyntaxError(s, scores)
+		_, sc := getSyntaxError(s, scores, match)
 		score += sc
 	}
 	return score
@@ -54,11 +60,17 @@ func part2(in input) output {
 		'}': 3,
 		'>': 4,
 	}
+	match := map[rune]rune{
+		'(': ')',
+		'[': ']',
+		'{': '}',
+		'<': '>',
+	}
 	results := []int{}
 	for _, line := range in {
-		corrupt, _ := getSyntaxError(line, scores)
+		corrupt, _ := getSyntaxError(line, scores, match)
 		if !corrupt {
-			results = append(results, complete(line, scores))
+			results = append(results, complete(line, scores, match))
 		}
 	}
 	sort.Ints(results)
@@ -67,29 +79,17 @@ func part2(in input) output {
 	return score
 }
 
-func complete(line string, scores map[rune]int) int {
+func complete(line string, scores map[rune]int, match map[rune]rune) int {
 	stack := []rune{}
 	for _, c := range line {
 		switch c {
-		case ')':
-			stack = stack[1:]
-		case ']':
-			stack = stack[1:]
-		case '}':
-			stack = stack[1:]
-		case '>':
+		case ')', ']', '}', '>':
 			stack = stack[1:]
 		default:
 			stack = append([]rune{c}, stack...)
 		}
 	}
 
-	match := map[rune]rune{
-		'(': ')',
-		'[': ']',
-		'{': '}',
-		'<': '>',
-	}
 	score := 0
 	for j, _ := range stack {
 		c := stack[j]
@@ -99,32 +99,19 @@ func complete(line string, scores map[rune]int) int {
 	return score
 }
 
-func getSyntaxError(line string, scores map[rune]int) (bool, int) {
+func getSyntaxError(line string, scores map[rune]int, match map[rune]rune) (bool, int) {
 	score := 0
 	stack := []rune{}
 	found := false
+	revmatch := make(map[rune]rune)
+	for k, v := range match {
+		revmatch[v] = k
+	}
 	for _, c := range line {
 		switch c {
-		case ')':
-			if stack[0] != '(' {
-				score = scores[c]
-				found = true
-			}
-			stack = stack[1:]
-		case ']':
-			if stack[0] != '[' {
-				score = scores[c]
-				found = true
-			}
-			stack = stack[1:]
-		case '}':
-			if stack[0] != '{' {
-				score = scores[c]
-				found = true
-			}
-			stack = stack[1:]
-		case '>':
-			if stack[0] != '<' {
+		case ')', ']', '}', '>':
+			m := revmatch[c]
+			if stack[0] != m {
 				score = scores[c]
 				found = true
 			}
