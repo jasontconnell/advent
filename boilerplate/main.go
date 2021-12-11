@@ -24,6 +24,7 @@ func main() {
 	p1 := part1(in)
 	p2 := part2(in)
 
+	fmt.Println("--{year} day {day} solution--")
 	fmt.Println("Part 1:", p1)
 	fmt.Println("Part 2:", p2)
 
@@ -38,10 +39,9 @@ func part2(in input) output {
 	return 0
 }
 
-
 // reg := regexp.MustCompile("-?[0-9]+")
-/* 			
+/*
 if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
 				fmt.Println(groups[1:])
 			}
-			*/
+*/

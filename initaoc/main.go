@@ -15,11 +15,16 @@ import (
 	"time"
 )
 
+type file struct {
+	filename string
+	contents string
+}
+
 func main() {
 	year := flag.Int("y", time.Now().Year(), "the year")
 	day := flag.Int("d", time.Now().Day(), "day number")
 	sessionFilename := flag.String("session", "session.txt", "the filename holding the AoC session key")
-	boilerplateFilename := flag.String("b", "boilerplate.txt", "boilerplate filename")
+	boilerplateFolder := flag.String("b", "./boilerplate/", "boilerplate folder")
 	pbaseUrl := flag.String("url", "https://adventofcode.com", "aoc url")
 	pinput := flag.String("input", "input.txt", "input filename")
 	pmain := flag.String("main", "main.go", "main go filename")
@@ -46,12 +51,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	boilerplate, err := readFile(*boilerplateFilename)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = runInit(y, *day, createYearDir, session, boilerplate, *pbaseUrl, *pinput, *pmain)
+	err = runInit(y, *day, createYearDir, session, *boilerplateFolder, *pbaseUrl, *pinput, *pmain)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("couldn't init aoc with the params day: %d year %d err: %s", *day, *year, err.Error()))
 	}
@@ -79,12 +79,24 @@ func runInit(year, day int, createYearDir bool, session, boilerplate, baseUrl, i
 		return err
 	}
 
-	err = initFile(dirPath, mainFilename, boilerplate, true)
+	files, err := readFolder(boilerplate)
 	if err != nil {
-		log.Println("main file error", err)
-	} else {
-		log.Printf("init'd file %s\\%s", dirPath, mainFilename)
+		return err
 	}
+
+	for _, f := range files {
+		contents := f.contents
+		contents = strings.ReplaceAll(contents, "{year}", syear)
+		contents = strings.ReplaceAll(contents, "{day}", pathDay)
+
+		err = initFile(dirPath, f.filename, contents, true)
+		if err != nil {
+			return err
+		} else {
+			log.Printf("init'd file %s\\%s", dirPath, f.filename)
+		}
+	}
+
 	err = initFile(dirPath, inputFilename, input, false)
 	if err != nil {
 		log.Println("input file error", err)
@@ -138,6 +150,28 @@ func getInput(url, session string) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func readFolder(folder string) ([]file, error) {
+	files := []file{}
+	err := filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+
+		_, fn := filepath.Split(path)
+
+		f := file{filename: fn}
+
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		f.contents = string(b)
+		files = append(files, f)
+		return nil
+	})
+	return files, err
 }
 
 func readFile(filename string) (string, error) {
