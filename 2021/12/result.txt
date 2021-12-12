@@ -1,0 +1,4 @@
+--2021 day 12 solution--
+Part 1: 4549
+Part 2: 120535
+Time 613.2943ms
