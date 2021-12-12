@@ -27,16 +27,7 @@ func (c *cave) String() string {
 type state struct {
 	path   []*cave
 	visits map[string]int
-	goal   bool
 	loc    *cave
-}
-
-func (s *state) printPath() string {
-	val := ""
-	for _, p := range s.path {
-		val += p.id + "=>"
-	}
-	return strings.TrimSuffix(val, "=>")
 }
 
 func main() {
@@ -93,7 +84,7 @@ func findPaths(list map[string]*cave, modify bool) [][]*cave {
 		}
 
 		for _, cn := range cur.loc.connections {
-			if _, ok := cur.visits[cn.id]; !ok || (modify && cn.id != "start" && cn.id != "end" && mmax(cur.visits) == 1) {
+			if _, ok := cur.visits[cn.id]; !ok || (modify && cn.id != "start" && mmax(cur.visits) == 1) {
 				st := newState(cur, cn)
 				queue = append(queue, st)
 			}
