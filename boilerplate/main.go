@@ -3,12 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/jasontconnell/advent/common"
 )
-
-var inputFilename = "input.txt"
 
 type input = []string
 type output = int
@@ -16,7 +15,7 @@ type output = int
 func main() {
 	startTime := time.Now()
 
-	in, err := common.ReadStrings(inputFilename)
+	in, err := common.ReadStrings(common.InputFilename(os.Args))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -24,11 +23,11 @@ func main() {
 	p1 := part1(in)
 	p2 := part2(in)
 
-	fmt.Println("--{year} day {day} solution--")
-	fmt.Println("Part 1:", p1)
-	fmt.Println("Part 2:", p2)
-
-	fmt.Println("Time", time.Since(startTime))
+	w := common.TeeOutput(os.Stdout)
+	fmt.Fprintln(w, "--{year} day {day} solution--")
+	fmt.Fprintln(w, "Part 1:", p1)
+	fmt.Fprintln(w, "Part 2:", p2)
+	fmt.Fprintln(w, "Time", time.Since(startTime))
 }
 
 func part1(in input) output {
