@@ -8,6 +8,14 @@ import (
 	"strings"
 )
 
+func InputFilename(args []string) string {
+	filename := "input.txt"
+	if len(args) > 1 {
+		filename = args[1]
+	}
+	return filename
+}
+
 func ReadStrings(filename string) ([]string, error) {
 	f, err := os.Open(filename)
 
