@@ -86,7 +86,7 @@ func main() {
 	fmt.Fprintln(w, "Part 1:", p1)
 	fmt.Fprintln(w, "Part 2:")
 	part2(w, in)
-	fmt.Fprintln(w, "Time", time.Since(startTime))
+	fmt.Println("Time", time.Since(startTime))
 }
 
 func part1(in input) output {
