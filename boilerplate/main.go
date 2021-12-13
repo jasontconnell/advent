@@ -27,7 +27,7 @@ func main() {
 	fmt.Fprintln(w, "--{year} day {day} solution--")
 	fmt.Fprintln(w, "Part 1:", p1)
 	fmt.Fprintln(w, "Part 2:", p2)
-	fmt.Fprintln(w, "Time", time.Since(startTime))
+	fmt.Println("Time", time.Since(startTime))
 }
 
 func part1(in input) output {
