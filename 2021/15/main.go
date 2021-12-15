@@ -6,7 +6,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"sort"
 	"strconv"
 	"time"
 
@@ -170,13 +169,6 @@ func getMoves(g grid, cur xy) []xy {
 		}
 		valid = append(valid, pt)
 	}
-
-	sort.Slice(valid, func(i, j int) bool {
-		ip, jp := valid[i], valid[j]
-
-		iv, jv := g[ip.y][ip.x], g[jp.y][jp.x]
-		return iv < jv
-	})
 
 	return valid
 }
