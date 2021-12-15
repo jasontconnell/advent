@@ -1,0 +1,210 @@
+
+type quadresult struct {
+	start, end xy
+	level      int
+}
+
+func traverseQuadrants(quads [][]grid) (bool, int) {
+
+	totalLevel := 0
+	maxqx, maxqy := len(quads[0])-1, len(quads)-1
+	qy, qx := maxqy, maxqx
+	maxx, maxy := len(quads[qy-1][qx-1][0])-1, len(quads[qy-1][qx-1])-1
+	// find optimal start pos of the end quadrant, {4,4}
+	goal := xy{len(quads[qy][qx][0]) - 1, len(quads[qy][qx]) - 1}
+	done := qy == 0 && qx == 0
+	var left, top, right, bottom bool
+	left = true
+	top = true
+
+	found := true
+
+	visited := make(map[xy]bool)
+	for !done {
+		g := quads[qy][qx]
+		visited[xy{qx, qy}] = true
+		start, level := getOptimalStart(g, goal, left, top, right, bottom)
+		if level == math.MaxInt32 {
+			found = false
+			break
+		}
+		fmt.Println(goal, "quadrant", xy{qx, qy}, "start at", start, "level is", level)
+		totalLevel += level
+		if left && start.x == 0 {
+			goal = xy{maxx, start.y}
+			qx--
+		}
+
+		if right && start.x == maxx {
+			goal = xy{0, start.y}
+			qx++
+		}
+
+		if top && start.y == 0 {
+			goal = xy{start.x, maxy}
+			qy--
+		}
+
+		if bottom && start.y == maxy {
+			goal = xy{start.x, 0}
+			qy++
+		}
+
+		if _, ok := visited[xy{qx - 1, qy}]; !ok {
+			left = qx > 0
+		} else {
+			left = false
+		}
+
+		if _, ok := visited[xy{qx + 1, qy}]; !ok {
+			right = qx < maxqx
+		} else {
+			left = false
+		}
+
+		if _, ok := visited[xy{qx, qy - 1}]; !ok {
+			top = qy > 0
+		} else {
+			top = false
+		}
+
+		if _, ok := visited[xy{qx, qy + 1}]; !ok {
+			bottom = qy < maxqy
+		} else {
+			bottom = false
+		}
+
+		done = qy == 0 && qx == 0
+	}
+
+	return found, totalLevel
+}
+
+func getOptimalStart(g grid, goal xy, left, top, right, bottom bool) (xy, int) {
+	results := []quadresult{}
+	if left || right {
+		for y := 0; y < len(g); y++ {
+			if left {
+				start := xy{0, y}
+				solve, level := traverse(g, start, goal)
+				if solve {
+					results = append(results, quadresult{start: start, end: goal, level: level})
+				}
+			}
+
+			if right {
+				start := xy{len(g) - 1, y}
+				solve, level := traverse(g, start, goal)
+				if solve {
+					results = append(results, quadresult{start: start, end: goal, level: level})
+				}
+			}
+		}
+	}
+
+	if top || bottom {
+		for x := 0; x < len(g); x++ {
+			if top {
+				start := xy{x, 0}
+				solve, level := traverse(g, start, goal)
+				if solve {
+					results = append(results, quadresult{start: start, end: goal, level: level})
+				}
+			}
+
+			if bottom {
+				start := xy{x, len(g) - 1}
+				solve, level := traverse(g, start, goal)
+				if solve {
+					results = append(results, quadresult{start: start, end: goal, level: level})
+				}
+			}
+		}
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].level < results[j].level
+	})
+
+	if len(results) == 0 {
+		fmt.Println("no results", goal, g)
+		return xy{0, 0}, math.MaxInt32
+	}
+
+	optimal := results[0]
+	return optimal.start, optimal.level
+}
+
+func quadrants(g grid, q int) [][]grid {
+	quads := make([][]grid, q)
+	for i := 0; i < q; i++ {
+		quads[i] = make([]grid, q)
+	}
+	for ny := 0; ny < q; ny++ {
+		for nx := 0; nx < q; nx++ {
+			quads[ny][nx] = make(grid, len(g))
+			for y := 0; y < len(g); y++ {
+				quads[ny][nx][y] = make([]int, len(g[y]))
+				for x := 0; x < len(g[0]); x++ {
+					quads[ny][nx][y][x] = g[y][x] + ny + nx
+
+					if quads[ny][nx][y][x] >= 10 {
+						quads[ny][nx][y][x] = (quads[ny][nx][y][x] % 10) + 1
+					}
+				}
+			}
+		}
+	}
+	return quads
+}
+
+
+func traverseQuadrants(g grid, start, goal xy) (bool, int) {
+	lows := map[xy]int{}
+	lstart := start
+	llevel := 0
+	for square := 5; square < len(g); square += 5 {
+		size := square
+
+		ng := make(grid, size)
+		for y := 0; y < size; y++ {
+			ng[y] = make([]int, size)
+		}
+
+		for gy := 0; gy < size; gy++ {
+			for gx := 0; gx < size; gx++ {
+				ng[gy][gx] = g[gy][gx]
+			}
+		}
+
+		fmt.Println("traversing to end point", size, len(lows))
+		ngoal := xy{size - 1, size - 1}
+		traverse(ng, lstart, llevel, ngoal, lows)
+		// traverse(ng, lstart, llevel, ngoal2, lows)
+		fmt.Println("finished traversing to end point", ngoal, size, len(lows))
+
+		// starts := []struct {
+		// 	pt    xy
+		// 	level int
+		// }{}
+		// for pt, level := range lows {
+		// 	if pt.x == size-1 || pt.y == size-1 {
+		// 		starts = append(starts, struct {
+		// 			pt    xy
+		// 			level int
+		// 		}{pt: pt, level: level})
+		// 	}
+		// }
+
+		// sort.Slice(starts, func(i, j int) bool {
+		// 	return starts[i].level < starts[j].level
+		// })
+
+		// lstart = starts[0].pt
+		// llevel = starts[0].level
+		// fmt.Println("next start", starts[0].pt, starts[0].level)
+	}
+
+	fmt.Println("traverse final full grid")
+	return traverse(g, start, 0, goal, lows)
+}
