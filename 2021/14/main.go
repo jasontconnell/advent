@@ -51,8 +51,8 @@ func part2(in input) output {
 	return max - min
 }
 
-func minmax(m map[byte]output) (output, output) {
-	min, max := output(math.MaxInt64), output(math.MinInt64)
+func minmax(m map[byte]int64) (int64, int64) {
+	min, max := int64(math.MaxInt64), int64(math.MinInt64)
 
 	for _, v := range m {
 		if v < min {
@@ -65,13 +65,13 @@ func minmax(m map[byte]output) (output, output) {
 	return min, max
 }
 
-func runPolymer(w string, rules []mapping, steps int) map[byte]output {
-	m := make(map[byte]output)
+func runPolymer(w string, rules []mapping, steps int) map[byte]int64 {
+	m := make(map[byte]int64)
 	for x := 0; x < len(w); x++ {
 		m[w[x]]++
 	}
 
-	pairs := make(map[string]output)
+	pairs := make(map[string]int64)
 	for i := 0; i < len(w)-1; i++ {
 		p := string(w[i : i+2])
 		pairs[p]++
@@ -83,7 +83,7 @@ func runPolymer(w string, rules []mapping, steps int) map[byte]output {
 	}
 
 	for i := 0; i < steps; i++ {
-		ns := map[string]output{}
+		ns := map[string]int64{}
 		for pp, v := range pairs {
 			r, ok := rulemap[pp]
 			if !ok {
@@ -97,7 +97,7 @@ func runPolymer(w string, rules []mapping, steps int) map[byte]output {
 			m[r[0]] += v
 		}
 
-		pairs = make(map[string]output)
+		pairs = make(map[string]int64)
 		for k, v := range ns {
 			pairs[k] = v
 		}
