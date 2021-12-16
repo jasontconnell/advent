@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -14,11 +15,26 @@ type input = string
 type output = int
 
 type packet struct {
-	id      string
+	id      int
 	version int
 	packets []*packet
 
 	literal *int
+	value   int
+}
+
+func (p *packet) String() string {
+	lit := "<nil>"
+	if p.literal != nil {
+		lit = fmt.Sprintf("%d", *p.literal)
+	}
+	s := fmt.Sprintf("id: %d version: %d literal: %s", p.id, p.version, lit)
+	s += fmt.Sprintf("\n    value: %d ", p.value)
+	if len(p.packets) > 0 {
+		s += "\n      subpackets: "
+		s += "\n         " + fmt.Sprintf("%v", p.packets)
+	}
+	return s
 }
 
 func main() {
@@ -45,7 +61,8 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	p := decode(in)
+	return eval(p)
 }
 
 func sumVersions(p *packet) int {
@@ -57,26 +74,111 @@ func sumVersions(p *packet) int {
 	return sum
 }
 
+func eval(p *packet) int {
+
+	switch p.id {
+	case 0:
+		p.value = sum(p.packets)
+	case 1:
+		p.value = prod(p.packets)
+	case 2:
+		p.value = min(p.packets)
+	case 3:
+		p.value = max(p.packets)
+	case 4:
+		p.value = *p.literal
+	case 5:
+		p.value = gt(p.packets)
+	case 6:
+		p.value = lt(p.packets)
+	case 7:
+		p.value = eq(p.packets)
+	}
+	return p.value
+}
+
+func eq(s []*packet) int {
+	v := 0
+	v1, v2 := eval(s[0]), eval(s[1])
+	if v1 == v2 {
+		v = 1
+	}
+	return v
+}
+
+func lt(s []*packet) int {
+	v := 0
+	v1, v2 := eval(s[0]), eval(s[1])
+	if v1 < v2 {
+		v = 1
+	}
+	return v
+}
+func gt(s []*packet) int {
+	v := 0
+	v1, v2 := eval(s[0]), eval(s[1])
+	if v1 > v2 {
+		v = 1
+	}
+	return v
+}
+
+func max(s []*packet) int {
+	m := math.MinInt64
+	for _, sub := range s {
+		n := eval(sub)
+		if n > m {
+			m = n
+		}
+	}
+	return m
+}
+
+func min(s []*packet) int {
+	m := math.MaxInt64
+	for _, sub := range s {
+		n := eval(sub)
+		if n < m {
+			m = n
+		}
+	}
+	return m
+}
+
+func prod(s []*packet) int {
+	v := 1
+	for _, sub := range s {
+		v *= eval(sub)
+	}
+	return v
+}
+
+func sum(s []*packet) int {
+	v := 0
+	for _, sub := range s {
+		v += eval(sub)
+	}
+	return v
+}
+
 func decode(in input) *packet {
 	bin := toBinary(in)
-
-	p := &packet{id: "parent"}
+	p := &packet{}
 	parsePacket(bin, p)
 	return p
 }
 
 func parsePacket(bin string, p *packet) int {
-	pos := 0
-	version := bin[pos : pos+3]
-	id := bin[pos+3 : pos+6]
-	pos += 6
-	p.id = id
+	version := bin[:3]
+	id := bin[3:6]
+	pos := 6
+	p.id = parseBinary(id)
 	p.version = parseBinary(version)
 
-	if id == "100" {
+	if p.id == 4 {
 		num, np := parseLiteral(bin[pos:])
-		pos += np
 		p.literal = &num
+		pos += np
 	} else {
 		lenval := bin[pos]
 		pos++
