@@ -1,0 +1,3 @@
+--2016 day 15 solution--
+Part 1: 376777
+Part 2: 3903937
