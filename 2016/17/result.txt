@@ -1,0 +1,3 @@
+--2016 day 17 solution--
+Part 1: DURLDRRDRD
+Part 2: 650
