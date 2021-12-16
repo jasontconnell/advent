@@ -1,10 +1,11 @@
 package main
 
 import (
+	"container/heap"
 	"fmt"
+	"math"
+	"os"
 	"sort"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -12,78 +13,158 @@ var inputFilename = "input.txt"
 
 type output = int
 
+var origFloors []map[int]bool
+
+type pqueue []*state
+
+func (pq pqueue) Len() int { return len(pq) }
+
+func (pq pqueue) Less(i, j int) bool {
+	return pq[i].score < pq[j].score
+}
+
+func (pq *pqueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	st := old[n-1]
+	*pq = old[0 : n-1]
+	return st
+}
+
+func (pq *pqueue) Push(x interface{}) {
+	st := x.(*state)
+	*pq = append(*pq, st)
+}
+
+func (pq pqueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+}
+
 type state struct {
-	moves         int
-	floors        [][]string
-	elevator      []string
-	elevatorLevel int
-	score         int
+	moves        int
+	floors       []map[int]bool
+	elevator     map[int]bool
+	currentLevel int
+	score        float64
 }
 
 type move struct {
-	elevatorLevel   int
-	pickup, dropoff []string
+	pickup  map[int]bool
+	deliver map[int]bool
+	level   int
 }
 
-func copyElevator(elevator []string) []string {
-	cp := make([]string, len(elevator))
-	copy(cp, elevator)
-	return cp
+func (m move) String() string {
+	return fmt.Sprintf("pickup: %v deliver: %v to level %d", sortedKeys(m.pickup), sortedKeys(m.deliver), m.level)
 }
 
-func copyFloors(floors [][]string) [][]string {
-	cp := make([][]string, len(floors))
-	for i := 0; i < len(floors); i++ {
-		cp[i] = make([]string, len(floors[i]))
+func (m move) key(level int) string {
+	return fmt.Sprintf("p:%v d:%v l:%d c:%d", sortedKeys(m.pickup), sortedKeys(m.deliver), m.level, level)
+}
 
-		copy(cp[i], floors[i])
+func copymap(m map[int]bool) map[int]bool {
+	cp := make(map[int]bool)
+	for k, v := range m {
+		cp[k] = v
 	}
 	return cp
 }
 
-func getKey(floors [][]string, elevator []string, level int) string {
-	key := ""
+func maplist(list []int) map[int]bool {
+	m := map[int]bool{}
+	for _, s := range list {
+		m[s] = true
+	}
+	return m
+}
 
+func copyFloors(floors []map[int]bool) []map[int]bool {
+	cp := make([]map[int]bool, len(floors))
+	for i := 0; i < len(floors); i++ {
+		cp[i] = copymap(floors[i])
+	}
+	return cp
+}
+
+func getKey(floors []map[int]bool, elevator map[int]bool, level int) string {
+	key := ""
 	for floor, r := range floors {
-		key += " " + strconv.Itoa(floor) + "| "
-		for _, element := range r {
-			key += element + " "
+		fl := sortedKeys(r)
+		key += "|"
+		for _, k := range fl {
+			s := "G"
+			if k < 0 {
+				s = "M"
+			}
+			key += s + " "
+		}
+		if floor == level {
+			el := sortedKeys(elevator)
+			key += "e: "
+			for _, k := range el {
+				s := "G"
+				if k < 0 {
+					s = "M"
+				}
+				key += s + " "
+			}
 		}
 	}
-	key += "| elevator "
-	for _, ev := range elevator {
-		key += " " + ev
-	}
-	key += fmt.Sprintf("| level %d", level)
 	return key
 }
 
-func isComplete(floors [][]string) bool {
+func sortedKeys(m map[int]bool) []int {
+	list := []int{}
+	for k := range m {
+		list = append(list, k)
+	}
+	sort.Ints(list)
+	return list
+}
+
+func isComplete(floors []map[int]bool, elevator map[int]bool, level int) bool {
+	if level != len(floors)-1 {
+		return false
+	}
+	if len(elevator) > 0 {
+		return false
+	}
 	complete := true
-	for i := 0; i < len(floors)-1; i++ {
-		complete = complete && len(floors[i]) == 0
+	for i, m := range floors {
+		if i != len(floors)-1 && len(m) > 0 {
+			complete = false
+			break
+		}
 	}
 	return complete
 }
 
-func getScore(floors [][]string) int {
-	return len(floors[0]) + 10*len(floors[1]) + 100*len(floors[2]) + 1000*len(floors[3])
+func getScore(moves int, floors []map[int]bool, level int) float64 {
+	dist := len(floors[0])*1000 + len(floors[1])*100 + len(floors[2])*10 + len(floors[3])
+	return float64(dist)
 }
 
 func main() {
 	startTime := time.Now()
 
-	floors := [][]string{}
-	floors = append(floors, []string{"PO-G", "TH-G", "TH-M", "PR-G", "RU-G", "RU-M", "CO-G", "CO-M"})
-	floors = append(floors, []string{"PO-M", "PR-M"})
-	floors = append(floors, []string{})
-	floors = append(floors, []string{})
+	origFloors = make([]map[int]bool, 4)
+	// origFloors[0] = map[int]bool{"PO-G": true, "TH-G": true, "TH-M": true, "PR-G": true, "RU-G": true, "RU-M": true, "CO-G": true, "CO-M": true}
+	// origFloors[1] = map[int]bool{"PO-M": true, "PR-M": true}
+	origFloors[0] = map[int]bool{1: true, 2: true, -2: true, 3: true, 4: true, -4: true, 5: true, -5: true}
+	origFloors[2] = map[int]bool{-1: true, -3: true}
+	origFloors[3] = map[int]bool{}
 
-	sort.Strings(floors[0])
-	sort.Strings(floors[1])
+	runExample := len(os.Args) > 1 && os.Args[1] == "example"
+	if runExample {
+		fmt.Println("using example input")
+		example := []map[int]bool{{-1: true, -2: true}, {1: true}, {2: true}}
+		origFloors[0] = example[0]
+		origFloors[1] = example[1]
+		origFloors[2] = example[2]
+	}
 
-	p1 := part1(floors)
-	p2 := part2(floors)
+	p1 := part1(origFloors)
+	p2 := part2(origFloors)
 
 	fmt.Println("--2016 day 11 solution--")
 	fmt.Println("(this one takes a few minutes)")
@@ -93,7 +174,7 @@ func main() {
 	fmt.Println("Time", time.Since(startTime))
 }
 
-func part1(floors [][]string) output {
+func part1(floors []map[int]bool) output {
 	b, i := simulate(floors)
 	if b {
 		return i
@@ -101,9 +182,10 @@ func part1(floors [][]string) output {
 	return 0
 }
 
-func part2(floors [][]string) output {
-	floors[0] = append(floors[0], []string{"EL-G", "EL-M", "DI-G", "DI-M"}...)
-	sort.Strings(floors[0])
+func part2(floors []map[int]bool) output {
+	for _, s := range []int{6, -6, 7, -7} {
+		floors[0][s] = true
+	}
 	b, i := simulate(floors)
 	if b {
 		return i
@@ -111,242 +193,243 @@ func part2(floors [][]string) output {
 	return 0
 }
 
-func simulate(floors [][]string) (bool, int) {
+func simulate(floors []map[int]bool) (bool, int) {
 	floorInit := copyFloors(floors)
-	queue := []*state{}
-	mvs := getValidMoves(floorInit, []string{}, 0)
+	queue := pqueue{}
 
-	for _, mv := range mvs {
-		st := newState(floorInit, []string{}, mv, 1)
-		queue = append(queue, st)
-	}
+	initial := newState(floorInit, map[int]bool{}, 0)
+	heap.Init(&queue)
+	queue.Push(initial)
 
-	visited := make(map[string]bool)
-	moves := 1000
+	visited := make(map[string]int)
+	moves := math.MaxInt32
 	solved := false
 
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
+	for queue.Len() > 0 {
+		cur := (heap.Pop(&queue)).(*state)
 
-		key := getKey(cur.floors, cur.elevator, cur.elevatorLevel)
-		if _, ok := visited[key]; ok {
-			continue
-		}
-		visited[key] = true
-
-		if isComplete(cur.floors) && cur.moves < moves {
+		if isComplete(cur.floors, cur.elevator, cur.currentLevel) && cur.moves < moves {
 			moves = cur.moves
 			solved = true
 			continue
 		}
 
-		mvs := getValidMoves(cur.floors, cur.elevator, cur.elevatorLevel)
+		if cur.moves > moves {
+			continue
+		}
 
+		key := getKey(cur.floors, cur.elevator, cur.currentLevel)
+		if _, ok := visited[key]; ok {
+			continue
+		}
+		visited[key] = cur.moves
+
+		mvs := getValidMoves(cur.floors, cur.elevator, cur.currentLevel)
 		for _, mv := range mvs {
-			st := newState(cur.floors, cur.elevator, mv, cur.moves)
-
-			queue = append(queue, st)
+			transit := transitState(cur, mv)
+			queue = append(queue, transit)
 		}
 	}
 
 	return solved, moves
 }
 
-func newState(floors [][]string, elevator []string, mv move, moves int) *state {
+func copyState(st *state) *state {
 	cp := new(state)
-	cp.floors = copyFloors(floors)
-	cp.elevator = copyElevator(elevator)
-	cp.moves = moves
-	cp.elevatorLevel = mv.elevatorLevel
-
-	if mv.pickup != nil && len(mv.pickup) != 0 {
-		cp.elevator = addElements(cp.elevator, mv.pickup)
-		cp.floors[cp.elevatorLevel] = removeElements(cp.floors[cp.elevatorLevel], mv.pickup)
-	}
-
-	if mv.dropoff != nil && len(mv.dropoff) != 0 {
-		cp.floors[mv.elevatorLevel] = addElements(cp.floors[mv.elevatorLevel], mv.dropoff)
-		cp.elevator = removeElements(cp.elevator, mv.dropoff)
-		cp.moves++
-	}
-	cp.score = getScore(cp.floors)
+	cp.floors = copyFloors(st.floors)
+	cp.elevator = copymap(st.elevator)
+	cp.currentLevel = st.currentLevel
+	cp.moves = st.moves
 	return cp
 }
 
-func addElements(list []string, elements []string) []string {
-	list = append(list, elements...)
-	sort.Strings(list)
-	return list
+func transitState(st *state, mv move) *state {
+	cp := copyState(st)
+
+	cp.floors[cp.currentLevel], cp.elevator = transfer(cp.floors[cp.currentLevel], cp.elevator, mv.pickup)
+	cp.elevator, cp.floors[mv.level] = transfer(cp.elevator, cp.floors[mv.level], mv.deliver)
+
+	cp.moves++
+	cp.currentLevel = mv.level
+	cp.score = getScore(cp.moves, cp.floors, cp.currentLevel)
+	return cp
 }
 
-func removeElements(list []string, elements []string) []string {
-	for _, element := range elements {
-		for j := len(list) - 1; j >= 0; j-- {
-			if list[j] == element {
-				list = append(list[:j], list[j+1:]...)
+func newState(floors []map[int]bool, elevator map[int]bool, level int) *state {
+	cp := new(state)
+	cp.moves = 0
+	cp.floors = copyFloors(floors)
+	cp.elevator = copymap(elevator)
+	cp.currentLevel = level
+	return cp
+}
+
+func transfer(from map[int]bool, to map[int]bool, elements map[int]bool) (map[int]bool, map[int]bool) {
+	for element := range elements {
+		if _, ok := from[element]; ok {
+			if _, ok := to[element]; !ok {
+				delete(from, element)
+				to[element] = true
 			}
 		}
 	}
-	sort.Strings(list)
-	return list
+	return from, to
 }
 
-func getValidMoves(floors [][]string, elevator []string, currentLevel int) []move {
+func getValidMoves(floors []map[int]bool, elevator map[int]bool, currentLevel int) []move {
 	mvs := getAllMoves(floors, elevator, currentLevel)
 	validMoves := []move{}
 
 	for _, mv := range mvs {
-		if mv.dropoff != nil && safeToRemove(elevator, mv.dropoff) && safeToAdd(floors[mv.elevatorLevel], mv.dropoff) {
-			validMoves = append(validMoves, mv)
+		valid := true
+
+		if !safeToRemove(floors[currentLevel], mv.pickup) || !safeToAdd(floors[mv.level], mv.deliver) {
+			valid = false
 		}
-		if mv.pickup != nil && safeToRemove(floors[mv.elevatorLevel], mv.pickup) && safeToAdd(elevator, mv.pickup) {
+
+		if valid {
 			validMoves = append(validMoves, mv)
 		}
 	}
-
 	return validMoves
 }
 
-func getAllMoves(floors [][]string, elevator []string, currentLevel int) []move {
+func getAllMoves(floors []map[int]bool, elevator map[int]bool, currentLevel int) []move {
+	elevatorKeys := sortedKeys(elevator)
+	floorKeys := sortedKeys(floors[currentLevel])
+
 	mvs := []move{}
-
-	for _, toFloor := range []int{currentLevel - 1, currentLevel + 1} {
-		if toFloor == -1 || toFloor == len(floors) {
+	for _, level := range []int{currentLevel + 1, currentLevel - 1} {
+		if level < 0 || level == len(floors) {
 			continue
 		}
-		if toFloor < currentLevel && len(floors[toFloor]) == 0 {
-			continue
-		}
-
-		// don't drop off 2 below, only move up
-		if len(elevator) == 2 && toFloor < currentLevel {
+		if level < currentLevel && len(elevatorKeys) == 2 {
 			continue
 		}
 
-		if len(elevator) > 0 {
-			combos := [][]string{
-				{elevator[0]},
-			}
-			if len(elevator) > 1 && elevator[1] != "" {
-				combos = append(combos, [][]string{{elevator[1]}, {elevator[0], elevator[1]}}...)
-			}
-			for _, elements := range combos {
-				mv := move{
-					elevatorLevel: toFloor,
-					dropoff:       elements,
-				}
-				mvs = append(mvs, mv)
-			}
-		}
+		toElevator := [][]int{}
+		if len(floorKeys) > 0 {
+			m := map[int]bool{}
+			for j := 0; j < len(floorKeys); j++ {
+				left := floorKeys[j]
+				for r := j + 1; r < len(floorKeys); r++ {
+					right := floorKeys[r]
 
-		if toFloor < currentLevel && len(elevator) < 2 {
-			for j := 0; j < len(floors[currentLevel]); j++ {
-				elem := floors[currentLevel][j]
-				if elem == "" {
-					continue
-				}
-				mv := move{
-					elevatorLevel: currentLevel,
-					pickup:        []string{elem},
-				}
-				mvs = append(mvs, mv)
-			}
-		}
-
-		if toFloor > currentLevel && len(elevator) == 0 {
-			for j := 0; j < len(floors[currentLevel]); j++ {
-				for x := 0; x < len(floors[currentLevel]); x++ {
-					if j == x {
-						continue
+					if len(elevatorKeys) == 0 && level > currentLevel {
+						toElevator = append(toElevator, []int{left, right})
 					}
-
-					left, right := floors[currentLevel][j], floors[currentLevel][x]
-					if left == "" || right == "" {
-						continue
+					if _, ok := m[right]; !ok && len(elevatorKeys) < 2 {
+						toElevator = append(toElevator, []int{right})
+						m[right] = true
 					}
-					pk := []string{left, right}
-					sort.Strings(pk)
-					mvs = append(mvs, move{pickup: pk, elevatorLevel: currentLevel})
 				}
+				if _, ok := m[left]; !ok && len(elevatorKeys) < 2 {
+					toElevator = append(toElevator, []int{left})
+					m[left] = true
+				}
+			}
+		}
+
+		for i := 0; i < len(toElevator); i++ {
+			em := toElevator[i]
+
+			if len(em) > 0 {
+				left := em[0]
+				if len(em) == 2 {
+					right := em[1]
+
+					mvs = append(mvs,
+						move{
+							level:   level,
+							pickup:  map[int]bool{left: true, right: true},
+							deliver: map[int]bool{left: true, right: true},
+						})
+
+					mvs = append(mvs,
+						move{
+							level:   level,
+							pickup:  map[int]bool{left: true, right: true},
+							deliver: map[int]bool{left: true},
+						})
+					mvs = append(mvs,
+						move{
+							level:   level,
+							pickup:  map[int]bool{left: true, right: true},
+							deliver: map[int]bool{right: true},
+						})
+					mvs = append(mvs,
+						move{
+							level:   level,
+							pickup:  map[int]bool{right: true},
+							deliver: map[int]bool{right: true},
+						})
+				}
+
+				mvs = append(mvs,
+					move{
+						level:   level,
+						pickup:  map[int]bool{left: true},
+						deliver: map[int]bool{left: true},
+					})
 			}
 		}
 	}
+
 	return mvs
 }
 
-func safeToRemove(row []string, elements []string) bool {
+func safeToRemove(row map[int]bool, elements map[int]bool) bool {
 	if len(elements) == 0 {
 		return true
 	}
-	cp := make([]string, len(row))
-	copy(cp, row)
-	for _, element := range elements {
-		for j := len(cp) - 1; j >= 0; j-- {
-			if cp[j] == element {
-				cp = append(cp[:j], cp[j+1:]...)
-			}
-		}
+	cp := make(map[int]bool, len(row))
+	for element := range row {
+		cp[element] = true
 	}
-
+	for element := range elements {
+		delete(cp, element)
+	}
 	return rowValid(cp)
 }
 
-func safeToAdd(row []string, elements []string) bool {
-	cp := make([]string, len(row))
-	copy(cp, row)
-	cp = append(cp, elements...)
-	sort.Strings(cp)
+func safeToAdd(row map[int]bool, elements map[int]bool) bool {
+	if len(elements) == 0 {
+		return true
+	}
+	cp := make(map[int]bool, len(row))
+	for element := range row {
+		cp[element] = true
+	}
+	for element := range elements {
+		cp[element] = true
+	}
 	return rowValid(cp)
 }
 
-func rowValid(row []string) bool {
+func rowValid(row map[int]bool) bool {
 	result := true
-	for _, r := range row {
-		if isMicrochip(r) && !containsOwnGenerator(row, r) && containsOtherGenerator(row, r) && !containsDuplicate(row, r) {
+	for element := range row {
+		if isMicrochip(element) && !containsOwnGenerator(row, element) && containsOtherGenerator(row, element) {
 			result = false
 		}
 	}
-
 	return result
 }
 
-func isMicrochip(element string) bool {
-	return strings.HasSuffix(element, "-M")
+func isMicrochip(element int) bool {
+	return element < 0
 }
 
-func containsDuplicate(row []string, element string) bool {
-	if len(row) <= 1 {
-		return false
-	}
-
-	for i := 1; i < len(row); i++ {
-		if row[i] == row[i-1] {
-			return true
-		}
-	}
-	return false
+func containsOwnGenerator(row map[int]bool, element int) bool {
+	_, ok := row[-element]
+	return ok
 }
 
-func containsOwnGenerator(row []string, element string) bool {
+func containsOtherGenerator(row map[int]bool, element int) bool {
 	result := false
-	gen := string(element[0:2]) + "-G"
 
-	for _, r := range row {
-		if r == gen {
-			result = true
-		}
-	}
-
-	return result
-}
-
-func containsOtherGenerator(row []string, element string) bool {
-	result := false
-	el := string(element[0:2])
-
-	for _, r := range row {
-		if strings.HasSuffix(r, "-G") && !strings.HasPrefix(r, el) {
+	for r := range row {
+		if r > 0 && r != -element {
 			result = true
 		}
 	}
