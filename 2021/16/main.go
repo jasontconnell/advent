@@ -23,6 +23,22 @@ type packet struct {
 	value   int
 }
 
+type pfunc func(p []*packet) int
+
+var fmap map[int]pfunc
+
+func init() {
+	fmap = map[int]pfunc{
+		0: sum,
+		1: prod,
+		2: min,
+		3: max,
+		5: gt,
+		6: lt,
+		7: eq,
+	}
+}
+
 func (p *packet) String() string {
 	lit := "<nil>"
 	if p.literal != nil {
@@ -75,25 +91,10 @@ func sumVersions(p *packet) int {
 }
 
 func eval(p *packet) int {
-
-	switch p.id {
-	case 0:
-		p.value = sum(p.packets)
-	case 1:
-		p.value = prod(p.packets)
-	case 2:
-		p.value = min(p.packets)
-	case 3:
-		p.value = max(p.packets)
-	case 4:
-		p.value = *p.literal
-	case 5:
-		p.value = gt(p.packets)
-	case 6:
-		p.value = lt(p.packets)
-	case 7:
-		p.value = eq(p.packets)
+	if p.id == 4 {
+		return *p.literal
 	}
+	p.value = fmap[p.id](p.packets)
 	return p.value
 }
 
