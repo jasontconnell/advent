@@ -43,15 +43,15 @@ func main() {
 
 func part1(in input) output {
 	area := parseInput(in)
-	fullsearch := xypair{20, 300, -80, 80}
-	high, _ := findInitialVelocities(fullsearch, area, false)
+	searchvec := xypair{20, 300, -80, 80}
+	high, _ := findInitialVelocities(searchvec, area, false)
 	return high.y
 }
 
 func part2(in input) output {
 	area := parseInput(in)
-	fullsearch := xypair{20, 300, -80, 80}
-	_, count := findInitialVelocities(fullsearch, area, true)
+	searchvec := xypair{20, 300, -80, 80}
+	_, count := findInitialVelocities(searchvec, area, true)
 	return count
 }
 
