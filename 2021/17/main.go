@@ -43,16 +43,14 @@ func main() {
 
 func part1(in input) output {
 	area := parseInput(in)
-	search := 100
-	fullsearch := xypair{-search, search, -search, search}
+	fullsearch := xypair{20, 300, -80, 80}
 	high, _ := findInitialVelocities(fullsearch, area, false)
 	return high.y
 }
 
 func part2(in input) output {
 	area := parseInput(in)
-	search := 350
-	fullsearch := xypair{-search, search, -search, search}
+	fullsearch := xypair{20, 300, -80, 80}
 	_, count := findInitialVelocities(fullsearch, area, true)
 	return count
 }
