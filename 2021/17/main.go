@@ -23,11 +23,6 @@ type xy struct {
 	x, y int
 }
 
-type probe struct {
-	dx, dy int
-	pt     xy
-}
-
 func main() {
 	startTime := time.Now()
 
@@ -84,18 +79,20 @@ func findInitialVelocities(search, target xypair, fullsearch bool) (xy, int) {
 
 // returns point of max height, point within area, true if it found the area
 func attemptInitialVelocity(start, iv xy, area xypair, fullsearch bool) (xy, xy, bool) {
-	if iv.x == 0 {
-		return xy{}, xy{}, false
-	}
 	found := false
 	pos := start
 	maxheight := start
 	ivitr := iv
 	var end xy
 	for {
-
 		pos.x += ivitr.x
 		pos.y += ivitr.y
+
+		if pos.x >= area.x1 && pos.x <= area.x2 && pos.y >= area.y1 && pos.y <= area.y2 {
+			found = true
+			end = pos
+			break
+		}
 
 		if fullsearch && ivitr.x == 0 && (pos.x <= area.x1 || pos.x >= area.x2 || pos.y < area.y1) {
 			found = false
@@ -106,6 +103,11 @@ func attemptInitialVelocity(start, iv xy, area xypair, fullsearch bool) (xy, xy,
 			maxheight = pos
 		}
 
+		if pos.y < area.y2 && !fullsearch {
+			found = false
+			break
+		}
+
 		if ivitr.x > 0 {
 			ivitr.x--
 		} else if ivitr.x < 0 {
@@ -113,17 +115,6 @@ func attemptInitialVelocity(start, iv xy, area xypair, fullsearch bool) (xy, xy,
 		}
 
 		ivitr.y--
-
-		if pos.x >= area.x1 && pos.x <= area.x2 && pos.y >= area.y1 && pos.y <= area.y2 {
-			found = true
-			end = pos
-			break
-		}
-
-		if pos.y < area.y2 && !fullsearch {
-			found = false
-			break
-		}
 	}
 
 	return end, maxheight, found
