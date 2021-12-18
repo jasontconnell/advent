@@ -46,14 +46,14 @@ func (s *snailfish) String() string {
 	return str
 }
 
-func printTree(s *snailfish) {
-	traverse(s, func(c *snailfish, d int) error {
-		if c.left == nil || c.right == nil {
-			return nil
-		}
-		fmt.Println(c, d)
+func copyTree(s *snailfish, p *snailfish) *snailfish {
+	if s == nil {
 		return nil
-	}, 0)
+	}
+	r := &snailfish{id: s.id, parent: p}
+	r.left = copyTree(s.left, r)
+	r.right = copyTree(s.right, r)
+	return r
 }
 
 func main() {
@@ -77,9 +77,6 @@ func main() {
 func part1(in input) output {
 	list := parseInput(in)
 	var result *snailfish = list[0]
-	if len(list) == 1 {
-		result = reduce(result)
-	}
 	for i := 1; i < len(list); i++ {
 		result = addSnailfish(result, list[i])
 	}
@@ -87,11 +84,48 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	list := parseInput(in)
+	return largestMagnitude(list)
 }
 
-func magnitude(a *snailfish) int64 {
-	return 0
+func largestMagnitude(list []*snailfish) int64 {
+	var largest int64 = math.MinInt64
+
+	for i := 0; i < len(list); i++ {
+		for j := 0; j < len(list); j++ {
+			if i == j {
+				continue
+			}
+			prev, cur := copyTree(list[i], nil), copyTree(list[j], nil)
+			ns := addSnailfish(prev, cur)
+			m := magnitude(ns)
+			if m > largest {
+				largest = m
+			}
+		}
+	}
+
+	return largest
+}
+
+func magnitude(s *snailfish) int64 {
+	m := int64(0)
+	if s.left != nil {
+		if s.left.id != nil {
+			m += 3 * int64(*s.left.id)
+		} else {
+			m += 3 * magnitude(s.left)
+		}
+	}
+	if s.right != nil {
+		if s.right.id != nil {
+			m += 2 * int64(*s.right.id)
+		} else {
+			m += 2 * magnitude(s.right)
+		}
+	}
+
+	return m
 }
 
 func addSnailfish(a, b *snailfish) *snailfish {
