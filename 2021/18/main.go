@@ -224,9 +224,6 @@ func split(s *snailfish) {
 func leftLeaf(p *snailfish) *snailfish {
 	for p.left != nil {
 		p = p.left
-		if p.left == nil {
-			return p
-		}
 	}
 	return p
 }
@@ -234,9 +231,6 @@ func leftLeaf(p *snailfish) *snailfish {
 func rightLeaf(p *snailfish) *snailfish {
 	for p.right != nil {
 		p = p.right
-		if p.right == nil {
-			return p
-		}
 	}
 	return p
 }
