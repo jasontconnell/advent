@@ -109,23 +109,13 @@ func largestMagnitude(list []*snailfish) int64 {
 }
 
 func magnitude(s *snailfish) int64 {
-	m := int64(0)
-	if s.left != nil {
-		if s.left.id != nil {
-			m += 3 * int64(*s.left.id)
-		} else {
-			m += 3 * magnitude(s.left)
-		}
+	if s == nil {
+		return 0
 	}
-	if s.right != nil {
-		if s.right.id != nil {
-			m += 2 * int64(*s.right.id)
-		} else {
-			m += 2 * magnitude(s.right)
-		}
+	if s.id != nil {
+		return int64(*s.id)
 	}
-
-	return m
+	return 3*magnitude(s.left) + 2*magnitude(s.right)
 }
 
 func addSnailfish(a, b *snailfish) *snailfish {
