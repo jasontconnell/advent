@@ -1,0 +1,3 @@
+--2016 day 25 solution--
+Part 1: 198
+Part 2: no part 2 in day 25 :)
