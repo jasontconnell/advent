@@ -1,0 +1,3 @@
+--2017 day 03 solution--
+Part 1: 371
+Part 2: 369601
