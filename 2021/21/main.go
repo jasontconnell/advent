@@ -12,7 +12,7 @@ import (
 )
 
 type input = []string
-type output = int
+type output = uint64
 
 type space struct {
 	val  int
@@ -20,9 +20,10 @@ type space struct {
 }
 
 type player struct {
-	id    int
-	pos   *space
-	score int
+	id     int
+	pos    *space
+	score  int
+	posval int
 }
 
 func main() {
@@ -46,13 +47,14 @@ func main() {
 func part1(in input) output {
 	board := getSpaces(10)
 	p1, p2 := parseInput(in, board)
-	_, loser, turns := play([]*player{p1, p2}, 100, 3)
-	fmt.Println(loser.score, turns)
-	return loser.score * turns
+	_, loser, turns := play([]*player{p1, p2}, 1000, 100, 3)
+	return uint64(loser.score * turns)
 }
 
 func part2(in input) output {
-	return 0
+	board := getSpaces(10)
+	p1, p2 := parseInput(in, board)
+	return playQuantum(p1, p2, 10, 21, 3)
 }
 
 func getSpaces(max int) *space {
@@ -73,7 +75,58 @@ func getSpaces(max int) *space {
 	return root
 }
 
-func play(players []*player, dmax int, rolls int) (*player, *player, int) {
+type qgame struct {
+	curpos, otherpos     int
+	curscore, otherscore int
+}
+
+type qres struct {
+	cur, other uint64
+}
+
+func playQuantum(p1, p2 *player, boardsize, winscore, dmax int) uint64 {
+	game := qgame{curpos: p1.posval - 1, otherpos: p2.posval - 1, curscore: 0, otherscore: 0}
+	m := make(map[qgame]qres)
+	res := quantumGame(m, game, boardsize, winscore, dmax)
+
+	ret := res.other
+	if res.cur > res.other {
+		ret = res.cur
+	}
+	return ret
+}
+
+func quantumGame(m map[qgame]qres, game qgame, boardsize, winscore, dmax int) qres {
+	if game.curscore >= 21 {
+		return qres{1, 0}
+	}
+	if game.otherscore >= 21 {
+		return qres{0, 1}
+	}
+	if v, ok := m[game]; ok {
+		return v
+	}
+	var final qres
+	for d1 := 1; d1 <= dmax; d1++ {
+		for d2 := 1; d2 <= dmax; d2++ {
+			for d3 := 1; d3 <= dmax; d3++ {
+				rsum := d1 + d2 + d3
+
+				npos := (game.curpos + rsum) % boardsize
+				nscore := game.curscore + npos + 1
+				g := qgame{curpos: game.otherpos, curscore: game.otherscore, otherpos: npos, otherscore: nscore}
+
+				res := quantumGame(m, g, boardsize, winscore, dmax)
+				final.cur += res.other
+				final.other += res.cur
+			}
+		}
+	}
+	m[game] = final
+	return final
+}
+
+func play(players []*player, winscore, dmax, rolls int) (*player, *player, int) {
 	dcur := 1
 	pidx := 0
 	done := false
@@ -96,7 +149,7 @@ func play(players []*player, dmax int, rolls int) (*player, *player, int) {
 
 		p.score += p.pos.val
 
-		if p.score >= 1000 {
+		if p.score >= winscore {
 			winner = p
 			loser = players[(pidx+1)%2]
 			done = true
@@ -113,11 +166,10 @@ func parseInput(in input, board *space) (*player, *player) {
 	p1sp := strings.Fields(in[0])
 	p2sp := strings.Fields(in[1])
 
-	p1 := player{id: 1}
-	p2 := player{id: 2}
-
 	p1pos, _ := strconv.Atoi(p1sp[len(p1sp)-1])
 	p2pos, _ := strconv.Atoi(p2sp[len(p1sp)-1])
+	p1 := player{id: 1, posval: p1pos}
+	p2 := player{id: 2, posval: p2pos}
 
 	r := board
 
