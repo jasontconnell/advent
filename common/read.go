@@ -71,6 +71,23 @@ func ReadInt(filename string) (int, error) {
 	return ints[0], nil
 }
 
+func ReadDigits(filename string) ([]int, error) {
+	str, err := ReadString(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	digits := []int{}
+	for _, c := range str {
+		i, err := strconv.Atoi(string(c))
+		if err != nil {
+			return nil, err
+		}
+		digits = append(digits, i)
+	}
+	return digits, nil
+}
+
 func ReadIntCsv(filename string) ([]int, error) {
 	s, err := ReadString(filename)
 	if err != nil {
