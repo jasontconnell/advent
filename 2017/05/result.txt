@@ -1,0 +1,3 @@
+--2017 day 05 solution--
+Part 1: 394829
+Part 2: 31150702
