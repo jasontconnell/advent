@@ -1,0 +1,3 @@
+--2017 day 06 solution--
+Part 1: 7864
+Part 2: 1695
