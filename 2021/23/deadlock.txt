@@ -1,0 +1,40 @@
+// this seemed useful at the time but doesn't cut down on the time at all.
+
+func isDeadlock(g grid, rooms map[podname]room, pods map[xy]pod) bool {
+	deadlock := false
+	hwaypods := []xy{}
+	roompods := []xy{}
+	for pt := range pods {
+		if pt.y == hallwayy {
+			hwaypods = append(hwaypods, pt)
+		} else {
+			roompods = append(roompods, pt)
+		}
+	}
+
+	if len(hwaypods) < 2 {
+		return false
+	}
+
+	sort.Slice(hwaypods, func(i, j int) bool {
+		return hwaypods[i].x < hwaypods[j].x
+	})
+
+	for i := 0; i < len(hwaypods)-1 && !deadlock; i++ {
+		cur := hwaypods[i]
+		p := g[cur.y][cur.x].pod
+		pr := rooms[p.name]
+		for j := i + 1; j < len(hwaypods) && !deadlock; j++ {
+			cmp := hwaypods[j]
+			cmpp := g[cmp.y][cmp.x].pod
+			cr := rooms[cmpp.name]
+
+			if pr.x > cmp.x && cr.x < cur.x {
+				deadlock = true
+				break
+			}
+		}
+	}
+
+	return deadlock
+}
