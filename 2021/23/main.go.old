@@ -1,0 +1,518 @@
+package main
+
+import (
+	"container/heap"
+	"fmt"
+	"log"
+	"math"
+	"os"
+	"time"
+
+	"github.com/jasontconnell/advent/common"
+)
+
+type input = []string
+type output = int
+
+type pqueue []state
+
+func (pq pqueue) Len() int { return len(pq) }
+
+func (pq pqueue) Less(i, j int) bool {
+	return pq[i].score < pq[j].score
+}
+
+func (pq *pqueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	st := old[n-1]
+	*pq = old[0 : n-1]
+	return st
+}
+
+func (pq *pqueue) Push(x interface{}) {
+	st := x.(state)
+	*pq = append(*pq, st)
+}
+
+func (pq pqueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+}
+
+type state struct {
+	energyuse  int
+	g          grid
+	lastpod    pod
+	score      int
+	rooms      *map[podname]room
+	pods       map[xy]pod
+	stationary map[pod]pod
+}
+
+type xy struct {
+	x, y int
+}
+
+type podname string
+
+const (
+	None podname = "N"
+	A    podname = "A"
+	B    podname = "B"
+	C    podname = "C"
+	D    podname = "D"
+)
+
+type pod struct {
+	name      podname
+	energyuse int
+	num       int
+}
+
+var Empty pod = pod{name: None, energyuse: 0, num: 0}
+
+type room struct {
+	owner podname
+	idx   int
+	pts   map[xy]bool
+	x     int
+	y     int
+}
+
+type block struct {
+	room    bool
+	hallway bool
+	wall    bool
+	pod     pod
+}
+
+type grid [][]block
+
+type move struct {
+	pod pod
+	pos xy
+	to  xy
+}
+
+func printGrid(g grid) {
+	for y := 0; y < len(g); y++ {
+		for x := 0; x < len(g[y]); x++ {
+			b := g[y][x]
+
+			s := " "
+			if b.wall {
+				s = "#"
+			} else if b.hallway || b.room {
+				s = "."
+			}
+
+			if b.pod.name != None {
+				s = string(b.pod.name)
+			}
+			fmt.Print(s)
+		}
+
+		fmt.Println()
+	}
+}
+
+func main() {
+	startTime := time.Now()
+
+	in, err := common.ReadStrings(common.InputFilename(os.Args))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	p1 := part1(in)
+	p2 := part2(in)
+
+	w := common.TeeOutput(os.Stdout)
+	fmt.Fprintln(w, "--2021 day 23 solution--")
+	fmt.Fprintln(w, "Part 1:", p1)
+	fmt.Fprintln(w, "Part 2:", p2)
+	fmt.Println("Time", time.Since(startTime))
+}
+
+func part1(in input) output {
+	g, pods, rooms := parseInput(in)
+	solve(g, pods, rooms)
+	return 0
+}
+
+func part2(in input) output {
+	return 0
+}
+
+func solve(g grid, pods map[xy]pod, rooms map[podname]room) int {
+	elookup := map[podname]int{}
+	for _, p := range pods {
+		elookup[p.name] = p.energyuse
+	}
+
+	queue := pqueue{}
+	heap.Init(&queue)
+
+	initial := state{g: g, energyuse: 0, lastpod: pod{name: None}, rooms: &rooms, stationary: map[pod]pod{}}
+	queue.Push(initial)
+	// visited := make(map[pod]xy)
+	minenergy := math.MaxInt64
+	itr := 0
+	for queue.Len() > 0 {
+		cur := queue.Pop().(state)
+		// fmt.Println("------------ popped -------------")
+
+		if isSolved(cur.g, rooms) {
+			if cur.energyuse < minenergy {
+				minenergy = cur.energyuse
+			}
+			continue
+		}
+
+		if cur.energyuse > minenergy {
+			continue
+		}
+
+		mvs := getMoves(cur.g, rooms, cur.lastpod, cur.stationary)
+		for _, mv := range mvs {
+			st := copyState(cur)
+
+			cpod := st.g[mv.pos.y][mv.pos.x].pod
+			st.lastpod = cpod
+
+			if cur.lastpod != cpod {
+				st.stationary[cur.lastpod] = cur.lastpod
+			}
+
+			delete(st.stationary, cpod)
+
+			st.g[mv.pos.y][mv.pos.x].pod = Empty
+			st.g[mv.to.y][mv.to.x].pod = cpod
+
+			energy := elookup[cpod.name]
+			st.energyuse += energy
+
+			// fmt.Println("after move", mv)
+			// printGrid(st.g)
+
+			// fmt.Println(mv, len(visited))
+
+			st.score = getScore(st)
+
+			queue.Push(st)
+		}
+
+		itr++
+		if itr%1000 == 0 {
+			printGrid(cur.g)
+			fmt.Println()
+		}
+		if itr == 50000 {
+			printGrid(cur.g)
+			fmt.Println("force break")
+			break
+		}
+	}
+	return minenergy
+}
+
+func getScore(st state) int {
+	sc := 40
+	for pn, r := range *st.rooms {
+		for pt := range r.pts {
+			b := st.g[pt.y][pt.x]
+
+			if b.pod.name == None {
+				sc--
+			}
+
+			if b.pod.name == pn {
+				sc -= 2
+			}
+		}
+	}
+
+	return sc
+}
+
+func dist(x1, x2, y1, y2 int) int {
+	d := (x2 - x1) * (y2 - y1)
+	return int(math.Abs(float64(d)))
+}
+
+func copyState(cur state) state {
+	st := state{energyuse: cur.energyuse}
+	st.g = make(grid, len(cur.g))
+	st.rooms = cur.rooms
+
+	for y, row := range cur.g {
+		st.g[y] = make([]block, len(row))
+		copy(st.g[y], cur.g[y])
+	}
+
+	st.stationary = map[pod]pod{}
+	for k, v := range cur.stationary {
+		st.stationary[k] = v
+	}
+
+	return st
+}
+
+func getMoves(g grid, rooms map[podname]room, lastpod pod, stationary map[pod]pod) []move {
+	mvs := []move{}
+	cont := true
+	for y := 0; y < len(g) && cont; y++ {
+		for x := 0; x < len(g[y]) && cont; x++ {
+			b := g[y][x]
+			pt := xy{x, y}
+
+			_, isstationary := stationary[b.pod]
+
+			if b.pod.name == None {
+				continue
+			}
+
+			mv, canroom := canMoveToRoom(g, rooms, pt)
+			if canroom {
+				// fmt.Println("can move to room.", b.pod, mv)
+				mvs = []move{mv}
+				cont = false
+				break
+			}
+
+			if outsideRoom(g, rooms, pt) {
+				// fmt.Println("outside room. has to move", b.pod, mv)
+				left := move{pod: b.pod, pos: pt, to: xy{pt.x - 1, pt.y}}
+				right := move{pod: b.pod, pos: pt, to: xy{pt.x + 1, pt.y}}
+				mvs = []move{left, right}
+				cont = false
+				break
+			}
+
+			if !canroom && b.hallway && isstationary {
+				continue
+			}
+
+			mv, shouldMove := isInRoom(g, rooms, pt)
+			if shouldMove {
+				// fmt.Println("is in  room.", b.pod, mv)
+				// get the pod all the way in their room
+				mvs = []move{mv}
+				cont = false
+				break
+			}
+
+			pts := getPodMoves(g, rooms, b.pod, pt)
+			for _, p := range pts {
+				mv := move{pod: b.pod, pos: pt, to: p}
+				mvs = append(mvs, mv)
+			}
+		}
+	}
+	return mvs
+}
+
+func isInRoom(g grid, rooms map[podname]room, pos xy) (move, bool) {
+	b := g[pos.y][pos.x]
+
+	if !b.room {
+		return move{}, false
+	}
+
+	ownroom := rooms[b.pod.name]
+	_, isInOwnRoom := ownroom.pts[pos]
+
+	upMove := move{pod: b.pod, pos: pos, to: xy{pos.x, pos.y - 1}}
+	if !isInOwnRoom {
+		if b.pod.name == C {
+			fmt.Println(C, ownroom)
+		}
+		return upMove, true
+	}
+
+	belowpt := xy{pos.x, pos.y + 1}
+	below := g[belowpt.y][belowpt.x]
+	if below.wall && isInOwnRoom {
+		return move{}, false
+	}
+
+	if isInOwnRoom && below.pod.name == None {
+		return move{pod: b.pod, pos: pos, to: belowpt}, true
+	}
+
+	if isInOwnRoom && below.pod.name != b.pod.name {
+		return upMove, true
+	}
+	return move{}, false
+}
+
+func canMoveToRoom(g grid, rooms map[podname]room, pos xy) (move, bool) {
+	b := g[pos.y][pos.x]
+
+	p := b.pod
+	rm := rooms[p.name]
+	for pt := range rm.pts {
+		rb := g[pt.y][pt.x]
+		if rb.pod.name != None && rb.pod != p {
+			return move{}, false
+		}
+	}
+
+	roomx, roomy := rm.x, rm.y
+	pp := pos
+	result := true
+	shouldMove := false
+	var first *xy
+	if pp.x != roomx {
+		dir := 1
+		if pp.x > roomx {
+			dir = -1
+		}
+		for pp.x != roomx && result {
+			pb := g[pp.y][pp.x]
+			if pb.room {
+				pp.y--
+				if first == nil {
+					first = &pp
+				}
+			} else if pb.hallway && pb.pod.name == None {
+				pp.x += dir
+				if first == nil {
+					first = &pp
+				}
+			} else if pb.pod.name != None {
+				result = false
+			}
+		}
+		shouldMove = pp.x == roomx
+	} else if pp.y > roomy {
+		belowpt := xy{pp.x, pp.y + 1}
+		bb := g[belowpt.y][belowpt.x]
+		if bb.room && bb.pod.name == None {
+			first = &belowpt
+			shouldMove = true
+		}
+	}
+
+	mv := move{pod: b.pod, pos: pos}
+	if first != nil {
+		mv.to = *first
+	}
+	return mv, shouldMove
+}
+
+func outsideRoom(g grid, rooms map[podname]room, pos xy) bool {
+	b := g[pos.y][pos.x]
+	if b.room {
+		return false
+	}
+	toRoom := xy{pos.x, pos.y + 1}
+	isRoomAdjacent := false
+	for _, r := range rooms {
+		if _, ok := r.pts[toRoom]; ok {
+			isRoomAdjacent = true
+		}
+	}
+	if b.hallway && isRoomAdjacent {
+		return true
+	}
+	return false
+}
+
+func getPodMoves(g grid, rooms map[podname]room, pd pod, pos xy) []xy {
+	pts := []xy{{pos.x + 1, pos.y}, {pos.x - 1, pos.y}, {pos.x, pos.y - 1}, {pos.x, pos.y + 1}}
+	valid := []xy{}
+	for _, pt := range pts {
+		if pt.x < 0 || pt.y < 0 || pt.x == len(g[0]) || pt.y == len(g) {
+			continue
+		}
+
+		b := g[pt.y][pt.x]
+
+		podroom := rooms[b.pod.name]
+		if _, ok := podroom.pts[pt]; ok && pt.y >= podroom.y {
+			// in room
+			continue
+		}
+
+		if (b.hallway || b.room) && b.pod.name == None {
+			valid = append(valid, pt)
+		}
+	}
+	return valid
+}
+
+func isSolved(g grid, rooms map[podname]room) bool {
+	correct := 0
+	for y := 0; y < len(g); y++ {
+		for x := 0; x < len(g[y]); x++ {
+			pt := xy{x, y}
+			b := g[y][x]
+			switch b.pod.name {
+			case A, B, C, D:
+				r := rooms[b.pod.name]
+
+				if _, ok := r.pts[pt]; ok {
+					correct++
+				}
+			}
+		}
+	}
+	return correct == 8
+}
+
+func parseInput(in input) (grid, map[xy]pod, map[podname]room) {
+	g := make(grid, len(in))
+	pm := map[xy]pod{}
+	roomowners := []podname{A, B, C, D}
+	rooms := map[podname]room{}
+	roomidx := 0
+	for y, line := range in {
+		g[y] = make([]block, len(line))
+		for x, c := range line {
+			b := block{pod: pod{name: None}}
+			pt := xy{x, y}
+			switch c {
+			case '#', ' ':
+				b.wall = true
+			case '.':
+				b.hallway = true
+			case 'A', 'B', 'C', 'D':
+				pn := podname(string(c))
+				owner := roomowners[roomidx]
+				b.room = true
+				podnum := 1
+
+				if _, ok := rooms[owner]; !ok {
+					r := room{owner: owner, idx: roomidx, x: x, y: y + 1} // set y to lower y
+					m := map[xy]bool{pt: true}
+					r.pts = m
+					podnum = 0
+					rooms[owner] = r
+				} else {
+					rooms[owner].pts[pt] = true
+				}
+
+				energy := 1
+				if c == 'B' {
+					energy = 10
+				} else if c == 'C' {
+					energy = 100
+				} else if c == 'D' {
+					energy = 1000
+				}
+
+				p := pod{
+					name:      pn,
+					energyuse: energy,
+					num:       podnum,
+				}
+				pm[pt] = p
+				b.pod = p
+				roomidx = (roomidx + 1) % 4
+			}
+			g[y][x] = b
+		}
+	}
+	return g, pm, rooms
+}
