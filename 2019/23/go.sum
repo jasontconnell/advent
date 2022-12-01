@@ -1,0 +1,4 @@
+github.com/jasontconnell/advent v1.0.4 h1:KlZEtwrUef2kokzr0MzgQWGou4Tag8Xbpy2Vtn7gQzc=
+github.com/jasontconnell/advent v1.0.4/go.mod h1:xmETuR7lFDuJy0EKTHesaXJLzRfkwtbf1x6+SUXwHbY=
+github.com/jasontconnell/advent/2019/intcode v0.0.0-20211207115124-d5c6a0c3d923 h1:2Dk2rWGbbGH0IwgQbTbpNUM6ttayHlWUV2nGOrRp4lg=
+github.com/jasontconnell/advent/2019/intcode v0.0.0-20211207115124-d5c6a0c3d923/go.mod h1:SfccF5f21ZZO71G7zIRSZA+qzA1BqiMuBMFBWJX3Uwc=

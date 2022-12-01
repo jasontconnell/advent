@@ -1,0 +1,51 @@
+step 14
+z = 9
+in = 3
+
+z = 8
+in = 2
+
+z + 4
+
+
+step 13
+z where z % 26 - 4 == in
+
+step 13
+z 7 7
+
+step 12
+z - 9
+
+step 11
+z + 11
+
+step 10
+z * 26 + 1 + in
+
+step 9
+z + 1
+
+step 8
+z * 26 + in + 11
+
+step 7
+z * 26 + in + 15
+
+step 6
+z + 3
+
+step 5
+z * 26 + in
+
+step 4
+z * 26 + (in + 14)
+
+step 3
+z is z * 7 + z * 20
+
+step 2
+add 12 to z
+
+step 1
+whatever goes in comes out as z

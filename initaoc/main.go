@@ -24,6 +24,7 @@ func main() {
 	year := flag.Int("y", time.Now().Year(), "the year")
 	day := flag.Int("d", time.Now().Day(), "day number")
 	sessionFilename := flag.String("session", "session.txt", "the filename holding the AoC session key")
+	uaFilename := flag.String("useragent", "useragent.txt", "the filename holding the user agent (new req as of 2022)")
 	boilerplateFolder := flag.String("b", "./boilerplate/", "boilerplate folder")
 	pbaseUrl := flag.String("url", "https://adventofcode.com", "aoc url")
 	pinput := flag.String("input", "input.txt", "input filename")
@@ -51,20 +52,25 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = runInit(y, *day, createYearDir, session, *boilerplateFolder, *pbaseUrl, *pinput, *pmain)
+	useragent, err := readFile(*uaFilename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = runInit(y, *day, createYearDir, session, useragent, *boilerplateFolder, *pbaseUrl, *pinput, *pmain)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("couldn't init aoc with the params day: %d year %d err: %s", *day, *year, err.Error()))
 	}
 }
 
-func runInit(year, day int, createYearDir bool, session, boilerplate, baseUrl, inputFilename, mainFilename string) error {
+func runInit(year, day int, createYearDir bool, session, useragent, boilerplate, baseUrl, inputFilename, mainFilename string) error {
 	syear, sday := strconv.Itoa(year), strconv.Itoa(day)
 	pathDay := "0" + sday
 	pathDay = pathDay[len(pathDay)-2:]
 	inputPath := path.Join(syear, "day", sday, "input")
 
 	fullUrl := strings.Join([]string{baseUrl, inputPath}, "/")
-	input, err := getInput(fullUrl, session)
+	input, err := getInput(fullUrl, session, useragent)
 	if err != nil {
 		return fmt.Errorf("can't get input at %s %w", fullUrl, err)
 	}
@@ -126,13 +132,14 @@ func initFile(dir, filename, contents string, failIfExists bool) error {
 	return err
 }
 
-func getInput(url, session string) (string, error) {
+func getInput(url, session, useragent string) (string, error) {
 	c := http.Client{}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
 	}
 	req.Header.Add("cookie", fmt.Sprintf("session=%s", session))
+	req.Header.Add("User-Agent", useragent)
 
 	res, err := c.Do(req)
 	if err != nil {
