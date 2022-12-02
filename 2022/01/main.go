@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -38,17 +39,26 @@ func main() {
 
 func part1(in input) output {
 	elves := parseInput(in)
-	return max(elves)
+	return max(elves, math.MaxInt32)
 }
 
 func part2(in input) output {
-	return 0
+	elves := parseInput(in)
+	var top3 int
+	less := math.MaxInt32
+	for i := 0; i < 3; i++ {
+		m := max(elves, less)
+		top3 += m
+		less = m
+	}
+
+	return top3
 }
 
-func max(elves []elf) int {
+func max(elves []elf, less int) int {
 	m := 0
 	for _, elf := range elves {
-		if elf.sum > m {
+		if elf.sum > m && elf.sum < less {
 			m = elf.sum
 		}
 	}
