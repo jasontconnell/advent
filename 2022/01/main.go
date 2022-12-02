@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/jasontconnell/advent/common"
@@ -11,6 +12,11 @@ import (
 
 type input = []string
 type output = int
+
+type elf struct {
+	meals []int
+	sum   int
+}
 
 func main() {
 	startTime := time.Now()
@@ -31,11 +37,44 @@ func main() {
 }
 
 func part1(in input) output {
-	return 0
+	elves := parseInput(in)
+	return max(elves)
 }
 
 func part2(in input) output {
 	return 0
+}
+
+func max(elves []elf) int {
+	m := 0
+	for _, elf := range elves {
+		if elf.sum > m {
+			m = elf.sum
+		}
+	}
+	return m
+}
+
+func parseInput(lines []string) []elf {
+	elves := []elf{{}}
+	for _, line := range lines {
+		if line == "" {
+			elves = append(elves, elf{})
+			continue
+		}
+		idx := len(elves) - 1
+		i, _ := strconv.Atoi(line)
+		elves[idx].meals = append(elves[idx].meals, i)
+		elves[idx].sum += i
+	}
+
+	return elves
+}
+
+func newElf() *elf {
+	e := &elf{}
+	e.meals = []int{}
+	return e
 }
 
 // reg := regexp.MustCompile("-?[0-9]+")
