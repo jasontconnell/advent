@@ -46,7 +46,12 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	strats := parseInput(in)
+	sum := 0
+	for _, st := range strats {
+		sum += getFinal(st)
+	}
+	return sum
 }
 
 func getResult(st strat) int {
@@ -73,6 +78,44 @@ func getResult(st strat) int {
 			score = 6
 		} else if st.move == 'C' {
 			score = 3
+		}
+	}
+	return score + mvpts
+}
+
+func getFinal(st strat) int {
+	score := 0
+	mvpts := 0
+	switch st.counter {
+	case 'X':
+		score = 0
+		switch st.move {
+		case 'A':
+			mvpts = 3
+		case 'B':
+			mvpts = 1
+		case 'C':
+			mvpts = 2
+		}
+	case 'Y':
+		score = 3
+		switch st.move {
+		case 'A':
+			mvpts = 1
+		case 'B':
+			mvpts = 2
+		case 'C':
+			mvpts = 3
+		}
+	case 'Z':
+		score = 6
+		switch st.move {
+		case 'A':
+			mvpts = 2
+		case 'B':
+			mvpts = 3
+		case 'C':
+			mvpts = 1
 		}
 	}
 	return score + mvpts
