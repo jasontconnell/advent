@@ -38,12 +38,12 @@ func main() {
 
 func part1(in input) output {
 	sacks := parseInput(in)
-
 	return sumDuped(sacks)
 }
 
 func part2(in input) output {
-	return 0
+	sacks := parseInput(in)
+	return grouped(sacks)
 }
 
 func parseInput(in input) []sack {
@@ -56,10 +56,20 @@ func parseInput(in input) []sack {
 	return sacks
 }
 
+func grouped(sacks []sack) int {
+	total := 0
+	for i := 0; i < len(sacks); i += 3 {
+		first := duplicates(sacks[i].left+sacks[i].right, sacks[i+1].left+sacks[i+1].right)
+		final := duplicates(sacks[i+2].left+sacks[i+2].right, string(first))
+		total += priority(final[0])
+	}
+	return total
+}
+
 func sumDuped(sacks []sack) int {
 	total := 0
 	for _, s := range sacks {
-		rs := duplicates(s)
+		rs := duplicates(s.left, s.right)
 		for _, ch := range rs {
 			total += priority(ch)
 		}
@@ -76,14 +86,14 @@ func priority(r rune) int {
 	return int(r) - sub
 }
 
-func duplicates(s sack) []rune {
+func duplicates(left, right string) []rune {
 	seen := make(map[rune]bool)
 	dups := []rune{}
-	for _, ch := range s.left {
+	for _, ch := range left {
 		if _, ok := seen[ch]; ok {
 			continue
 		}
-		for _, chr := range s.right {
+		for _, chr := range right {
 			if ch == chr {
 				dups = append(dups, ch)
 				break
