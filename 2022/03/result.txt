@@ -1,0 +1,3 @@
+--2022 day 03 solution--
+Part 1: 7903
+Part 2: 0
