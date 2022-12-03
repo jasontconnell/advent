@@ -86,10 +86,3 @@ func newElf() *elf {
 	e.meals = []int{}
 	return e
 }
-
-// reg := regexp.MustCompile("-?[0-9]+")
-/*
-if groups := reg.FindStringSubmatch(txt); groups != nil && len(groups) > 1 {
-				fmt.Println(groups[1:])
-			}
-*/
