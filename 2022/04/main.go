@@ -19,7 +19,7 @@ type assignment struct {
 }
 
 type pair struct {
-	elves []assignment
+	sections []assignment
 }
 
 func main() {
@@ -46,21 +46,42 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	pairs := parseInput(in)
+	return overlaps(pairs)
 }
 
 func contained(pairs []pair) int {
 	total := 0
 	for _, p := range pairs {
-		if isContained(p) {
+		if isContained(p.sections[0], p.sections[1]) {
 			total++
 		}
 	}
 	return total
 }
 
-func isContained(p pair) bool {
-	left, right := p.elves[0], p.elves[1]
+func overlaps(pairs []pair) int {
+	total := 0
+	for _, p := range pairs {
+		if isOverlap(p.sections[0], p.sections[1]) {
+			total++
+		}
+	}
+	return total
+}
+
+func isOverlap(left, right assignment) bool {
+	left, right = getLeftRight(left, right)
+	ovr := left.start <= right.start && left.end >= right.start && right.end >= left.end
+	return ovr || isContained(left, right)
+}
+
+func isContained(left, right assignment) bool {
+	left, right = getLeftRight(left, right)
+	return left.start <= right.start && left.end >= right.end
+}
+
+func getLeftRight(left, right assignment) (assignment, assignment) {
 	outer := left
 	inner := right
 	if right.start <= left.start {
@@ -72,7 +93,7 @@ func isContained(p pair) bool {
 		outer, inner = inner, outer
 	}
 
-	return outer.start <= inner.start && outer.end >= inner.end
+	return outer, inner
 }
 
 func parseInput(in input) []pair {
@@ -86,7 +107,7 @@ func parseInput(in input) []pair {
 			left, _ := strconv.Atoi(ls[0])
 			right, _ := strconv.Atoi(ls[1])
 
-			p.elves = append(p.elves, assignment{start: left, end: right})
+			p.sections = append(p.sections, assignment{start: left, end: right})
 		}
 		pairs = append(pairs, p)
 	}
