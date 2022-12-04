@@ -1,0 +1,3 @@
+--2022 day 04 solution--
+Part 1: 569
+Part 2: 0
