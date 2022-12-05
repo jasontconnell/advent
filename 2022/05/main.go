@@ -52,17 +52,22 @@ func main() {
 
 func part1(in input) output {
 	stacks, moves := parseInput(in)
-	return getTops(stacks, moves)
+	return getTops(stacks, moves, false)
 }
 
 func part2(in input) output {
-	return ""
+	stacks, moves := parseInput(in)
+	return getTops(stacks, moves, true) // use CrateMover9001
 }
 
-func getTops(stacks []stack, moves []move) string {
+func getTops(stacks []stack, moves []move, is9001 bool) string {
 	for _, mv := range moves {
-		for i := 0; i < mv.quantity; i++ {
-			stacks = moveOne(stacks, mv.from, mv.to)
+		if !is9001 {
+			for i := 0; i < mv.quantity; i++ {
+				stacks = moveOne(stacks, mv.from, mv.to)
+			}
+		} else {
+			stacks = moveMultiple(stacks, mv.from, mv.to, mv.quantity)
 		}
 	}
 
@@ -80,6 +85,16 @@ func moveOne(stacks []stack, from, to int) []stack {
 	r := stacks[from].boxes[flen-1]
 	stacks[from].boxes = stacks[from].boxes[:flen-1]
 	stacks[to].boxes = append(stacks[to].boxes, r)
+	return stacks
+}
+
+func moveMultiple(stacks []stack, from, to, quantity int) []stack {
+	flen := len(stacks[from].boxes)
+
+	start := flen - quantity
+	sstk := stacks[from].boxes[start:]
+	stacks[from].boxes = stacks[from].boxes[:start]
+	stacks[to].boxes = append(stacks[to].boxes, sstk...)
 	return stacks
 }
 

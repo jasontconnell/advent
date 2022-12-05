@@ -1,3 +1,3 @@
 --2022 day 05 solution--
-Part 1: CMZ
-Part 2: 
+Part 1: GRTSWNJHH
+Part 2: QLFQDBBHM
