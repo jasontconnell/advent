@@ -1,0 +1,3 @@
+--2022 day 05 solution--
+Part 1: CMZ
+Part 2: 
