@@ -35,7 +35,7 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	return findNonRepeat(in, 14)
 }
 
 func findNonRepeat(in input, n int) int {
