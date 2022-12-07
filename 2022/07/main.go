@@ -15,13 +15,18 @@ import (
 type input = []string
 type output = int
 
-const lscmd = "$ ls"
+const (
+	lscmd      = "$ ls"
+	totalsize  = 70000000
+	updatesize = 30000000
+)
 
 type dir struct {
 	parent  *dir
 	name    string
 	files   []file
 	subdirs []*dir
+	size    int
 }
 
 type file struct {
@@ -30,24 +35,24 @@ type file struct {
 	size   int
 }
 
-func (d *dir) getSize(recurse bool) int {
-	sz := 0
-	if recurse {
-		for _, sd := range d.subdirs {
-			sz += sd.getSize(recurse)
-		}
+func (d *dir) getSize() int {
+	if d.size > 0 {
+		return d.size
+	}
+	for _, sd := range d.subdirs {
+		d.size += sd.getSize()
 	}
 
 	for _, f := range d.files {
-		sz += f.size
+		d.size += f.size
 	}
-	return sz
+	return d.size
 }
 
 func (d *dir) print(level int) {
 	tab := strings.Repeat(" ", level)
 
-	fmt.Println(tab, "/"+d.name)
+	fmt.Println(tab, "/"+d.name, tab+tab, "( total:", d.getSize(), ")")
 	for _, dir := range d.subdirs {
 		dir.print(level + 1)
 	}
@@ -80,20 +85,52 @@ func part1(in input) output {
 	big := getSmallDirs(root, 100000)
 	sum := 0
 	for _, d := range big {
-		sum += d.getSize(true)
+		sum += d.getSize()
 	}
 	return sum
 }
 
 func part2(in input) output {
-	return 0
+	root := parseInput(in)
+	del := getDelCandidate(root, totalsize, updatesize)
+	return del.getSize()
+}
+
+func getDelCandidate(root *dir, total, update int) *dir {
+	used := root.getSize()
+	unused := total - used
+	tofree := update - unused
+	cands := getBigDirs(root, tofree)
+	sm := root
+	for _, d := range cands {
+		if d.getSize() < sm.getSize() {
+			sm = d
+		}
+	}
+
+	return sm
+}
+
+func getBigDirs(root *dir, minsize int) []*dir {
+	dirs := []*dir{}
+
+	for _, d := range root.subdirs {
+		if d.getSize() >= minsize {
+			dirs = append(dirs, d)
+		}
+
+		subs := getBigDirs(d, minsize)
+		dirs = append(dirs, subs...)
+	}
+
+	return dirs
 }
 
 func getSmallDirs(root *dir, maxsize int) []*dir {
 	dirs := []*dir{}
 
 	for _, d := range root.subdirs {
-		if d.getSize(true) < maxsize {
+		if d.getSize() < maxsize {
 			dirs = append(dirs, d)
 		}
 
@@ -108,8 +145,6 @@ func parseInput(in input) *dir {
 	root := &dir{name: "/"}
 	cur := root
 	isls := false
-	dirs := make(map[string]*dir)
-	dirs["/"] = root
 
 	cdreg := regexp.MustCompile(`\$ cd ([a-zA-Z\\\./]*)?`)
 	dirreg := regexp.MustCompile("dir (.*)")
@@ -122,12 +157,14 @@ func parseInput(in input) *dir {
 			nm := m[1]
 			if nm == ".." {
 				cur = cur.parent
-				continue
+			} else {
+				for _, d := range cur.subdirs {
+					if d.name == nm {
+						cur = d
+					}
+				}
 			}
-			if _, ok := dirs[nm]; !ok {
-				dirs[nm] = &dir{name: nm, parent: cur}
-			}
-			cur = dirs[nm]
+
 			continue
 		}
 
@@ -143,7 +180,6 @@ func parseInput(in input) *dir {
 			if len(dm) > 0 {
 				sub := &dir{name: dm[1], parent: cur}
 				cur.subdirs = append(cur.subdirs, sub)
-				dirs[sub.name] = sub
 			}
 
 			if len(fm) > 0 {
