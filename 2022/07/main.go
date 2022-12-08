@@ -150,8 +150,8 @@ func parseInput(in input) *dir {
 	dirreg := regexp.MustCompile("dir (.*)")
 	freg := regexp.MustCompile("([0-9]+) (.*)")
 
-	for i := 0; i < len(in); i++ {
-		m := cdreg.FindStringSubmatch(in[i])
+	for _, line := range in {
+		m := cdreg.FindStringSubmatch(line)
 		if len(m) > 0 {
 			isls = false
 			nm := m[1]
@@ -168,14 +168,14 @@ func parseInput(in input) *dir {
 			continue
 		}
 
-		if in[i] == lscmd {
+		if line == lscmd {
 			isls = true
 			continue
 		}
 
 		if isls {
-			dm := dirreg.FindStringSubmatch(in[i])
-			fm := freg.FindStringSubmatch(in[i])
+			dm := dirreg.FindStringSubmatch(line)
+			fm := freg.FindStringSubmatch(line)
 
 			if len(dm) > 0 {
 				sub := &dir{name: dm[1], parent: cur}
