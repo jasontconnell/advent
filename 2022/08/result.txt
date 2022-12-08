@@ -1,3 +1,3 @@
 --2022 day 08 solution--
-Part 1: 1538
-Part 2: 0
+Part 1: 21
+Part 2: 8
