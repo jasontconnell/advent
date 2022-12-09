@@ -33,6 +33,36 @@ type xy struct {
 	x, y int
 }
 
+func print(m map[xy]int) {
+	minx, maxx := math.MaxInt32, math.MinInt32
+	miny, maxy := math.MaxInt32, math.MinInt32
+	for k := range m {
+		if k.x > maxx {
+			maxx = k.x
+		}
+		if k.x < minx {
+			minx = k.x
+		}
+		if k.y > maxy {
+			maxy = k.y
+		}
+		if k.y < miny {
+			miny = k.y
+		}
+	}
+
+	for y := miny; y < maxy+1; y++ {
+		for x := minx; x < maxx+1; x++ {
+			if _, ok := m[xy{x, y}]; ok {
+				fmt.Print("#")
+			} else {
+				fmt.Print(" ")
+			}
+		}
+		fmt.Println()
+	}
+}
+
 func main() {
 	startTime := time.Now()
 
@@ -53,27 +83,33 @@ func main() {
 
 func part1(in input) output {
 	moves := parseInput(in)
-	head, tail := make(map[xy]int), make(map[xy]int)
-	head[xy{0, 0}] = 1
-	tail[xy{0, 0}] = 1
-	traverse(moves, head, tail)
-	return len(tail)
+	return traverse(moves, 2)
 }
 
 func part2(in input) output {
-	return 0
+	moves := parseInput(in)
+	return traverse(moves, 10)
 }
 
-func traverse(moves []move, head, tail map[xy]int) {
-	hpos, tpos := xy{0, 0}, xy{0, 0}
+func traverse(moves []move, n int) int {
+	pos := make([]xy, n)
+	visit := make([]map[xy]int, n)
+	for i := 0; i < n; i++ {
+		pos[i] = xy{}
+		visit[i] = make(map[xy]int)
+		visit[i][pos[i]] = 1
+	}
+
 	for _, mv := range moves {
 		for i := 0; i < mv.num; i++ {
-			hpos, tpos = moveOne(mv.dir, hpos, tpos, head, tail)
+			moveOne(mv.dir, pos, visit)
 		}
 	}
+
+	return len(visit[n-1])
 }
 
-func moveOne(d dir, hpos, tpos xy, head, tail map[xy]int) (xy, xy) {
+func moveOne(d dir, pos []xy, visit []map[xy]int) {
 	var dx, dy int
 	switch d {
 	case U:
@@ -86,46 +122,45 @@ func moveOne(d dir, hpos, tpos xy, head, tail map[xy]int) (xy, xy) {
 		dx = 1
 	}
 
-	hpos.x += dx
-	hpos.y += dy
-	head[hpos]++
+	pos[0].x += dx
+	pos[0].y += dy
+	visit[0][pos[0]]++
 
-	// not touching, move tail
-	if dist(hpos, tpos) > 1 {
-		tdx, tdy := 0, 0
-		switch d {
-		case U:
-			tdy = 1
-		case D:
-			tdy = -1
-		case L:
-			tdx = -1
-		case R:
-			tdx = 1
-		}
+	for i := 1; i < len(pos); i++ {
+		fpos, bpos := pos[i-1], pos[i]
+		if dist(fpos, bpos) > 1 {
+			tdx, tdy := 0, 0
 
-		// take care of diagonal
-		switch d {
-		case U, D:
-			if tpos.x < hpos.x {
-				tdx = 1
-			} else if tpos.x > hpos.x {
-				tdx = -1
-			}
-		case R, L:
-			if tpos.y < hpos.y {
+			if bpos.y > fpos.y {
 				tdy = 1
-			} else if tpos.y > hpos.y {
+			} else if bpos.y < fpos.y {
 				tdy = -1
 			}
+
+			if bpos.x > fpos.x {
+				tdx = -1
+			} else if bpos.x < fpos.x {
+				tdx = 1
+			}
+
+			// take care of diagonal
+			if bpos.x < fpos.x {
+				tdx = 1
+			} else if bpos.x > fpos.x {
+				tdx = -1
+			}
+
+			if bpos.y < fpos.y {
+				tdy = 1
+			} else if bpos.y > fpos.y {
+				tdy = -1
+			}
+
+			pos[i].x += tdx
+			pos[i].y += tdy
+			visit[i][pos[i]]++
 		}
-
-		tpos.x += tdx
-		tpos.y += tdy
-		tail[tpos]++
 	}
-
-	return hpos, tpos
 }
 
 func dist(p1, p2 xy) int {
