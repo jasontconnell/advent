@@ -131,23 +131,10 @@ func moveOne(d dir, pos []xy, visit []map[xy]int) {
 		if dist(fpos, bpos) > 1 {
 			tdx, tdy := 0, 0
 
-			if bpos.y > fpos.y {
-				tdy = 1
-			} else if bpos.y < fpos.y {
-				tdy = -1
-			}
-
 			if bpos.x > fpos.x {
 				tdx = -1
 			} else if bpos.x < fpos.x {
 				tdx = 1
-			}
-
-			// take care of diagonal
-			if bpos.x < fpos.x {
-				tdx = 1
-			} else if bpos.x > fpos.x {
-				tdx = -1
 			}
 
 			if bpos.y < fpos.y {
