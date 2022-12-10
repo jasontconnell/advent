@@ -128,7 +128,7 @@ func moveOne(d dir, pos []xy, visit []map[xy]int) {
 
 	for i := 1; i < len(pos); i++ {
 		fpos, bpos := pos[i-1], pos[i]
-		if dist(fpos, bpos) > 1 {
+		if !touching(fpos, bpos) {
 			tdx, tdy := 0, 0
 
 			if bpos.x > fpos.x {
@@ -150,13 +150,13 @@ func moveOne(d dir, pos []xy, visit []map[xy]int) {
 	}
 }
 
-func dist(p1, p2 xy) int {
+func touching(p1, p2 xy) bool {
 	y := math.Abs(float64(p2.y - p1.y))
 	x := math.Abs(float64(p2.x - p1.x))
 	if y > 1 || x > 1 { //1,1 is diagonal but still touching
-		return int(y + x)
+		return false
 	}
-	return 1
+	return true
 }
 
 func parseInput(in input) []move {
