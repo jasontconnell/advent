@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -16,13 +17,15 @@ type input = []string
 type output = int
 
 type monkey struct {
-	id        int
-	items     []int
-	op        string
-	opparam   int
-	testmod   int
-	truedest  int
-	falsedest int
+	id          int
+	items       []int
+	op          string
+	opparam     int
+	opparamself bool
+	testmod     int
+	truedest    int
+	falsedest   int
+	inspected   int
 }
 
 func main() {
@@ -44,18 +47,58 @@ func main() {
 }
 
 func part1(in input) output {
-	parseInput(in)
-	return 0
+	monkeys := parseInput(in)
+	for i := 0; i < 20; i++ {
+		monkeys = runRound(monkeys)
+	}
+	insp := []int{}
+	for _, m := range monkeys {
+		insp = append(insp, m.inspected)
+	}
+	sort.Ints(insp)
+	return insp[len(insp)-1] * insp[len(insp)-2]
 }
 
 func part2(in input) output {
 	return 0
 }
 
+func runRound(monkeys []monkey) []monkey {
+	for i := 0; i < len(monkeys); i++ {
+		// fmt.Println("monkey", i, "items", monkeys[i].items)
+		for len(monkeys[i].items) > 0 {
+			item := monkeys[i].items[0]
+			prm := monkeys[i].opparam
+			if monkeys[i].opparamself {
+				prm = item
+			}
+			if monkeys[i].op == "+" {
+				item = item + prm
+			} else {
+				item = item * prm
+			}
+
+			item = item / 3
+
+			if item%monkeys[i].testmod == 0 {
+				monkeys[monkeys[i].truedest].items = append(monkeys[monkeys[i].truedest].items, item)
+				// fmt.Println("true", item, monkeys[i].testmod, "thrown to", monkeys[i].truedest, monkeys[monkeys[i].truedest].items)
+			} else {
+				monkeys[monkeys[i].falsedest].items = append(monkeys[monkeys[i].falsedest].items, item)
+				// fmt.Println("false", item, monkeys[i].testmod, "thrown to", monkeys[i].falsedest, monkeys[monkeys[i].falsedest].items)
+			}
+
+			monkeys[i].inspected++
+			monkeys[i].items = monkeys[i].items[1:]
+		}
+	}
+	return monkeys
+}
+
 func parseInput(in input) []monkey {
 	reg := regexp.MustCompile("Monkey ([0-9]+)")
 	sreg := regexp.MustCompile("  Starting items: (.*)")
-	opreg := regexp.MustCompile("  Operation: new = old (\\+|\\*) ([0-9]+)")
+	opreg := regexp.MustCompile("  Operation: new = old (\\+|\\*) ([0-9]+|old)")
 	tstreg := regexp.MustCompile("  Test: divisible by ([0-9]+)")
 	casereg := regexp.MustCompile("    If (true|false): throw to monkey ([0-9]+)")
 
@@ -83,9 +126,13 @@ func parseInput(in input) []monkey {
 		om := opreg.FindStringSubmatch(line)
 		if len(om) == 3 {
 			op := om[1]
-			opparam, _ := strconv.Atoi(om[2])
+			if om[2] != "old" {
+				opparam, _ := strconv.Atoi(om[2])
+				monkeys[idx].opparam = opparam
+			} else {
+				monkeys[idx].opparamself = true
+			}
 			monkeys[idx].op = op
-			monkeys[idx].opparam = opparam
 			continue
 		}
 
