@@ -30,7 +30,7 @@ func (h *Queue[T, N]) Enqueue(item T) {
 			r := h.value(h.items[i])
 
 			if v > r {
-				idx = i - 1
+				idx = i
 				break
 			}
 		}
