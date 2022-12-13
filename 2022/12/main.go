@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/jasontconnell/advent/common"
@@ -49,12 +50,30 @@ func main() {
 
 func part1(in input) output {
 	grid := parseInput(in)
-	return traverse(grid, false)
+	return traverse(grid, false, xy{})
 }
 
 func part2(in input) output {
 	grid := parseInput(in)
-	return traverse(grid, true)
+	starts := []xy{}
+	for r := range grid {
+		for c := range grid[r] {
+			if grid[r][c] == start+1 {
+				starts = append(starts, xy{c, r})
+			}
+		}
+	}
+
+	vals := []int{}
+	for _, sxy := range starts {
+		v := traverse(grid, true, sxy)
+		if v > 0 {
+			vals = append(vals, v)
+		}
+	}
+
+	sort.Ints(vals)
+	return vals[0]
 }
 
 func getStartEnd(grid [][]int) (xy, xy) {
@@ -71,24 +90,24 @@ func getStartEnd(grid [][]int) (xy, xy) {
 	return sxy, exy
 }
 
-func traverse(grid [][]int, findlow bool) int {
+func traverse(grid [][]int, override bool, startoverride xy) int {
 	sxy, exy := getStartEnd(grid)
 	visit := make(map[xy]int)
 	queue := common.NewQueue[xy, int]()
 
-	if findlow {
-		sxy, exy = exy, sxy
+	if override {
+		sxy = startoverride
 	}
 	queue.Enqueue(sxy)
 
 	for queue.Any() {
 		cur := queue.Dequeue()
 
-		if cur == exy || (findlow && grid[cur.y][cur.x] == start+1) {
+		if cur == exy {
 			break
 		}
 
-		mvs := getMoves(grid, cur, findlow)
+		mvs := getMoves(grid, cur)
 		for _, mv := range mvs {
 			if _, ok := visit[mv]; !ok {
 				visit[mv] = visit[cur] + 1
@@ -99,7 +118,7 @@ func traverse(grid [][]int, findlow bool) int {
 	return visit[exy]
 }
 
-func getMoves(grid [][]int, pt xy, reverse bool) []xy {
+func getMoves(grid [][]int, pt xy) []xy {
 	mvs := []xy{}
 
 	for _, mv := range []xy{
@@ -125,7 +144,7 @@ func getMoves(grid [][]int, pt xy, reverse bool) []xy {
 		}
 
 		diff := dest - cur
-		if diff <= 1 || (reverse && diff == 1) {
+		if diff <= 1 {
 			mvs = append(mvs, to)
 		}
 	}
