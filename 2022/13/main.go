@@ -142,10 +142,6 @@ func compareSubpacket(left, right *subpacket) int {
 		return result
 	}
 
-	if len(left.subpackets) == 0 && len(right.subpackets) == 0 {
-		return 0
-	}
-
 	return 0
 }
 
