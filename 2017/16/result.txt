@@ -1,0 +1,3 @@
+--2017 day 16 solution--
+Part 1: jcobhadfnmpkglie
+Part 2: pclhmengojfdkaib
