@@ -1,5 +1,5 @@
 module github.com/jasontconnell/advent/{year}/{day}
 
-go 1.17
+go 1.18
 
-require github.com/jasontconnell/advent v1.0.6
+require github.com/jasontconnell/advent v1.0.8
