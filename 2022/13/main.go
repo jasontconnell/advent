@@ -21,17 +21,18 @@ type subpacket struct {
 }
 
 func (p *subpacket) String() string {
+
 	s := ""
 	if p.val != nil {
 		s += strconv.Itoa(*p.val)
-	} else {
+	} else if p.parent != nil || len(p.subpackets) > 0 {
 		s += "["
 	}
 	for _, p := range p.subpackets {
 		s += p.String() + ","
 	}
 	s = strings.TrimRight(s, ",")
-	if p.val == nil {
+	if p.val == nil && (p.parent != nil || len(p.subpackets) > 0) {
 		s += "]"
 	}
 	return s
@@ -67,22 +68,12 @@ func part2(in input) output {
 func getInOrder(p []*subpacket) int {
 	rightOrder := 0
 	for i := 0; i < len(p); i += 2 {
+		pair := (i + 3) / 2
 		left, right := p[i], p[i+1]
 
 		res := compareSubpacket(left, right)
 
-		restxt := "IN THE RIGHT ORDER"
-		if res != -1 {
-			restxt = "NOT " + restxt
-		}
-
-		pair := (i + 3) / 2
-		fmt.Println("--------- PAIR ", pair, "--------------")
-		fmt.Println("compare", left, right)
-		fmt.Println(" ===   ", restxt)
-		fmt.Println()
-
-		if res == -1 {
+		if res < 0 {
 			rightOrder += pair
 		}
 	}
@@ -91,21 +82,11 @@ func getInOrder(p []*subpacket) int {
 
 func compareSubpacket(left, right *subpacket) int {
 	if left.val != nil && right.val != nil {
-		fmt.Println("compare vals", *left.val, *right.val)
-		if *left.val < *right.val {
-			return -1
-		}
-		if *left.val == *right.val {
-			return 0
-		}
-		if *left.val > *right.val {
-			return 1
-		}
+		return *left.val - *right.val
 	}
 
 	// left is val, right is list
-	if left.val != nil && right.val == nil && len(right.subpackets) > 0 {
-		fmt.Println("left val, no right val", left, right)
+	if left.val != nil && right.val == nil {
 		lsub := &subpacket{val: left.val}
 		left.val = nil
 		left.subpackets = append(left.subpackets, lsub)
@@ -113,16 +94,14 @@ func compareSubpacket(left, right *subpacket) int {
 	}
 
 	// left is list, right is val
-	if left.val == nil && right.val != nil && len(left.subpackets) > 0 {
-		fmt.Println("no left val, right val", left, right)
+	if left.val == nil && right.val != nil {
 		rsub := &subpacket{val: right.val}
 		right.val = nil
 		right.subpackets = append(right.subpackets, rsub)
 		return compareSubpacket(left, right)
 	}
 
-	if len(left.subpackets) > 0 && len(right.subpackets) > 0 {
-		fmt.Println("two lists", left, right)
+	if len(left.subpackets) > 0 || len(right.subpackets) > 0 {
 		result := 0
 		for i := 0; i < len(left.subpackets); i++ {
 			if i >= len(right.subpackets) {
@@ -130,27 +109,24 @@ func compareSubpacket(left, right *subpacket) int {
 				break
 			}
 			subres := compareSubpacket(left.subpackets[i], right.subpackets[i])
-			fmt.Println("subresult", left.subpackets[i], right.subpackets[i], subres)
 			if subres != 0 {
 				result = subres
 				break
 			}
 		}
-		if result <= 0 && len(left.subpackets) < len(right.subpackets) {
+		if result == 0 && len(left.subpackets) < len(right.subpackets) {
 			result = -1
+		} else if result == 0 && len(left.subpackets) > len(right.subpackets) {
+			result = 1
 		}
 		return result
 	}
 
-	if len(left.subpackets) == 0 && len(right.subpackets) > 0 {
-		return -1
+	if len(left.subpackets) == 0 && len(right.subpackets) == 0 {
+		return 0
 	}
 
-	if len(left.subpackets) > 0 && len(right.subpackets) == 0 {
-		return 1
-	}
-
-	return 1
+	return 0
 }
 
 func parseInput(in input) []*subpacket {
@@ -160,8 +136,9 @@ func parseInput(in input) []*subpacket {
 			continue
 		}
 
-		csub := &subpacket{parent: nil}
+		var csub *subpacket = &subpacket{}
 
+		cnum := ""
 		for _, c := range line {
 			switch c {
 			case '[':
@@ -169,12 +146,25 @@ func parseInput(in input) []*subpacket {
 				csub.subpackets = append(csub.subpackets, nsub)
 				csub = nsub
 			case ']':
+				if cnum != "" {
+					n, _ := strconv.Atoi(cnum)
+					nsub := &subpacket{val: &n, parent: csub}
+					csub.subpackets = append(csub.subpackets, nsub)
+					cnum = ""
+				}
 				csub = csub.parent
 			case ',':
+				if cnum != "" {
+					n, _ := strconv.Atoi(cnum)
+					nsub := &subpacket{val: &n, parent: csub}
+					csub.subpackets = append(csub.subpackets, nsub)
+					cnum = ""
+				}
 			default:
-				n, _ := strconv.Atoi(string(c))
-				nsub := &subpacket{val: &n, parent: csub}
-				csub.subpackets = append(csub.subpackets, nsub)
+				cnum += string(c)
+				// n, _ := strconv.Atoi(string(c))
+				// nsub := &subpacket{val: &n, parent: csub}
+				// csub.subpackets = append(csub.subpackets, nsub)
 			}
 		}
 
