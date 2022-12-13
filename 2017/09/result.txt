@@ -1,0 +1,3 @@
+--2017 day 09 solution--
+Part 1: 10800
+Part 2: 4522
