@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -58,14 +59,34 @@ func main() {
 
 func part1(in input) output {
 	packets := parseInput(in)
-	return getInOrder(packets)
+	return orderedPairs(packets)
 }
 
 func part2(in input) output {
-	return 0
+	packets := parseInput(in)
+	filler := []int{2, 6}
+	divider1 := &subpacket{subpackets: []*subpacket{{val: &filler[0]}}}
+	divider2 := &subpacket{subpackets: []*subpacket{{val: &filler[1]}}}
+	packets = append(packets, divider1, divider2)
+	packets = orderPackets(packets)
+
+	res := 1
+	for idx, p := range packets {
+		if p == divider1 || p == divider2 {
+			res *= (idx + 1)
+		}
+	}
+	return res
 }
 
-func getInOrder(p []*subpacket) int {
+func orderPackets(p []*subpacket) []*subpacket {
+	sort.Slice(p, func(i, j int) bool {
+		return compareSubpacket(p[i], p[j]) < 0
+	})
+	return p
+}
+
+func orderedPairs(p []*subpacket) int {
 	rightOrder := 0
 	for i := 0; i < len(p); i += 2 {
 		pair := (i + 3) / 2
