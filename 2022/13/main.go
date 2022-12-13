@@ -22,15 +22,14 @@ type subpacket struct {
 }
 
 func (p *subpacket) String() string {
-
 	s := ""
 	if p.val != nil {
 		s += strconv.Itoa(*p.val)
 	} else if p.parent != nil || len(p.subpackets) > 0 {
 		s += "["
 	}
-	for _, p := range p.subpackets {
-		s += p.String() + ","
+	for _, sp := range p.subpackets {
+		s += sp.String() + ","
 	}
 	s = strings.TrimRight(s, ",")
 	if p.val == nil && (p.parent != nil || len(p.subpackets) > 0) {
@@ -64,9 +63,9 @@ func part1(in input) output {
 
 func part2(in input) output {
 	packets := parseInput(in)
-	filler := []int{2, 6}
-	divider1 := &subpacket{subpackets: []*subpacket{{val: &filler[0]}}}
-	divider2 := &subpacket{subpackets: []*subpacket{{val: &filler[1]}}}
+	dividers := []int{2, 6}
+	divider1 := &subpacket{subpackets: []*subpacket{{val: &dividers[0]}}}
+	divider2 := &subpacket{subpackets: []*subpacket{{val: &dividers[1]}}}
 	packets = append(packets, divider1, divider2)
 	packets = orderPackets(packets)
 
