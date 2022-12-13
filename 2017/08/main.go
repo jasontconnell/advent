@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"regexp"
 	"strconv"
@@ -51,11 +52,22 @@ func main() {
 }
 
 func part1(in input) output {
-	return 0
+	instr := parseInput(in)
+	regs := getMap(instr)
+	max := math.MinInt32
+	process(regs, instr)
+	for _, r := range regs {
+		if r.Value > max {
+			max = r.Value
+		}
+	}
+	return max
 }
 
 func part2(in input) output {
-	return 0
+	instr := parseInput(in)
+	regs := getMap(instr)
+	return process(regs, instr)
 }
 
 func parseInput(in input) []*Instruction {
