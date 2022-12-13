@@ -182,9 +182,6 @@ func parseInput(in input) []*subpacket {
 				}
 			default:
 				cnum += string(c)
-				// n, _ := strconv.Atoi(string(c))
-				// nsub := &subpacket{val: &n, parent: csub}
-				// csub.subpackets = append(csub.subpackets, nsub)
 			}
 		}
 
