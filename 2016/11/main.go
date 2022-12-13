@@ -1,12 +1,13 @@
 package main
 
 import (
-	"container/heap"
 	"fmt"
 	"math"
 	"os"
 	"sort"
 	"time"
+
+	"github.com/jasontconnell/advent/common"
 )
 
 var inputFilename = "input.txt"
@@ -14,31 +15,6 @@ var inputFilename = "input.txt"
 type output = int
 
 var origFloors []map[int]bool
-
-type pqueue []*state
-
-func (pq pqueue) Len() int { return len(pq) }
-
-func (pq pqueue) Less(i, j int) bool {
-	return pq[i].score < pq[j].score
-}
-
-func (pq *pqueue) Pop() interface{} {
-	old := *pq
-	n := len(old)
-	st := old[n-1]
-	*pq = old[0 : n-1]
-	return st
-}
-
-func (pq *pqueue) Push(x interface{}) {
-	st := x.(*state)
-	*pq = append(*pq, st)
-}
-
-func (pq pqueue) Swap(i, j int) {
-	pq[i], pq[j] = pq[j], pq[i]
-}
 
 type state struct {
 	moves        int
@@ -167,7 +143,6 @@ func main() {
 	p2 := part2(origFloors)
 
 	fmt.Println("--2016 day 11 solution--")
-	fmt.Println("(this one takes a few minutes)")
 	fmt.Println("Part 1:", p1)
 	fmt.Println("Part 2:", p2)
 
@@ -195,18 +170,19 @@ func part2(floors []map[int]bool) output {
 
 func simulate(floors []map[int]bool) (bool, int) {
 	floorInit := copyFloors(floors)
-	queue := pqueue{}
+	queue := common.NewPriorityQueue(func(s *state) float64 {
+		return s.score
+	})
 
 	initial := newState(floorInit, map[int]bool{}, 0)
-	heap.Init(&queue)
-	queue.Push(initial)
+	queue.Enqueue(initial)
 
 	visited := make(map[string]int)
 	moves := math.MaxInt32
 	solved := false
 
-	for queue.Len() > 0 {
-		cur := (heap.Pop(&queue)).(*state)
+	for queue.Any() {
+		cur := queue.Dequeue()
 
 		if isComplete(cur.floors, cur.elevator, cur.currentLevel) && cur.moves < moves {
 			moves = cur.moves
@@ -227,7 +203,7 @@ func simulate(floors []map[int]bool) (bool, int) {
 		mvs := getValidMoves(cur.floors, cur.elevator, cur.currentLevel)
 		for _, mv := range mvs {
 			transit := transitState(cur, mv)
-			queue = append(queue, transit)
+			queue.Enqueue(transit)
 		}
 	}
 
