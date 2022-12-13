@@ -1,0 +1,3 @@
+--2017 day 10 solution--
+Part 1: 9656
+Part 2: 20b7b54c92bf73cf3e5631458a715149
