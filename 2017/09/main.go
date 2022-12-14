@@ -44,7 +44,6 @@ func part1(in input) output {
 
 func part2(in input) output {
 	return getGarbage(in)
-
 }
 
 func getGarbage(line string) int {
