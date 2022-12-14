@@ -109,35 +109,49 @@ func part1(in input) output {
 	grid := getRockGrid(paths)
 	spout := xy{500, 0}
 	// print(grid, spout)
-	return simulate(grid, spout)
+	return simulate(grid, spout, false)
 }
 
 func part2(in input) output {
-	return 0
+	paths := parseInput(in)
+	grid := getRockGrid(paths)
+	spout := xy{500, 0}
+	// print(grid, spout)
+	return simulate(grid, spout, true)
 }
 
-func simulate(grid map[xy]block, spout xy) int {
+func simulate(grid map[xy]block, spout xy, floor bool) int {
 	_, max := getMinMax(grid)
 
 	stopy := max.y + 1
+	var ground *int
+	if floor {
+		floory := max.y + 2
+		ground = &floory
+	}
 	grain := spout
 	grains := 0
 	for {
-		if grain.y >= stopy {
+		if grain.y >= stopy && !floor {
 			break
 		}
-		if check(grid, xy{grain.x, grain.y + 1}) {
+
+		if floor && grid[spout].contents == sand {
+			break
+		}
+
+		if check(grid, xy{grain.x, grain.y + 1}, ground) {
 			grain.y++
 			continue
 		}
 
-		if check(grid, xy{grain.x - 1, grain.y + 1}) {
+		if check(grid, xy{grain.x - 1, grain.y + 1}, ground) {
 			grain.x--
 			grain.y++
 			continue
 		}
 
-		if check(grid, xy{grain.x + 1, grain.y + 1}) {
+		if check(grid, xy{grain.x + 1, grain.y + 1}, ground) {
 			grain.x++
 			grain.y++
 			continue
@@ -151,9 +165,15 @@ func simulate(grid map[xy]block, spout xy) int {
 	return grains
 }
 
-func check(grid map[xy]block, pt xy) bool {
+func check(grid map[xy]block, pt xy, floor *int) bool {
 	c, ok := grid[pt]
-	return !ok || c.contents == air
+	if !ok {
+		c.contents = air
+	}
+	if floor != nil && c.contents == air && pt.y == *floor {
+		c.contents = rock
+	}
+	return c.contents == air
 }
 
 func getRockGrid(rocks []rockpath) map[xy]block {
