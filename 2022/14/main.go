@@ -166,10 +166,7 @@ func simulate(grid map[xy]block, spout xy, floor bool) int {
 }
 
 func check(grid map[xy]block, pt xy, floor *int) bool {
-	c, ok := grid[pt]
-	if !ok {
-		c.contents = air
-	}
+	c := grid[pt]
 	if floor != nil && c.contents == air && pt.y == *floor {
 		c.contents = rock
 	}
