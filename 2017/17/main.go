@@ -56,10 +56,11 @@ func spinlockv3fast(skip, nums, pos int) int {
 
 	n := 1
 	inpos := 0
+	// pos := 1
 	idx := 0
 	for n < nums+1 {
-		idx := (idx + skip) % length
-		if idx == pos-1 {
+		idx = (idx + skip) % length
+		if idx+1 == pos {
 			inpos = n
 		}
 		length++
