@@ -64,9 +64,6 @@ func getMinMax(grid map[xy]block) (xy, xy) {
 
 func print(grid map[xy]block, spout xy) {
 	min, max := getMinMax(grid)
-	if min.y > 0 {
-		min.y = 0
-	}
 	for y := min.y; y <= max.y; y++ {
 		for x := min.x; x <= max.x; x++ {
 			cur := xy{x, y}
