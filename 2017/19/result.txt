@@ -1,0 +1,3 @@
+--2017 day 19 solution--
+Part 1: PVBSCMEQHY
+Part 2: 17736
