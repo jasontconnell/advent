@@ -20,7 +20,7 @@ type instruction struct {
 }
 
 type operand struct {
-	reg *register
+	reg string
 	val int
 }
 
@@ -30,13 +30,11 @@ type register struct {
 }
 
 type program struct {
-	registers    map[string]*register
-	instructions []instruction
-	queue        []int
-	parallel     *program
-	deadlocked   bool
-	sends        int
-	instruction  int
+	registers   map[string]*register
+	instr       []instruction
+	queue       []int
+	sends       int
+	instruction int
 }
 
 func main() {
@@ -63,60 +61,112 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	inst0, reg0 := parseInput(in)
+	inst1, reg1 := parseInput(in)
+
+	p0 := &program{instr: inst0, registers: reg0}
+	p1 := &program{instr: inst1, registers: reg1}
+	runPrograms(p0, p1)
+	return p1.sends
+}
+
+func runPrograms(p1, p2 *program) {
+	var p1step, p2step int
+	p1wait, p2wait := false, false
+
+	for !p1wait && !p2wait {
+		p1step = execInstruction(p1.instr[p1.instruction], p1.registers, func(opr operand) {
+			p2.queue = append(p2.queue, operandValue(opr, p1.registers))
+			p1.sends++
+		}, func(opr operand) {
+			if len(p1.queue) == 0 {
+				p1wait = true
+				return
+			}
+			p1.registers[opr.reg].value = p1.queue[0]
+			p1.queue = p1.queue[1:]
+			p1wait = false
+		})
+
+		p2step = execInstruction(p2.instr[p2.instruction], p2.registers, func(opr operand) {
+			p1.queue = append(p1.queue, operandValue(opr, p2.registers))
+			p2.sends++
+		}, func(opr operand) {
+			if len(p2.queue) == 0 {
+				p2wait = true
+				return
+			}
+			p2.registers[opr.reg].value = p2.queue[0]
+			p2.queue = p2.queue[1:]
+			p2wait = false
+		})
+
+		if !p1wait {
+			p1.instruction += p1step
+		}
+
+		if !p2wait {
+			p2.instruction += p2step
+		}
+	}
 }
 
 func runProgram(instrs []instruction, regs map[string]*register) int {
 	cur := 0
 	snd := 0
-	for cur < len(instrs) {
-		step := execInstruction(instrs[cur], regs, func(i int) {
-			snd = i
-		}, func(i int) {
-			if i > 0 {
-				cur = len(instrs)
-			}
+	terminate := false
+	for !terminate && cur < len(instrs) {
+		step := execInstruction(instrs[cur], regs, func(opr operand) {
+			snd = operandValue(opr, regs)
+		}, func(opr operand) {
+			i := operandValue(opr, regs)
+			terminate = i > 0
 		})
 		cur += step
 	}
 	return snd
 }
 
-func execInstruction(inst instruction, regs map[string]*register, snd func(i int), rcv func(i int)) int {
+func execInstruction(inst instruction, regs map[string]*register, snd func(opr operand), rcv func(opr operand)) int {
 	incr := 1
 	switch inst.cmd {
 	case "snd":
-		l := operandValue(inst.args[0], regs)
-		snd(l)
+		snd(inst.args[0])
 	case "rcv":
-		l := operandValue(inst.args[0], regs)
-		rcv(l)
+		rcv(inst.args[0])
 	case "set":
-		l := inst.args[0].reg
-		l.value = operandValue(inst.args[1], regs)
+		l := inst.args[0]
+		regs[l.reg].value = operandValue(inst.args[1], regs)
 	case "add":
 		l := inst.args[0]
 		r := inst.args[1]
-		regs[l.reg.name].value = operandValue(l, regs) + operandValue(r, regs)
+		regs[l.reg].value = operandValue(l, regs) + operandValue(r, regs)
 	case "mul":
 		l := inst.args[0]
 		r := inst.args[1]
-		regs[l.reg.name].value = operandValue(l, regs) * operandValue(r, regs)
+		regs[l.reg].value = operandValue(l, regs) * operandValue(r, regs)
 	case "mod":
 		l := inst.args[0]
 		r := inst.args[1]
-		regs[l.reg.name].value = operandValue(l, regs) % operandValue(r, regs)
+		regs[l.reg].value = operandValue(l, regs) % operandValue(r, regs)
 	case "jgz":
 		l := inst.args[0]
 		r := inst.args[1]
 		x := operandValue(l, regs)
 		jmp := operandValue(r, regs)
 
-		if x > 0 && jmp != 0 {
+		if x > 0 {
 			incr = jmp
 		}
 	}
 	return incr
+}
+
+func operandValue(opr operand, registers map[string]*register) int {
+	if opr.reg != "" {
+		return registers[opr.reg].value
+	}
+	return opr.val
 }
 
 func parseInput(in input) ([]instruction, map[string]*register) {
@@ -136,24 +186,21 @@ func parseInput(in input) ([]instruction, map[string]*register) {
 	return instr, regs
 }
 
-func operandValue(opr operand, registers map[string]*register) int {
-	if opr.reg != nil {
-		return opr.reg.value
-	}
-	return opr.val
-}
-
 func parseOperand(str string, registers map[string]*register) operand {
 	val, err := strconv.Atoi(str)
 	var reg *register
+	opr := operand{}
 	if err != nil {
+		opr.reg = str
 		if _, ok := registers[str]; ok {
 			reg = registers[str]
 		} else {
 			reg = &register{name: str}
 			registers[str] = reg
 		}
+	} else {
+		opr.val = val
 	}
 
-	return operand{reg: reg, val: val}
+	return opr
 }
