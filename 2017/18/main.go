@@ -31,7 +31,6 @@ type register struct {
 
 type program struct {
 	registers   map[string]*register
-	instr       []instruction
 	queue       []int
 	sends       int
 	instruction int
@@ -61,22 +60,40 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	inst0, reg0 := parseInput(in)
-	inst1, reg1 := parseInput(in)
+	instr, reg0 := parseInput(in)
+	reg1 := make(map[string]*register)
+	for k := range reg0 {
+		reg1[k] = &register{name: k}
+	}
 
-	p0 := &program{instr: inst0, registers: reg0}
-	p1 := &program{instr: inst1, registers: reg1}
-	runPrograms(p0, p1)
+	reg1["p"].value = 1
+
+	p0 := &program{registers: reg0}
+	p1 := &program{registers: reg1}
+	runPrograms(instr, p0, p1)
 	return p1.sends
 }
 
-func runPrograms(p1, p2 *program) {
-	var p1step, p2step int
-	p1wait, p2wait := false, false
+func runPrograms(instr []instruction, p0, p1 *program) {
+	var p0step, p1step int
+	var p0wait, p1wait bool
 
-	for !p1wait && !p2wait {
-		p1step = execInstruction(p1.instr[p1.instruction], p1.registers, func(opr operand) {
-			p2.queue = append(p2.queue, operandValue(opr, p1.registers))
+	for !p0wait || !p1wait {
+		p0step = execInstruction(instr[p0.instruction], p0.registers, func(opr operand) {
+			p1.queue = append(p1.queue, operandValue(opr, p0.registers))
+			p0.sends++
+		}, func(opr operand) {
+			if len(p0.queue) == 0 {
+				p0wait = true
+				return
+			}
+			p0.registers[opr.reg].value = p0.queue[0]
+			p0.queue = p0.queue[1:]
+			p0wait = false
+		})
+
+		p1step = execInstruction(instr[p1.instruction], p1.registers, func(opr operand) {
+			p0.queue = append(p0.queue, operandValue(opr, p1.registers))
 			p1.sends++
 		}, func(opr operand) {
 			if len(p1.queue) == 0 {
@@ -88,25 +105,12 @@ func runPrograms(p1, p2 *program) {
 			p1wait = false
 		})
 
-		p2step = execInstruction(p2.instr[p2.instruction], p2.registers, func(opr operand) {
-			p1.queue = append(p1.queue, operandValue(opr, p2.registers))
-			p2.sends++
-		}, func(opr operand) {
-			if len(p2.queue) == 0 {
-				p2wait = true
-				return
-			}
-			p2.registers[opr.reg].value = p2.queue[0]
-			p2.queue = p2.queue[1:]
-			p2wait = false
-		})
+		if !p0wait {
+			p0.instruction += p0step
+		}
 
 		if !p1wait {
 			p1.instruction += p1step
-		}
-
-		if !p2wait {
-			p2.instruction += p2step
 		}
 	}
 }
