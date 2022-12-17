@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"regexp"
 	"sort"
@@ -71,18 +72,78 @@ func main() {
 
 func part1(in input) output {
 	valves := parseInput(in)
-	return solve("AA", 30, valves)
+	priority := getPriorityValves(valves)
+	val := solve("AA", 30, valves, priority)
+	return val
 }
 
 func part2(in input) output {
-	return 0
+	valves := parseInput(in)
+	priority := getPriorityValves(valves)
+	return solveParallel("AA", 26, valves, priority)
 }
 
-func solve(start string, time int, valves map[string]valve) int {
-	priority := getPriorityValves(valves)
+func randomSplit(s []string) ([]string, []string) {
+	var s1, s2 []string
+	half := len(s) / 2
+
+	for i := 0; i < len(s); i++ {
+		rnd := rand.Int()%2 == 0
+		if (rnd && len(s1) <= half) || len(s2) > half {
+			s1 = append(s1, s[i])
+		} else {
+			s2 = append(s2, s[i])
+		}
+	}
+
+	return s1, s2
+}
+
+func factorial(i int) int {
+	f := 1
+	for j := i; j > 0; j-- {
+		f = f * i
+	}
+	return f
+}
+
+func solveParallel(start string, time int, valves map[string]valve, priority []string) int {
+	max := 0
+	done := false
+	visit := make(map[string]bool)
+	loops := 2800
+	if len(priority) < 10 {
+		loops = 45
+	}
+
+	for !done {
+		s1, s2 := randomSplit(priority)
+		s1s := strings.Join(s1, ",")
+		s2s := strings.Join(s2, ",")
+		if _, ok := visit[s1s]; ok {
+			continue
+		}
+		if _, ok := visit[s2s]; ok {
+			continue
+		}
+		visit[s1s] = true
+		visit[s2s] = true
+
+		val1 := solve("AA", 26, valves, s1)
+		val2 := solve("AA", 26, valves, s2)
+
+		if val1+val2 > max {
+			max = val1 + val2
+		}
+
+		done = len(visit) > loops
+	}
+	return max
+}
+
+func solve(start string, time int, valves map[string]valve, priority []string) int {
 	queue := common.NewQueue[state, int]()
 	maxpressure := 0
-
 	paths := calcPaths(valves)
 
 	queue.Enqueue(state{valve: start, minute: 1, open: make(map[string]bool), released: []release{}, working: false})
@@ -242,14 +303,6 @@ func copyMap[K comparable, V any](m map[K]V) map[K]V {
 		nm[k] = v
 	}
 	return nm
-}
-
-func keys[K comparable, V any](m map[K]V) []K {
-	keys := []K{}
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
 }
 
 func copySlice[T any](s []T) []T {
