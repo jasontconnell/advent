@@ -99,14 +99,6 @@ func randomSplit(s []string) ([]string, []string) {
 	return s1, s2
 }
 
-func factorial(i int) int {
-	f := 1
-	for j := i; j > 0; j-- {
-		f = f * i
-	}
-	return f
-}
-
 func solveParallel(start string, time int, valves map[string]valve, priority []string) int {
 	max := 0
 	done := false
