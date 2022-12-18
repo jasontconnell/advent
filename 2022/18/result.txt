@@ -1,0 +1,3 @@
+--2022 day 18 solution--
+Part 1: 4288
+Part 2: 0
