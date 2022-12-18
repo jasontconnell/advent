@@ -1,0 +1,44 @@
+// func hasOpenings(grid map[xy]bool, width int) (bool, xy) {
+// 	visit := make(map[xy]bool)
+// 	queue := []xy{}
+// 	_, max := minmax(keys(grid))
+// 	queue = append(queue, xy{0, max.y + 2})
+// 	result := false
+// 	lowpoint := xy{0, 200}
+// 	for len(queue) > 0 {
+// 		cur := queue[0]
+// 		queue = queue[1:]
+
+// 		if _, ok := visit[cur]; ok {
+// 			continue
+// 		}
+// 		visit[cur] = true
+
+// 		if cur.y <= 0 {
+// 			result = true
+// 			break
+// 		}
+
+// 		if b, ok := grid[cur]; ok && b {
+// 			if cur.y < lowpoint.y {
+// 				lowpoint = cur
+// 			}
+// 			continue
+// 		}
+
+// 		if cur.x < 0 || cur.x >= width {
+// 			continue
+// 		}
+
+// 		mvs := []xy{
+// 			{cur.x + 1, cur.y},
+// 			{cur.x - 1, cur.y},
+// 			{cur.x, cur.y - 1},
+// 			{cur.x + 1, cur.y - 1},
+// 			{cur.x - 1, cur.y - 1},
+// 		}
+
+// 		queue = append(queue, mvs...)
+// 	}
+// 	return result, lowpoint
+// }
