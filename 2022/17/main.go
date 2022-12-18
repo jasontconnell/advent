@@ -5,8 +5,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/jasontconnell/advent/common"
@@ -22,16 +20,8 @@ const (
 	right wind = '>'
 )
 
-func (w wind) String() string {
-	return string(w)
-}
-
 type xy struct {
 	x, y int
-}
-
-func (p xy) String() string {
-	return fmt.Sprintf("%d,%d", p.x, p.y)
 }
 
 type rock []xy
@@ -39,22 +29,13 @@ type rock []xy
 type rockpattern []rock
 
 type cachekey struct {
-	keys string
 	ridx int
 	widx int
-}
-
-func (k cachekey) String() string {
-	return fmt.Sprintf("key: [k: %d rk: %d]", len(k.keys), k.ridx)
 }
 
 type cache struct {
 	lastseen int
 	height   int
-}
-
-func (c cache) String() string {
-	return fmt.Sprintf("cache: [seen: %d height: %d]", c.lastseen, c.height)
 }
 
 func print(m map[xy]bool) {
@@ -140,18 +121,11 @@ func animate(cycle, cycles int, rp rockpattern, grid map[xy]bool, width, height 
 	cycledelta := 1
 	heightdelta := 0
 
-	mkey := getGridKey(grid, width, 30)
-	// wstr := windkey(winds, widx, 1)
-	ckey := cachekey{keys: mkey, ridx: ridx, widx: widx % len(winds)}
+	ckey := cachekey{ridx: ridx, widx: widx % len(winds)}
 	if state, ok := mem[ckey]; ok && state.lastseen > 0 && cycle > startcache {
 		if (cycle - state.lastseen) < cycles-cycle {
 			cycledelta = cycle - state.lastseen
 			heightdelta = height - state.height
-
-			// state.lastseen = cycle
-			// state.height = state.height + heightdelta
-			// mem[ckey] = state
-			// fmt.Println(state, cycledelta, heightdelta)
 			fall = false
 		}
 	}
@@ -180,7 +154,7 @@ func animate(cycle, cycles int, rp rockpattern, grid map[xy]bool, width, height 
 			// var trimmed bool
 			fall = false
 			prev := getHeight(grid)
-			commitToGrid(r, rockpt, grid)
+			grid = commitToGrid(r, rockpt, grid)
 			heightdelta = getHeight(grid) - prev
 			if heightdelta > 0 {
 				grid, _ = trimGrid(grid, 50, width)
@@ -198,28 +172,6 @@ func animate(cycle, cycles int, rp rockpattern, grid map[xy]bool, width, height 
 		}
 	}
 	return grid, heightdelta, widx, cycledelta
-}
-
-func getGridKey(grid map[xy]bool, width, maxheight int) string {
-	_, max := minmax(keys(grid))
-
-	s := ""
-	for y := max.y; y >= max.y-maxheight; y-- {
-		if y < 0 {
-			continue
-		}
-		for x := 0; x < width; x++ {
-			p, ok := grid[xy{x, y}]
-
-			if ok && p {
-				s += "#"
-			} else {
-				s += "."
-			}
-		}
-		s += "\n"
-	}
-	return s
 }
 
 func trimGrid(grid map[xy]bool, maxheight, width int) (map[xy]bool, bool) {
@@ -243,11 +195,12 @@ func trimGrid(grid map[xy]bool, maxheight, width int) (map[xy]bool, bool) {
 	return ngrid, len(grid) > len(ngrid)
 }
 
-func commitToGrid(r rock, pt xy, grid map[xy]bool) {
+func commitToGrid(r rock, pt xy, grid map[xy]bool) map[xy]bool {
 	for _, rp := range r {
 		cp := xy{pt.x + rp.x, pt.y + rp.y}
 		grid[cp] = true
 	}
+	return grid
 }
 
 func touching(r rock, pt xy, grid map[xy]bool, width int, left, ignorex, ignorey bool) bool {
@@ -367,30 +320,6 @@ func getRockPattern() rockpattern {
 	}
 
 	return rockpattern{r1, r2, r3, r4, r5}
-}
-
-func sortXY(list []xy) []xy {
-	sort.Slice(list, func(i, j int) bool {
-		p1, p2 := list[i], list[j]
-		return p1.x*100+p1.y < p2.x*100+p2.y
-	})
-	return list
-}
-
-func skeys(m []xy) string {
-	strs := []string{}
-	for _, k := range sortXY(m) {
-		strs = append(strs, fmt.Sprintf("%v", k))
-	}
-	return strings.Join(strs, ",")
-}
-
-func windkey(m []wind, start, length int) string {
-	s := ""
-	for i := start; i < start+length; i++ {
-		s += string(m[i%len(m)])
-	}
-	return s
 }
 
 func keys[K comparable, V any](m map[K]V) []K {
