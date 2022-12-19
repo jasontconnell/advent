@@ -50,12 +50,12 @@ func (h *Queue[T, N]) Enqueue(item T) {
 }
 
 func (h *Queue[T, N]) Dequeue() T {
-	var item T
+	var item Item[T, N]
 	if len(h.items) > 0 {
 		item = h.items[0]
 		h.items = h.items[1:]
 	}
-	return item
+	return item.item
 }
 
 func (h *Queue[T, N]) Any() bool {
