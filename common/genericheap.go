@@ -4,8 +4,13 @@ type Number interface {
 	int | float64
 }
 
+type Item[T any, N Number] struct {
+	item  T
+	value N
+}
+
 type Queue[T any, N Number] struct {
-	items []T
+	items []Item[T, N]
 	value func(item T) N
 }
 
@@ -22,12 +27,12 @@ func NewQueue[T any, N Number]() *Queue[T, N] {
 
 func (h *Queue[T, N]) Enqueue(item T) {
 	if h.value == nil {
-		h.items = append(h.items, item)
+		h.items = append(h.items, Item[T, N]{item: item})
 	} else {
 		v := h.value(item)
 		idx := -1
 		for i := 0; i < len(h.items); i++ {
-			r := h.value(h.items[i])
+			r := h.items[i].value
 
 			if v > r {
 				idx = i
@@ -35,10 +40,11 @@ func (h *Queue[T, N]) Enqueue(item T) {
 			}
 		}
 
+		i := Item[T, N]{item: item, value: v}
 		if idx == -1 {
-			h.items = append(h.items, item)
+			h.items = append(h.items, i)
 		} else {
-			h.items = append(h.items[:idx], append([]T{item}, h.items[idx:]...)...)
+			h.items = append(h.items[:idx], append([]Item[T, N]{i}, h.items[idx:]...)...)
 		}
 	}
 }
