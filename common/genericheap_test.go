@@ -17,12 +17,17 @@ func TestHeap(t *testing.T) {
 
 	// priority queue orders by high priority
 	// so it will be sorted descending
-	cp := make([]int, len(q.items))
+	cp := make([]Item[int, int], len(q.items))
 	for i := 0; i < len(q.items); i++ {
 		cp[i] = q.items[len(q.items)-i-1]
 	}
 
-	if !sort.IntsAreSorted(cp) {
+	ints := []int{}
+	for _, x := range cp {
+		ints = append(ints, x.item)
+	}
+
+	if !sort.IntsAreSorted(ints) {
 		t.Log(q.items)
 		t.Fail()
 	}
