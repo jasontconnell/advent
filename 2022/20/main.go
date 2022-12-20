@@ -66,14 +66,29 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	front := getList(in)
+	applyDecryptKey(front, 811589153)
+	for i := 0; i < 10; i++ {
+		mix(front, len(in))
+	}
+	return getGroveCoordinates(front)
+}
+
+func applyDecryptKey(front *node, k int) {
+	cur := front
+	first := true
+	for cur != front || first {
+		first = false
+		cur.value *= k
+		cur = cur.right
+	}
 }
 
 func mix(front *node, count int) {
 	cur := front
 	ptr := front
-	mvcount := 0
-	for mvcount < count {
+	idx := 0
+	for idx < count {
 		tomove := cur.value
 		dir := 1
 		if tomove < 0 {
@@ -81,9 +96,12 @@ func mix(front *node, count int) {
 			tomove *= -1
 		}
 
+		for tomove/count != 0 {
+			tomove = tomove/count + tomove%count
+		}
+
 		ptr = cur.right
 		cur.moved = true
-		mvcount++
 
 		for j := 0; j < tomove; j++ {
 			if dir == 1 {
@@ -109,7 +127,9 @@ func mix(front *node, count int) {
 				cur.left.right = cur
 			}
 		}
-		for mvcount < count && ptr.moved {
+
+		idx++
+		for ptr.origidx != idx && idx < count {
 			ptr = ptr.right
 		}
 		cur = ptr
