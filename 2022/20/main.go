@@ -96,9 +96,11 @@ func mix(front *node, count int) {
 			tomove *= -1
 		}
 
-		for tomove/count != 0 {
-			tomove = tomove/count + tomove%count
-		}
+		tomove = tomove % (count - 1)
+		// this also works.
+		// for tomove/count != 0 {
+		// 	tomove = tomove/count + tomove%count
+		// }
 
 		ptr = cur.right
 		cur.moved = true
