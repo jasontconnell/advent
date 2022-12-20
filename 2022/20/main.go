@@ -106,23 +106,17 @@ func mix(front *node, count int) {
 		cur.moved = true
 
 		for j := 0; j < tomove; j++ {
+			tmpleft := cur.left
+			tmpright := cur.right
+			tmpright.left = tmpleft
+			tmpleft.right = tmpright
 			if dir == 1 {
-				tmpleft := cur.left
-				tmpright := cur.right
-				tmpright.left = tmpleft
-				tmpleft.right = tmpright
-
 				cur.right = tmpright.right
 				cur.left = tmpright
 				tmpright.right = cur
 				cur.right.left = cur
 
 			} else {
-				tmpleft := cur.left
-				tmpright := cur.right
-				tmpright.left = tmpleft
-				tmpleft.right = tmpright
-
 				cur.left = tmpleft.left
 				cur.right = tmpleft
 				tmpleft.left = cur
