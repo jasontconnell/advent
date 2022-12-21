@@ -21,6 +21,8 @@ const (
 	sub op = "-"
 	mul op = "*"
 	div op = "/"
+	eql op = "=="
+	rnd op = "rnd"
 )
 
 type monkey struct {
@@ -61,19 +63,40 @@ func main() {
 
 func part1(in input) output {
 	monkeys := parseInput(in)
-	return solve(monkeys, "root")
+	val, _, _ := findRoot(monkeys, "root")
+	return val
 }
 
 func part2(in input) output {
-	return 0
+	monkeys := parseInput(in)
+	return findHuman(monkeys, "root", "humn")
 }
 
-func solve(monkeys []monkey, find string) int {
-	m := make(map[string]monkey)
-	for _, mm := range monkeys {
-		m[mm.id] = mm
+func findHuman(monkeys []monkey, find, human string) int {
+	hidx := 0
+	for i, mm := range monkeys {
+		if mm.id == find {
+			monkeys[i].op = eql
+		}
+		if mm.id == human {
+			hidx = i
+		}
 	}
 
+	fval, test, success := findRoot(monkeys, find)
+	var mult float64
+	val := 1
+	for !success {
+		mult = (float64(fval) / float64(test))
+		val = int(float64(val) * mult)
+
+		monkeys[hidx].l.value = val
+		fval, test, success = findRoot(monkeys, find)
+	}
+	return val
+}
+
+func findRoot(monkeys []monkey, find string) (int, int, bool) {
 	yell := make(map[string]int)
 	for _, mm := range monkeys {
 		if mm.l.id == "" {
@@ -82,8 +105,14 @@ func solve(monkeys []monkey, find string) int {
 	}
 
 	_, found := yell[find]
+	cnt := len(yell)
+	var equal bool
+	var result int
 	for !found {
-		for _, m := range m {
+		for _, m := range monkeys {
+			if _, ok := yell[m.id]; ok {
+				continue
+			}
 			lv, rv := 0, 0
 			h := 0
 			if y, ok := yell[m.l.id]; ok {
@@ -108,14 +137,28 @@ func solve(monkeys []monkey, find string) int {
 					yell[m.id] = lv * rv
 				case div:
 					yell[m.id] = lv / rv
+				case eql:
+					result = rv
+					if lv == rv {
+						yell[m.id] = lv
+						equal = true
+					} else {
+						yell[m.id] = lv
+						break
+					}
 				}
 			}
 		}
 
+		if cnt == len(yell) {
+			found = false
+			break
+		}
+		cnt = len(yell)
 		_, found = yell[find]
 	}
 
-	return yell[find]
+	return yell[find], result, equal
 }
 
 func parseInput(in input) []monkey {
