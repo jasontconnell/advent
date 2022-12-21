@@ -22,7 +22,6 @@ const (
 	mul op = "*"
 	div op = "/"
 	eql op = "=="
-	rnd op = "rnd"
 )
 
 type monkey struct {
@@ -105,7 +104,6 @@ func findRoot(monkeys []monkey, find string) (int, int, bool) {
 	}
 
 	_, found := yell[find]
-	cnt := len(yell)
 	var equal bool
 	var result int
 	for !found {
@@ -139,22 +137,11 @@ func findRoot(monkeys []monkey, find string) (int, int, bool) {
 					yell[m.id] = lv / rv
 				case eql:
 					result = rv
-					if lv == rv {
-						yell[m.id] = lv
-						equal = true
-					} else {
-						yell[m.id] = lv
-						break
-					}
+					yell[m.id] = lv
+					equal = lv == rv
 				}
 			}
 		}
-
-		if cnt == len(yell) {
-			found = false
-			break
-		}
-		cnt = len(yell)
 		_, found = yell[find]
 	}
 
