@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/jasontconnell/advent/common"
 )
@@ -42,21 +41,19 @@ func print(front *node, ptr *node) {
 }
 
 func main() {
-	startTime := time.Now()
-
 	in, err := common.ReadInts(common.InputFilename(os.Args))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	p1 := part1(in)
-	p2 := part2(in)
+	p1, p1time := common.Time(part1, in)
+	p2, p2time := common.Time(part2, in)
 
 	w := common.TeeOutput(os.Stdout)
 	fmt.Fprintln(w, "--2022 day 20 solution--")
 	fmt.Fprintln(w, "Part 1:", p1)
 	fmt.Fprintln(w, "Part 2:", p2)
-	fmt.Println("Time", time.Since(startTime))
+	fmt.Printf("Time %v (%v, %v)", p1time+p2time, p1time, p2time)
 }
 
 func part1(in input) output {
