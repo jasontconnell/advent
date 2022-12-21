@@ -11,7 +11,8 @@ func TestHeap(t *testing.T) {
 		return i
 	})
 
-	for i := 0; i < 20; i++ {
+	var count int = 400
+	for i := 0; i < 400; i++ {
 		q.Enqueue(rand.Int() % 100)
 	}
 
@@ -25,6 +26,10 @@ func TestHeap(t *testing.T) {
 	ints := []int{}
 	for _, x := range cp {
 		ints = append(ints, x.item)
+	}
+
+	if q.Len() != count || len(ints) != count {
+		t.Fail()
 	}
 
 	if !sort.IntsAreSorted(ints) {
