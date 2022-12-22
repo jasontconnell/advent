@@ -112,7 +112,7 @@ const (
 	back   side = 5
 )
 
-var sides []string = []string{"top", "bottom", "east", "west", "front", "back"}
+var sides []string = []string{"top", "bottom", "west", "east", "front", "back"}
 
 func (s side) String() string {
 	if s == tbd {
@@ -221,89 +221,107 @@ func getCube(grid map[xy]block) []map[xy]block {
 	for _, pt := range occupied {
 		result[pt] = tbd
 	}
-	result[keys[0]] = top
+	start := keys[0]
+	result[start] = top
 	visit := make(map[xy]bool)
-	queue := []cubestate{{pt: xy{-1, -1}, prev: xy{-1, -1}, prevside: tbd, dir: none}}
+	queue := []cubestate{
+		{pt: xy{start.x - 1, start.y}, prev: start, prevside: top, dir: left},
+		{pt: xy{start.x + 1, start.y}, prev: start, prevside: top, dir: right},
+		{pt: xy{start.x, start.y + 1}, prev: start, prevside: top, dir: down},
+		{pt: xy{start.x, start.y - 1}, prev: start, prevside: top, dir: up},
+	}
+	fmt.Println(keys)
+
+	avail := make(map[side]bool)
+
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
 
-		if cur.pt.x < -1 || cur.pt.x > 6 || cur.pt.y < -1 || cur.pt.y > 6 {
-			continue
-		}
+		// fmt.Println(start, result[start], xy{start.x + 1, start.y}, result[xy{start.x + 1, start.y}], cur.pt)
+
+		// fmt.Println(cur, result[cur.pt])
 
 		if _, ok := visit[cur.pt]; ok {
 			continue
 		}
 		visit[cur.pt] = true
 
-		if s, ok := result[cur.pt]; ok && s != tbd {
+		if s, ok := result[cur.pt]; !ok || s != tbd {
 			continue
 		}
 
-		s := tbd
-		if _, ok := result[cur.pt]; ok && cur.prevside == tbd {
-			s = top
-		}
-		if cur.prevside != tbd {
-			switch cur.dir {
-			case left:
-				switch cur.prevside {
-				case top, bottom, front:
-					s = west
-				case west:
-					s = back
-				case east:
-					s = front
-				case back:
-					s = east
+		var newside side
+
+		switch cur.dir {
+		case left:
+			switch cur.prevside {
+			case top, bottom, front:
+				newside = west
+			case west:
+				newside = back
+			case east:
+				newside = front
+			case back:
+				newside = east
+			}
+		case right:
+			switch cur.prevside {
+			case top, bottom, front:
+				newside = east
+			case west:
+				newside = front
+			case east:
+				newside = back
+			case back:
+				newside = west
+			}
+		case down:
+			switch cur.prevside {
+			case top:
+				newside = front
+			case east, west, front:
+				if _, ok := avail[bottom]; !ok {
+					newside = bottom
+				} else {
+					newside = back
 				}
-			case right:
-				switch cur.prevside {
-				case top, bottom, front:
-					s = east
-				case west:
-					s = front
-				case east:
-					s = back
-				case back:
-					s = west
-				}
-			case down:
-				switch cur.prevside {
-				case top:
-					s = front
-				case east, west, front:
-					s = bottom
-				case bottom:
-					s = back
-				case back:
-					s = top
-				}
-			case up:
-				switch cur.prevside {
-				case top:
-					s = back
-				case east, west, front:
-					s = top
-				case bottom:
-					s = front
-				case back:
-					s = bottom
-				}
+			case bottom:
+				newside = back
+			case back:
+				newside = top
+			}
+		case up:
+			switch cur.prevside {
+			case top:
+				newside = back
+			case east, west, front:
+				newside = top
+			case bottom:
+				newside = front
+			case back:
+				newside = bottom
 			}
 		}
 
-		if _, ok := result[cur.pt]; ok {
-			fmt.Println(cur.pt, cur.dir, cur.prev, cur.prevside, s)
-			result[cur.pt] = s
+		if _, ok := avail[newside]; ok {
+			fmt.Println("going", cur.dir, "to", cur.pt, "from", cur.prevside, cur.prev, "result", newside)
+			fmt.Println(result)
+			fmt.Println(avail)
+			fmt.Println(cur.dir, "from", cur.pt, "prevside", cur.prevside, "from", cur.prev)
+			panic("already got side")
+		}
+		if cs, ok := result[cur.pt]; ok && cs == tbd {
+			fmt.Println("going", cur.dir, "to", cur.pt, "from", cur.prevside, cur.prev, "result", newside)
+			result[cur.pt] = newside
+			avail[newside] = true
 		}
 
 		mvs := []cubestate{
-			{prev: cur.pt, prevside: s, pt: xy{cur.pt.x + 1, cur.pt.y}, dir: right},
-			{prev: cur.pt, prevside: s, pt: xy{cur.pt.x - 1, cur.pt.y}, dir: left},
-			{prev: cur.pt, prevside: s, pt: xy{cur.pt.x, cur.pt.y - 1}, dir: up}, // should never be up
-			{prev: cur.pt, prevside: s, pt: xy{cur.pt.x, cur.pt.y + 1}, dir: down},
+			{prev: cur.pt, prevside: newside, pt: xy{cur.pt.x + 1, cur.pt.y}, dir: right},
+			{prev: cur.pt, prevside: newside, pt: xy{cur.pt.x - 1, cur.pt.y}, dir: left},
+			{prev: cur.pt, prevside: newside, pt: xy{cur.pt.x, cur.pt.y - 1}, dir: up}, // should never be up
+			{prev: cur.pt, prevside: newside, pt: xy{cur.pt.x, cur.pt.y + 1}, dir: down},
 		}
 		queue = append(queue, mvs...)
 	}
@@ -397,17 +415,9 @@ func sortXYVals[K comparable](m map[K]xy) []xy {
 		list = append(list, v)
 	}
 	sort.Slice(list, func(i, j int) bool {
-		reql := list[i].y == list[j].y
-		ceql := list[i].x == list[j].x
-		rless := list[i].y < list[j].y
-		cless := list[i].x < list[j].x
-		if reql {
-			return cless
-		}
-		if ceql {
-			return rless
-		}
-		return rless && cless
+		lval := list[i].y*10 + list[i].x
+		rval := list[j].y*10 + list[j].x
+		return lval < rval
 	})
 	return list
 }
