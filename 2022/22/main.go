@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -50,11 +48,14 @@ type xy struct {
 }
 
 type block struct {
-	contents content
+	pt          xy
+	contents    content
+	left, right *block
+	up, down    *block
 }
 
 func (b block) String() string {
-	return fmt.Sprintf("block: %v", b.contents)
+	return fmt.Sprintf("block: %v %v", b.pt, b.contents)
 }
 
 var delta map[direction]xy = map[direction]xy{
@@ -139,223 +140,40 @@ func main() {
 
 func part1(in input) output {
 	grid, instrs := parseInput(in)
-	pt, dir := traverse(grid, instrs)
-	return (pt.y+1)*1000 + (pt.x+1)*4 + dirval[dir]
+	graphSides(grid)
+	block, dir := traverse(grid, instrs)
+	return (block.pt.y+1)*1000 + (block.pt.x+1)*4 + dirval[dir]
 }
 
 func part2(in input) output {
-	grid, instrs := parseInput(in)
-	pt, dir := traverseCube(grid, instrs)
-	return pt.y*1000 + pt.x*4 + dirval[dir]
+	return 0
 }
 
-func traverseCube(grid map[xy]block, instrs []instruction) (xy, direction) {
+func traverse(grid map[xy]*block, instrs []instruction) (*block, direction) {
 	facing := right
 	start := xy{0, 0}
 	for grid[start].contents != space && grid[start].contents != wall {
 		start.x++
 	}
-	cur := start
 
-	getCube(grid)
-
-	return cur, facing
+	cur := grid[start]
 	for _, instr := range instrs {
-		d := delta[facing]
-
 		for i := 0; i < instr.count; i++ {
-			curtmp := xy{cur.x + d.x, cur.y + d.y}
-			if b, ok := grid[curtmp]; !ok || b.contents == blank {
-				curtmp = getOpposite(grid, cur, facing)
+			var curtmp *block
+			switch facing {
+			case left:
+				curtmp = cur.left
+			case right:
+				curtmp = cur.right
+			case up:
+				curtmp = cur.up
+			case down:
+				curtmp = cur.down
 			}
-			b := grid[curtmp]
-			if b.contents == space {
-				cur = curtmp
-			} else {
+			if curtmp.contents == wall {
 				break
 			}
-		}
-
-		facing = doTurn(facing, instr.dir)
-	}
-	return cur, facing
-}
-
-func getCube(grid map[xy]block) []map[xy]block {
-	sides := make([]map[xy]block, 6)
-	min, max := minmax(grid)
-	sectors := make(map[xy]int)
-	occupied := make(map[int]xy)
-
-	notblank := 0
-	for _, b := range grid {
-		if b.contents != blank {
-			notblank++
-		}
-	}
-
-	for i := 0; i < 6; i++ {
-		sides[i] = make(map[xy]block)
-	}
-
-	size := int(math.Sqrt(float64(notblank / 6)))
-	perrow := max.x/size + 1
-	ys := 0
-	for y := min.y; y <= max.y; y++ {
-		ys = y / size
-		for x := min.x; x <= max.x; x++ {
-			pt := xy{x, y}
-			sector := (ys*perrow + x/size)
-			sxy := xy{x / size, y / size}
-			if b, ok := grid[pt]; ok && b.contents != blank {
-				occupied[sector] = sxy
-			}
-			sectors[pt] = sector
-		}
-	}
-
-	// normalize to top bottom east west front and back
-	keys := sortXYVals(occupied)
-	result := make(map[xy]side)
-	for _, pt := range occupied {
-		result[pt] = tbd
-	}
-	start := keys[0]
-	result[start] = top
-	visit := make(map[xy]bool)
-	queue := []cubestate{
-		{pt: xy{start.x - 1, start.y}, prev: start, prevside: top, dir: left},
-		{pt: xy{start.x + 1, start.y}, prev: start, prevside: top, dir: right},
-		{pt: xy{start.x, start.y + 1}, prev: start, prevside: top, dir: down},
-		{pt: xy{start.x, start.y - 1}, prev: start, prevside: top, dir: up},
-	}
-
-	avail := make(map[side]bool)
-
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
-
-		// fmt.Println(start, result[start], xy{start.x + 1, start.y}, result[xy{start.x + 1, start.y}], cur.pt)
-
-		// fmt.Println(cur, result[cur.pt])
-
-		if _, ok := visit[cur.pt]; ok {
-			continue
-		}
-		visit[cur.pt] = true
-
-		if s, ok := result[cur.pt]; !ok || s != tbd {
-			continue
-		}
-
-		var newside side
-
-		switch cur.dir {
-		case left:
-			switch cur.prevside {
-			case top, bottom, front:
-				newside = west
-			case west:
-				newside = back
-			case east:
-				newside = front
-			case back:
-				newside = east
-			}
-		case right:
-			switch cur.prevside {
-			case top, bottom, front:
-				newside = east
-			case west:
-				newside = front
-			case east:
-				newside = back
-			case back:
-				newside = west
-			}
-		case down:
-			switch cur.prevside {
-			case top:
-				newside = front
-			case east, west, front:
-				if _, ok := avail[bottom]; !ok {
-					newside = bottom
-				} else {
-					newside = back
-				}
-			case bottom:
-				newside = back
-			case back:
-				newside = top
-			}
-		case up:
-			switch cur.prevside {
-			case top:
-				newside = back
-			case east, west, front:
-				newside = top
-			case bottom:
-				newside = front
-			case back:
-				newside = bottom
-			}
-		}
-
-		if _, ok := avail[newside]; ok {
-			panic("already got side")
-		}
-		if cs, ok := result[cur.pt]; ok && cs == tbd {
-			result[cur.pt] = newside
-			avail[newside] = true
-		}
-
-		mvs := []cubestate{
-			{prev: cur.pt, prevside: newside, pt: xy{cur.pt.x + 1, cur.pt.y}, dir: right},
-			{prev: cur.pt, prevside: newside, pt: xy{cur.pt.x - 1, cur.pt.y}, dir: left},
-			{prev: cur.pt, prevside: newside, pt: xy{cur.pt.x, cur.pt.y - 1}, dir: up}, // should never be up
-			{prev: cur.pt, prevside: newside, pt: xy{cur.pt.x, cur.pt.y + 1}, dir: down},
-		}
-		queue = append(queue, mvs...)
-	}
-
-	for k, v := range occupied {
-		sectorid := k
-		side := result[v]
-		iside := int(side)
-		sides[iside] = make(map[xy]block)
-		for pt, b := range grid {
-			if sectors[pt] == sectorid {
-				sides[iside][pt] = b
-			}
-		}
-	}
-
-	return sides
-}
-
-func traverse(grid map[xy]block, instrs []instruction) (xy, direction) {
-	facing := right
-	start := xy{1, 1}
-	for grid[start].contents != space && grid[start].contents != wall {
-		start.x++
-	}
-
-	cur := start
-	for _, instr := range instrs {
-		d := delta[facing]
-
-		for i := 0; i < instr.count; i++ {
-			curtmp := xy{cur.x + d.x, cur.y + d.y}
-			if b, ok := grid[curtmp]; !ok || b.contents == blank {
-				curtmp = getOpposite(grid, cur, facing)
-			}
-			b := grid[curtmp]
-			if b.contents == space {
-				cur = curtmp
-			} else {
-				break
-			}
+			cur = curtmp
 		}
 
 		facing = doTurn(facing, instr.dir)
@@ -370,63 +188,89 @@ func doTurn(facing direction, t direction) direction {
 	return turn[turnkey{facing, t}]
 }
 
-func getOpposite(grid map[xy]block, pos xy, facing direction) xy {
-	opp := opposite[facing]
-	d := delta[opp]
-
-	cur := pos
-	tmp := cur
-	done := false
-	for !done {
-		tmp.x += d.x
-		tmp.y += d.y
-
-		if _, ok := grid[tmp]; ok {
-			b := grid[tmp]
-			if b.contents != blank {
-				cur = tmp
-			}
-		} else {
-			done = true
+func graphSides(grid map[xy]*block) {
+	getGraph(grid)
+	for _, b := range grid {
+		if b.contents == blank {
+			continue
+		}
+		if b.left == nil {
+			b.left = getOppositePoint(b, right)
+			b.left.right = b
+		}
+		if b.right == nil {
+			b.right = getOppositePoint(b, left)
+			b.right.left = b
+		}
+		if b.up == nil {
+			b.up = getOppositePoint(b, down)
+			b.up.down = b
+		}
+		if b.down == nil {
+			b.down = getOppositePoint(b, up)
+			b.down.up = b
 		}
 	}
-	return cur
 }
 
-func minmax(grid map[xy]block) (xy, xy) {
-	min, max := xy{math.MaxInt32, math.MaxInt32}, xy{math.MinInt32, math.MinInt32}
-	for k := range grid {
-		if k.x < min.x {
-			min.x = k.x
+func getOppositePoint(b *block, dir direction) *block {
+	opp := b
+	switch dir {
+	case left:
+		for opp.left != nil {
+			opp = opp.left
 		}
-		if k.x > max.x {
-			max.x = k.x
+	case right:
+		for opp.right != nil {
+			opp = opp.right
 		}
-		if k.y < min.y {
-			min.y = k.y
+
+	case down:
+		for opp.down != nil {
+			opp = opp.down
 		}
-		if k.y > max.y {
-			max.y = k.y
+	case up:
+		for opp.up != nil {
+			opp = opp.up
 		}
 	}
-	return min, max
+	return opp
 }
 
-func sortXYVals[K comparable](m map[K]xy) []xy {
-	list := []xy{}
-	for _, v := range m {
-		list = append(list, v)
+func getGraph(grid map[xy]*block) {
+	for pt, b := range grid {
+		if b.contents == blank {
+			continue
+		}
+		lpt := xy{pt.x - 1, pt.y}
+		rpt := xy{pt.x + 1, pt.y}
+		dpt := xy{pt.x, pt.y + 1}
+		upt := xy{pt.x, pt.y - 1}
+
+		if n, ok := grid[lpt]; ok && b.left == nil && n.contents != blank {
+			b.left = n
+			n.right = b
+		}
+
+		if n, ok := grid[rpt]; ok && b.right == nil && n.contents != blank {
+			b.right = n
+			n.left = b
+		}
+
+		if n, ok := grid[upt]; ok && b.up == nil && n.contents != blank {
+			b.up = n
+			n.down = b
+		}
+
+		if n, ok := grid[dpt]; ok && b.down == nil && n.contents != blank {
+			b.down = n
+			n.up = b
+		}
 	}
-	sort.Slice(list, func(i, j int) bool {
-		lval := list[i].y*10 + list[i].x
-		rval := list[j].y*10 + list[j].x
-		return lval < rval
-	})
-	return list
 }
 
-func parseInput(in input) (map[xy]block, []instruction) {
-	m := make(map[xy]block)
+func parseInput(in input) (map[xy]*block, []instruction) {
+	m := make(map[xy]*block)
 	instrs := []instruction{}
 	instridx := 0
 
@@ -437,8 +281,8 @@ func parseInput(in input) (map[xy]block, []instruction) {
 		}
 
 		for x, c := range line {
-			b := block{contents: content(c)}
-			m[xy{x, y}] = b
+			b := &block{pt: xy{x, y}, contents: content(c)}
+			m[b.pt] = b
 		}
 	}
 
