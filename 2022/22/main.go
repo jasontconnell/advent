@@ -215,7 +215,6 @@ func getCube(grid map[xy]block) []map[xy]block {
 	}
 
 	// normalize to top bottom east west front and back
-
 	keys := sortXYVals(occupied)
 	result := make(map[xy]side)
 	for _, pt := range occupied {
@@ -230,7 +229,6 @@ func getCube(grid map[xy]block) []map[xy]block {
 		{pt: xy{start.x, start.y + 1}, prev: start, prevside: top, dir: down},
 		{pt: xy{start.x, start.y - 1}, prev: start, prevside: top, dir: up},
 	}
-	fmt.Println(keys)
 
 	avail := make(map[side]bool)
 
@@ -305,14 +303,9 @@ func getCube(grid map[xy]block) []map[xy]block {
 		}
 
 		if _, ok := avail[newside]; ok {
-			fmt.Println("going", cur.dir, "to", cur.pt, "from", cur.prevside, cur.prev, "result", newside)
-			fmt.Println(result)
-			fmt.Println(avail)
-			fmt.Println(cur.dir, "from", cur.pt, "prevside", cur.prevside, "from", cur.prev)
 			panic("already got side")
 		}
 		if cs, ok := result[cur.pt]; ok && cs == tbd {
-			fmt.Println("going", cur.dir, "to", cur.pt, "from", cur.prevside, cur.prev, "result", newside)
 			result[cur.pt] = newside
 			avail[newside] = true
 		}
@@ -326,7 +319,17 @@ func getCube(grid map[xy]block) []map[xy]block {
 		queue = append(queue, mvs...)
 	}
 
-	fmt.Println(result)
+	for k, v := range occupied {
+		sectorid := k
+		side := result[v]
+		iside := int(side)
+		sides[iside] = make(map[xy]block)
+		for pt, b := range grid {
+			if sectors[pt] == sectorid {
+				sides[iside][pt] = b
+			}
+		}
+	}
 
 	return sides
 }
