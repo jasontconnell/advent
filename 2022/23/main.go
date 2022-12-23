@@ -153,20 +153,22 @@ func simulate(grid map[xy]block, proposed []dir, rounds int) int {
 
 func simulateOne(grid map[xy]block, proposed []dir) (map[xy]block, []dir, bool) {
 	for pt, b := range grid {
-		if b.contents == elf {
-			anyElves := !isFree(grid, pt, checkpoints[all])
-			b.proposedMove = STAY
-			if anyElves {
-				for _, d := range proposed {
-					if isFree(grid, pt, checkpoints[dirside[d]]) {
-						b.proposedMove = d
-						break
-					}
+		if b.contents != elf {
+			continue
+		}
+
+		anyElves := !isFree(grid, pt, checkpoints[all])
+		b.proposedMove = STAY
+		if anyElves {
+			for _, d := range proposed {
+				if isFree(grid, pt, checkpoints[dirside[d]]) {
+					b.proposedMove = d
+					break
 				}
 			}
-
-			grid[pt] = b // update the map
 		}
+
+		grid[pt] = b // update the map
 	}
 
 	mvmap := make(map[xy][]xy)
