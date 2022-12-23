@@ -1,0 +1,3 @@
+--2022 day 20 solution--
+Part 1: 4049
+Part 2: 1021
