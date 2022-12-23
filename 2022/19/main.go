@@ -48,14 +48,20 @@ type state struct {
 	bots      map[composite]int
 }
 
+func (s state) String() string {
+	return fmt.Sprintf("minute: %d building: %s  bots: %v collected: %v", s.minute, s.building, s.bots, s.collected)
+}
+
 type cachekey struct {
 	bc, bo, bg, bob int
 	min             int
 	building        composite
+
+	cc, co, cg, cob int
 }
 
-func (s state) String() string {
-	return fmt.Sprintf("minute: %d building: %s  bots: %v collected: %v", s.minute, s.building, s.bots, s.collected)
+func (k cachekey) String() string {
+	return fmt.Sprintf("minute %d bots: [ore %d clay %d obs %d geo %d] stock: [ore %d clay %d obs %d geo %d] building: %s", k.min, k.bo, k.bc, k.bob, k.bg, k.co, k.cc, k.cob, k.cg, k.building)
 }
 
 type move struct {
@@ -86,6 +92,7 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
+	return 0
 	blueprints := parseInput(in)
 	return getGeodeProduct(blueprints[:3], 32)
 }
@@ -102,14 +109,30 @@ func getGeodeProduct(blueprints []blueprint, minutes int) int {
 func getQualitySum(blueprints []blueprint, minutes int) int {
 	sum := 0
 	for _, bp := range blueprints {
+		fmt.Println("running blueprint", bp.id, "out of", len(blueprints))
 		res := simulate(bp, minutes)
+		fmt.Println("geodes:", res)
 		sum += (res * bp.id)
 	}
 	return sum
 }
 
 func simulate(bp blueprint, minutes int) int {
-	queue := common.NewQueue[state, int]()
+	o, c, ob, g := bp.bots[ore], bp.bots[clay], bp.bots[obsidian], bp.bots[geode]
+	orepergeode := g.costs[ore] * o.costs[ore]
+	orepergeode += g.costs[ore] * g.costs[obsidian] * o.costs[ore]
+	orepergeode += c.costs[ore] * ob.costs[clay] * o.costs[ore]
+
+	claypergeode := g.costs[obsidian] * ob.costs[clay]
+	obsidianpergeode := g.costs[obsidian]
+
+	// queue := common.NewQueue[state, int]()
+	queue := common.NewPriorityQueue[state, int](func(s state) int {
+		return ((obsidianpergeode-s.collected[obsidian])*100 + (claypergeode-s.collected[clay])*10 +
+			(orepergeode - s.collected[ore]) +
+			s.bots[geode]*10000 + s.bots[obsidian]*1000 + s.bots[clay]*10 + s.bots[ore]) *
+			s.minute
+	})
 	queue.Enqueue(state{
 		minute:    0,
 		building:  nothing,
@@ -125,22 +148,75 @@ func simulate(bp blueprint, minutes int) int {
 			continue
 		}
 
+		// if len(visited) > 1000 {
+		// 	fmt.Println("queue len", queue.Len(), "visited len", len(visited))
+		// }
+
 		if cur.collected[geode] > maxc {
 			maxc = cur.collected[geode]
 		}
 
 		key := cachekey{
-			bc:       cur.bots[clay],
-			bo:       cur.bots[ore],
-			bg:       cur.bots[geode],
-			bob:      cur.bots[obsidian],
-			min:      cur.minute,
+			bc:  cur.bots[clay],
+			bo:  cur.bots[ore],
+			bg:  cur.bots[geode],
+			bob: cur.bots[obsidian],
+			cc:  cur.collected[clay],
+			co:  cur.collected[ore],
+			cg:  cur.collected[geode],
+			cob: cur.collected[obsidian],
+			// min:      cur.minute,
 			building: cur.building,
 		}
+
 		if _, ok := visited[key]; ok {
+			// fmt.Println("cache hit", key)
 			continue
 		}
 		visited[key] = true
+
+		if cur.collected[geode] < maxc {
+			continue
+		}
+
+		// if maxc > 0 {
+		// 	fmt.Println("maxc", maxc, cur.collected[geode])
+		// }
+
+		// if cur.collected[geode] <= maxc {
+		// 	timeLeft := minutes - cur.minute
+
+		// 	orepergeode := bp.bots[geode].costs[ore] * bp.bots[ore].costs[ore]
+		// 	orepergeode += bp.bots[geode].costs[ore] * bp.bots[geode].costs[obsidian] * bp.bots[ore].costs[ore]
+		// 	orepergeode += bp.bots[clay].costs[ore] * bp.bots[obsidian].costs[clay] * bp.bots[ore].costs[ore]
+
+		// 	obsidianpergeode := bp.bots[geode].costs[obsidian]
+		// 	claypergeode := bp.bots[geode].costs[obsidian] * bp.bots[obsidian].costs[clay]
+
+		// 	// example: 1 ore bot, 4 cost per ore bot
+		// 	// minute 4: build an ore bot, 0 ore 2 bots
+		// 	// minute 6: build an ore bot, 0 ore, 3 bots
+		// 	// minute 8: build an ore bot, 2 ore, 4 bots
+		// 	// 24-8 = 16
+		// 	// minus 3 to account for building at least 1 other type of bot
+		// 	maxorebots := minutes - minutes/bp.bots[ore].costs[ore] - 3
+		// 	maxtotalore := timeLeft*(maxorebots-cur.bots[ore]) + cur.collected[ore]
+
+		// 	maxclaybots := minutes - minutes/bp.bots[clay].costs[ore] - 3
+		// 	maxtotalclay := timeLeft*(maxclaybots-cur.bots[clay]) + cur.collected[clay]
+
+		// 	maxobsbots := minutes - minutes/bp.bots[obsidian].costs[ore] - 3
+		// 	maxtotalobs := timeLeft*(maxobsbots-cur.bots[obsidian]) + cur.collected[obsidian]
+
+		// 	if orepergeode*maxc > maxtotalore || claypergeode*maxc > maxtotalclay || obsidianpergeode*maxc > maxtotalobs {
+		// 		fmt.Println("per geode: ore", orepergeode, "clay", claypergeode, "obsidian", obsidianpergeode)
+		// 		fmt.Println("max ore bots?", maxorebots)
+		// 		fmt.Println("max total ore", maxtotalore, "with time left", timeLeft)
+		// 		fmt.Println("time left", timeLeft)
+		// 		fmt.Println(bp.bots)
+		// 		continue
+		// 	}
+		// }
 
 		cur = collect(cur)
 		if cur.building != nothing {
@@ -148,15 +224,10 @@ func simulate(bp blueprint, minutes int) int {
 			cur.building = nothing
 		}
 
-		mvs := getMoves(cur, bp)
-		if len(mvs) == 0 {
-			cur.minute++
-			queue.Enqueue(cur)
-			continue
-		}
-
+		mvs := getMoves(cur, bp, minutes, maxc)
 		for _, mv := range mvs {
 			st := state{building: cur.building, minute: cur.minute + 1, collected: copyMap(cur.collected), bots: copyMap(cur.bots)}
+
 			if mv.bot != nothing {
 				st.building = mv.bot
 				for c, cost := range bp.bots[st.building].costs {
@@ -176,10 +247,15 @@ func collect(st state) state {
 	return st
 }
 
-func getMoves(st state, bp blueprint) []move {
+func getMoves(st state, bp blueprint, minutes, maxgeodes int) []move {
 	mvs := []move{}
 
+	maxbots := minutes - minutes/bp.bots[ore].costs[ore] - 3 - maxgeodes // ore will be the most needed
+
 	for _, c := range priority {
+		if st.bots[c] > maxbots {
+			continue
+		}
 		bot := bp.bots[c]
 		build := true
 		for needed, cost := range bot.costs {
