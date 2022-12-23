@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -52,6 +53,8 @@ type block struct {
 	contents    content
 	left, right *block
 	up, down    *block
+	perimeter   bool
+	opendir     direction
 }
 
 func (b block) String() string {
@@ -146,7 +149,11 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
+	grid, instrs := parseInput(in)
+	graphCube(grid)
 	return 0
+	block, dir := traverse(grid, instrs)
+	return (block.pt.y+1)*1000 + (block.pt.x+1)*4 + dirval[dir]
 }
 
 func traverse(grid map[xy]*block, instrs []instruction) (*block, direction) {
@@ -186,6 +193,208 @@ func doTurn(facing direction, t direction) direction {
 		return facing
 	}
 	return turn[turnkey{facing, t}]
+}
+
+func graphCube(grid map[xy]*block) {
+	min, max := minmax(grid)
+	getGraph(grid)
+
+	notblank := 0
+	for _, b := range grid {
+		if b.contents != blank {
+			notblank++
+		}
+	}
+
+	size := int(math.Sqrt(float64(notblank / 6)))
+	perimeter := getPerimeter(grid)
+	last := len(perimeter)
+
+	for len(perimeter) > 0 {
+		for _, pr := range perimeter {
+			// fmt.Println("mapping", pr, pr.up, pr.down)
+			if allJoined(pr) {
+				continue
+			}
+			m1, m2 := mapInternalPoints(pr, perimeter, size, min, max)
+
+			if m1 != nil && m2 != nil {
+				if allJoined(m1) {
+					delete(perimeter, m1.pt)
+				}
+				if allJoined(m2) {
+					delete(perimeter, m2.pt)
+				}
+			}
+		}
+		if last == len(perimeter) {
+			break
+		}
+		last = len(perimeter)
+	}
+
+	fmt.Println("len", len(perimeter), "mapping external")
+	for len(perimeter) > 0 {
+		for _, pr := range perimeter {
+			// fmt.Println("mapping", pr, pr.up, pr.down)
+			if allJoined(pr) {
+				continue
+			}
+			m1, m2 := mapExternalPoints(pr, perimeter, size, min, max)
+			if m1 != nil && m2 != nil {
+				if allJoined(m1) {
+					delete(perimeter, m1.pt)
+				}
+				if allJoined(m2) {
+					delete(perimeter, m2.pt)
+				}
+				// fmt.Println("len", len(perimeter), "mapped external")
+			}
+		}
+
+		if len(perimeter) == last {
+			break
+		}
+		last = len(perimeter)
+	}
+	fmt.Println("perimeter points remaining", len(perimeter))
+	if len(perimeter) > 0 {
+		// // fmt.Println("can't find matches for", len(perimeter))
+		// for _, pr := range perimeter {
+		// 	fmt.Println(pr.pt, "left", pr.left, "right", pr.right, "up", pr.up, "down", pr.down)
+		// }
+		// panic("can't find matches for all points")
+	}
+	// fmt.Println(perimeter)
+}
+
+func allJoined(b *block) bool {
+	return countJoined(b) == 4
+}
+
+func countJoined(b *block) int {
+	count := 0
+	if b.left != nil {
+		count++
+	}
+	if b.right != nil {
+		count++
+	}
+	if b.up != nil {
+		count++
+	}
+	if b.down != nil {
+		count++
+	}
+	return count
+}
+
+func mapExternalPoints(b *block, m map[xy]*block, cubesize int, min, max xy) (*block, *block) {
+	var minblock *block
+	var mindist int = math.MaxInt32
+	for _, check := range m {
+		if b.pt == check.pt || b.pt.x == check.pt.x || b.pt.y == check.pt.y {
+			continue
+		}
+
+		fmt.Println(b.pt, "left", b.left, "right", b.right, "up", b.up, "down", b.down, check.pt)
+
+		d := dist(b.pt, check.pt)
+		sq := abs(b.pt.x-check.pt.y) == abs(b.pt.y-check.pt.x)
+		fmt.Println(b.pt, check.pt, d, sq, d%2)
+		if d < mindist && d%2 == 1 {
+			mindist = d
+			minblock = check
+			break
+		}
+	}
+
+	if minblock == nil {
+		// panic("external minblock is nil " + b.String())
+		return nil, nil
+	}
+
+	mapToSide(b, minblock)
+	mapToSide(minblock, b)
+
+	fmt.Println("closest point to", b, "is", minblock)
+	return b, minblock
+}
+
+func mapInternalPoints(b *block, m map[xy]*block, cubesize int, min, max xy) (*block, *block) {
+	if b.up == nil || b.down == nil {
+		return nil, nil
+	}
+	var minblock *block
+	var mindist int = math.MaxInt32
+	for _, check := range m {
+		if b.pt == check.pt {
+			continue
+		}
+		if b.left == nil {
+			if check.pt.x >= b.pt.x && (check.up != nil && check.down != nil) {
+				continue
+			}
+		}
+		if b.right == nil {
+			if check.pt.x <= b.pt.x && (check.up != nil && check.down != nil) {
+				continue
+			}
+		}
+
+		d := dist(b.pt, check.pt)
+		sq := abs(b.pt.x-check.pt.y) == abs(b.pt.y-check.pt.x)
+
+		if d < mindist && sq {
+			mindist = d
+			minblock = check
+			break
+		}
+	}
+
+	if minblock == nil {
+		// panic("minblock is nil " + b.String())
+		return nil, nil
+	}
+
+	mapToSide(b, minblock)
+	mapToSide(minblock, b)
+
+	return b, minblock
+}
+
+func mapToSide(b, tomap *block) {
+	if b.down == nil {
+		b.down = tomap
+	} else if b.up == nil {
+		b.up = tomap
+	} else if b.left == nil {
+		b.left = tomap
+	} else if b.right == nil {
+		b.right = tomap
+	}
+}
+
+func abs(n int) int {
+	return int(math.Abs(float64(n)))
+}
+
+func dist(p1, p2 xy) int {
+	dx := p1.x - p2.x
+	dy := p1.y - p2.y
+
+	return abs(dx) + abs(dy)
+}
+
+func getPerimeter(grid map[xy]*block) map[xy]*block {
+	getGraph(grid) // this method could be called before it, let's make sure to graph points first
+	p := make(map[xy]*block)
+	for pt, b := range grid {
+		if b.perimeter {
+			p[pt] = b
+		}
+	}
+	return p
 }
 
 func graphSides(grid map[xy]*block) {
@@ -266,7 +475,45 @@ func getGraph(grid map[xy]*block) {
 			b.down = n
 			n.up = b
 		}
+
+		b.perimeter = !allJoined(b)
+		if b.perimeter {
+			if b.left == nil {
+				b.opendir = left
+			}
+			if b.right == nil {
+				b.opendir = right
+			}
+			if b.up == nil {
+				b.opendir = up
+			}
+			if b.down == nil {
+				b.opendir = down
+			}
+		}
 	}
+}
+
+func minmax(grid map[xy]*block) (xy, xy) {
+	min, max := xy{math.MaxInt32, math.MaxInt32}, xy{math.MinInt32, math.MinInt32}
+	for k, b := range grid {
+		if b.contents == blank {
+			continue
+		}
+		if k.x < min.x {
+			min.x = k.x
+		}
+		if k.x > max.x {
+			max.x = k.x
+		}
+		if k.y < min.y {
+			min.y = k.y
+		}
+		if k.y > max.y {
+			max.y = k.y
+		}
+	}
+	return min, max
 }
 
 func parseInput(in input) (map[xy]*block, []instruction) {
