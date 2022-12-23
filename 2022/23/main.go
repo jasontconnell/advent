@@ -67,8 +67,7 @@ var dirside map[dir]side = map[dir]side{
 var defaultProposeOrder []dir = []dir{N, S, W, E}
 
 type block struct {
-	contents content
-	// proposed     []dir
+	contents     content
 	proposedMove dir
 }
 
@@ -112,7 +111,10 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	grid := parseInput(in)
+	prop := make([]dir, len(defaultProposeOrder))
+	copy(prop, defaultProposeOrder)
+	return findNoMoves(grid, prop)
 }
 
 func countSpace(grid map[xy]block) int {
@@ -129,31 +131,41 @@ func countSpace(grid map[xy]block) int {
 	return count
 }
 
+func findNoMoves(grid map[xy]block, proposed []dir) int {
+	var moved bool
+	var round int = 1
+	for {
+		grid, proposed, moved = simulateOne(grid, proposed)
+		if !moved {
+			break
+		}
+		round++
+	}
+	return round
+}
+
 func simulate(grid map[xy]block, proposed []dir, rounds int) int {
 	for i := 0; i < rounds; i++ {
-		grid, proposed = simulateOne(grid, proposed)
+		grid, proposed, _ = simulateOne(grid, proposed)
 	}
 	return countSpace(grid)
 }
 
-func simulateOne(grid map[xy]block, proposed []dir) (map[xy]block, []dir) {
+func simulateOne(grid map[xy]block, proposed []dir) (map[xy]block, []dir, bool) {
 	for pt, b := range grid {
 		if b.contents == elf {
 			anyElves := !isFree(grid, pt, checkpoints[all])
+			b.proposedMove = STAY
+			grid[pt] = b
 			if !anyElves {
 				continue
 			}
 
-			hasProposed := false
 			for _, d := range proposed {
 				if isFree(grid, pt, checkpoints[dirside[d]]) {
 					b.proposedMove = d
-					hasProposed = true
 					break
 				}
-			}
-			if !hasProposed {
-				b.proposedMove = STAY
 			}
 			grid[pt] = b // update the map
 		}
@@ -168,19 +180,20 @@ func simulateOne(grid map[xy]block, proposed []dir) (map[xy]block, []dir) {
 		}
 	}
 
+	moved := false
 	for k, v := range mvmap {
 		if len(v) == 1 {
 			from := v[0]
 			elf := grid[from]
 			delete(grid, from)
-			elf.proposedMove = STAY
 			grid[k] = elf
+			moved = true
 		}
 	}
 
 	proposed = moveToBack(proposed, proposed[0])
 
-	return grid, proposed
+	return grid, proposed, moved
 }
 
 func isFree(grid map[xy]block, pt xy, deltas []xy) bool {
