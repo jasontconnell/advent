@@ -36,14 +36,11 @@ type blizzards map[xy][]blizzard
 
 type state struct {
 	pt     xy
-	bmap   blizzards
 	minute int
-	mvmap  map[xy]int
 }
 
 type move struct {
-	pt            xy
-	blizzardstate blizzards
+	pt xy
 }
 
 type cachekey struct {
@@ -103,21 +100,31 @@ func main() {
 func part1(in input) output {
 	g, b := parseInput(in)
 	start, end := getStartEnd(g)
-	minutes, _ := simulate(g, start, end, b)
+	bstates := generateBlizzardStates(g, b, 500)
+	minutes, _ := simulate(0, g, start, end, bstates)
 	return minutes
 }
 
 func part2(in input) output {
 	g, b := parseInput(in)
 	start, end := getStartEnd(g)
-	total := 0
 	minutes := 0
+	bstates := generateBlizzardStates(g, b, 1100)
 	for i := 0; i < 3; i++ {
-		minutes, b = simulate(g, start, end, b)
-		total += minutes
+		minutes, b = simulate(minutes, g, start, end, bstates)
 		start, end = end, start
 	}
-	return total
+	return minutes
+}
+
+func generateBlizzardStates(grid map[xy]block, blz blizzards, num int) []blizzards {
+	// generate states for num blizzard moves
+	// instead of each branch of the search
+	bstates := []blizzards{blz}
+	for i := 1; i < num; i++ {
+		bstates = append(bstates, moveBlizzards(grid, bstates[i-1]))
+	}
+	return bstates
 }
 
 func getStartEnd(grid map[xy]block) (xy, xy) {
@@ -134,21 +141,16 @@ func getStartEnd(grid map[xy]block) (xy, xy) {
 	return start, end
 }
 
-func simulate(grid map[xy]block, start, end xy, blz blizzards) (int, blizzards) {
+func simulate(minute int, grid map[xy]block, start, end xy, bstates []blizzards) (int, blizzards) {
 	visit := make(map[cachekey]bool)
 	queue := common.NewPriorityQueue(func(s state) float64 {
 		return 1/dist(s.pt, end) + 1/float64(s.minute)
 	})
-	queue.Enqueue(state{pt: start, bmap: blz, mvmap: make(map[xy]int)})
+
+	queue.Enqueue(state{minute: minute, pt: start})
 	var best state = state{minute: math.MaxInt32}
 	for queue.Any() {
 		cur := queue.Dequeue()
-
-		if cur.pt == end && cur.minute < best.minute {
-			best = cur
-		} else if cur.pt == end || cur.minute >= best.minute {
-			continue
-		}
 
 		key := cachekey{minute: cur.minute, pt: cur.pt}
 		if _, ok := visit[key]; ok {
@@ -156,46 +158,42 @@ func simulate(grid map[xy]block, start, end xy, blz blizzards) (int, blizzards) 
 		}
 		visit[key] = true
 
-		if list, ok := cur.bmap[cur.pt]; ok && len(list) > 0 {
+		if cur.pt == end && cur.minute < best.minute {
+			best = cur
+		} else if cur.pt == end || cur.minute >= best.minute {
 			continue
 		}
 
-		if n, ok := best.mvmap[cur.pt]; ok && cur.minute > n {
+		if cur.minute > len(bstates)-2 {
 			continue
 		}
 
-		mvs := getMoves(cur.pt, grid, cur.bmap)
+		if list, ok := bstates[cur.minute][cur.pt]; ok && len(list) > 0 {
+			continue
+		}
+
+		mvs := getMoves(cur.pt, grid, bstates[cur.minute+1])
 		for _, mv := range mvs {
-			cpmvs := copyMap(cur.mvmap)
-			cpmvs[mv.pt] = cur.minute + 1
-			st := state{pt: mv.pt, bmap: mv.blizzardstate, minute: cur.minute + 1, mvmap: cpmvs}
+			st := state{pt: mv.pt, minute: cur.minute + 1}
 			queue.Enqueue(st)
 		}
 	}
-	return best.minute, best.bmap
+	return best.minute, bstates[best.minute]
 }
 
 func getMoves(pt xy, grid map[xy]block, blz blizzards) []move {
-	cp := moveBlizzards(grid, blz)
+	// cp := moveBlizzards(grid, blz)
 	mvs := []move{}
 	for _, d := range []xy{up, down, left, right} {
 		np := xy{pt.x + d.x, pt.y + d.y}
 		if bk, ok := grid[np]; ok && !bk.wall {
-			if list, ok := cp[np]; !ok || len(list) == 0 {
-				mvs = append(mvs, move{pt: np, blizzardstate: cp})
+			if list, ok := blz[np]; !ok || len(list) == 0 {
+				mvs = append(mvs, move{pt: np})
 			}
 		}
 	}
-	mvs = append(mvs, move{pt: pt, blizzardstate: cp})
+	mvs = append(mvs, move{pt: pt})
 	return mvs
-}
-
-func copyMap[K comparable, V any](m map[K]V) map[K]V {
-	cp := make(map[K]V)
-	for k, v := range m {
-		cp[k] = v
-	}
-	return cp
 }
 
 func dist(p1, p2 xy) float64 {
@@ -205,24 +203,26 @@ func dist(p1, p2 xy) float64 {
 }
 
 func moveBlizzards(grid map[xy]block, blz blizzards) blizzards {
+	min, max := minmax(grid)
 	cp := make(blizzards)
 	for k, v := range blz {
 		for _, b := range v {
 			np := xy{k.x + b.dir.x, k.y + b.dir.y}
 
 			if bk, ok := grid[np]; ok && bk.wall {
-				opp := np
-				wall := false
-				for !wall {
-					opp.x += (b.dir.x * -1)
-					opp.y += (b.dir.y * -1)
-					wall = grid[opp].wall
+				if b.dir.x != 0 {
+					if np.x == max.x {
+						np.x = min.x + 1
+					} else {
+						np.x = max.x - 1
+					}
+				} else {
+					if np.y == max.y {
+						np.y = min.y + 1
+					} else {
+						np.y = max.y - 1
+					}
 				}
-				// one more to take it off the wall
-				np.x = opp.x + b.dir.x
-				np.y = opp.y + b.dir.y
-			} else if !ok {
-				panic("shouldn't be here")
 			}
 			cp[np] = append(cp[np], b)
 		}
