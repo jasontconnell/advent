@@ -182,7 +182,6 @@ func simulate(minute int, grid map[xy]block, start, end xy, bstates []blizzards)
 }
 
 func getMoves(pt xy, grid map[xy]block, blz blizzards) []move {
-	// cp := moveBlizzards(grid, blz)
 	mvs := []move{}
 	for _, d := range []xy{up, down, left, right} {
 		np := xy{pt.x + d.x, pt.y + d.y}
@@ -208,7 +207,6 @@ func moveBlizzards(grid map[xy]block, blz blizzards) blizzards {
 	for k, v := range blz {
 		for _, b := range v {
 			np := xy{k.x + b.dir.x, k.y + b.dir.y}
-
 			if bk, ok := grid[np]; ok && bk.wall {
 				if b.dir.x != 0 {
 					if np.x == max.x {
