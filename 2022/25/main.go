@@ -51,13 +51,10 @@ func asSnafu(n int) string {
 
 	for i := len(digits) - 1; i >= 0; i-- {
 		nv := math.MinInt32
-		if digits[i] == 3 {
-			nv = -2
-		} else if digits[i] == 4 {
-			nv = -1
-		} else if digits[i] == 5 {
-			nv = 0
+		if digits[i] > 2 {
+			nv = digits[i] - 5
 		}
+
 		if nv != math.MinInt32 {
 			digits[i] = nv
 			if i == 0 {
