@@ -40,27 +40,6 @@ func sum(list []int) int {
 	return total
 }
 
-/*
-	4890
-	start 3125.
-	4890 /
-*/
-
-func divceil(x, y int) int {
-	return int(math.Ceil(float64(x) / float64(y)))
-}
-
-func toBinary(n int) {
-	x := n
-	s := ""
-	for x > 0 {
-		v := x % 2
-		s = fmt.Sprintf("%d%s", v, s)
-		x /= 2
-	}
-	fmt.Println(s)
-}
-
 func asSnafu(n int) string {
 	x := n
 	digits := []int{}
