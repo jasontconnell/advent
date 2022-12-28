@@ -58,9 +58,8 @@ type block struct {
 	contents    content
 	left, right *block
 	up, down    *block
-	perimeter   bool
-	opendir     direction
 	sector      xy
+	side        side
 }
 
 func (b block) String() string {
@@ -89,25 +88,11 @@ var turn map[turnkey]direction = map[turnkey]direction{
 	{left, left}:   down,
 }
 
-type cubestate struct {
-	pt       xy
-	prev     xy
-	prevside side
-	dir      direction
-}
-
 var dirval map[direction]int = map[direction]int{
 	right: 0,
 	down:  1,
 	left:  2,
 	up:    3,
-}
-
-var opposite map[direction]direction = map[direction]direction{
-	left:  right,
-	right: left,
-	up:    down,
-	down:  up,
 }
 
 type side int
@@ -117,10 +102,26 @@ const (
 	west
 	east
 	south
+	front
+	back
 )
 
 func (s side) String() string {
-	return []string{"north", "west", "east", "south"}[s]
+	return []string{"north", "west", "east", "south", "front", "back"}[s]
+}
+
+type sidefacing struct {
+	side   side
+	facing direction
+}
+
+var sidefacingmap map[sidefacing]direction = map[sidefacing]direction{
+	{north, up}: right, {north, right}: right, {north, left}: right, {north, down}: down,
+	{front, up}: up, {front, right}: up, {front, left}: down, {front, down}: down,
+	{west, up}: right, {west, right}: right, {west, left}: right, {west, down}: down,
+	{east, up}: up, {east, right}: left, {east, left}: left, {east, down}: left,
+	{south, up}: up, {south, right}: left, {south, left}: left, {south, down}: left,
+	{back, up}: up, {back, right}: up, {back, left}: down, {back, down}: down,
 }
 
 func main() {
@@ -149,9 +150,48 @@ func part1(in input) output {
 func part2(in input) output {
 	grid, instrs := parseInput(in)
 	graphCube(grid)
-	return 0
-	block, dir := traverse(grid, instrs)
+	block, dir := traverseCube(grid, instrs)
 	return (block.pt.y+1)*1000 + (block.pt.x+1)*4 + dirval[dir]
+}
+
+func traverseCube(grid map[xy]*block, instrs []instruction) (*block, direction) {
+	facing := right
+	start := xy{0, 0}
+	for grid[start].contents != space && grid[start].contents != wall {
+		start.x++
+	}
+
+	cur := grid[start]
+	for _, instr := range instrs {
+		for i := 0; i < instr.count; i++ {
+			var curtmp *block
+			switch facing {
+			case left:
+				curtmp = cur.left
+			case right:
+				curtmp = cur.right
+			case up:
+				curtmp = cur.up
+			case down:
+				curtmp = cur.down
+			}
+			if curtmp.contents == wall {
+				break
+			}
+			if curtmp.sector != cur.sector {
+				// switch facing
+
+				sfkey := sidefacing{cur.side, facing}
+				if dir, ok := sidefacingmap[sfkey]; ok {
+					facing = dir
+				}
+			}
+			cur = curtmp
+		}
+
+		facing = doTurn(facing, instr.dir)
+	}
+	return cur, facing
 }
 
 func traverse(grid map[xy]*block, instrs []instruction) (*block, direction) {
@@ -194,19 +234,35 @@ func doTurn(facing direction, t direction) direction {
 }
 
 func graphCube(grid map[xy]*block) {
-	// min, max := minmax(grid)
 	size := getSize(grid)
 
 	getGraph(grid)
 	setSectors(grid, size)
 
 	graphSide(grid, size, xy{1, 0}, xy{0, 3}, north, west, false)
-	graphSide(grid, size, xy{2, 0}, xy{0, 3}, north, south, false)
 	graphSide(grid, size, xy{1, 0}, xy{0, 2}, west, west, true)
+
+	graphSide(grid, size, xy{2, 0}, xy{0, 3}, north, south, false)
 	graphSide(grid, size, xy{2, 0}, xy{1, 2}, east, east, true)
 	graphSide(grid, size, xy{2, 0}, xy{1, 1}, south, east, false)
-	graphSide(grid, size, xy{0, 3}, xy{1, 2}, east, south, true)
-	graphSide(grid, size, xy{0, 2}, xy{1, 1}, north, west, true)
+
+	graphSide(grid, size, xy{0, 2}, xy{1, 1}, north, west, false)
+	graphSide(grid, size, xy{0, 3}, xy{1, 2}, east, south, false)
+
+	setCubeSide(grid, xy{1, 0}, north)
+	setCubeSide(grid, xy{2, 0}, east)
+	setCubeSide(grid, xy{1, 1}, front)
+	setCubeSide(grid, xy{0, 2}, west)
+	setCubeSide(grid, xy{1, 2}, south)
+	setCubeSide(grid, xy{0, 3}, back)
+}
+
+func setCubeSide(grid map[xy]*block, sector xy, cubeside side) {
+	for _, b := range grid {
+		if b.sector == sector {
+			b.side = cubeside
+		}
+	}
 }
 
 func graphSide(grid map[xy]*block, size int, s1, s2 xy, s1side, s2side side, invert bool) {
@@ -214,7 +270,7 @@ func graphSide(grid map[xy]*block, size int, s1, s2 xy, s1side, s2side side, inv
 	s2blocks := []*block{}
 
 	for pt, b := range grid {
-		if !b.perimeter {
+		if b.contents == blank || allJoined(b) {
 			continue
 		}
 		if b.sector == s1 {
@@ -323,17 +379,6 @@ func dist(p1, p2 xy) int {
 	return abs(dx) + abs(dy)
 }
 
-func getPerimeter(grid map[xy]*block) map[xy]*block {
-	getGraph(grid) // this method could be called before it, let's make sure to graph points first
-	p := make(map[xy]*block)
-	for pt, b := range grid {
-		if b.perimeter {
-			p[pt] = b
-		}
-	}
-	return p
-}
-
 func graphSides(grid map[xy]*block) {
 	getGraph(grid)
 	for _, b := range grid {
@@ -411,22 +456,6 @@ func getGraph(grid map[xy]*block) {
 		if n, ok := grid[dpt]; ok && b.down == nil && n.contents != blank {
 			b.down = n
 			n.up = b
-		}
-
-		b.perimeter = !allJoined(b)
-		if b.perimeter {
-			if b.left == nil {
-				b.opendir = left
-			}
-			if b.right == nil {
-				b.opendir = right
-			}
-			if b.up == nil {
-				b.opendir = up
-			}
-			if b.down == nil {
-				b.opendir = down
-			}
 		}
 	}
 }
