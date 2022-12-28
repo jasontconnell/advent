@@ -49,6 +49,10 @@ type xy struct {
 	x, y int
 }
 
+func (p xy) String() string {
+	return fmt.Sprintf("(%d,%d)", p.x, p.y)
+}
+
 type block struct {
 	pt          xy
 	contents    content
@@ -192,36 +196,23 @@ func doTurn(facing direction, t direction) direction {
 func graphCube(grid map[xy]*block) {
 	// min, max := minmax(grid)
 	size := getSize(grid)
+
 	getGraph(grid)
 	setSectors(grid, size)
-
-	jc := 0
-	for _, b := range grid {
-		if !allJoined(b) {
-			jc++
-		}
-	}
-	fmt.Println("before graph sides", jc)
 
 	graphSide(grid, size, xy{1, 0}, xy{0, 3}, north, west, false)
 	graphSide(grid, size, xy{2, 0}, xy{0, 3}, north, south, false)
 	graphSide(grid, size, xy{1, 0}, xy{0, 2}, west, west, true)
 	graphSide(grid, size, xy{2, 0}, xy{1, 2}, east, east, true)
 	graphSide(grid, size, xy{2, 0}, xy{1, 1}, south, east, false)
-
-	jc = 0
-	for _, b := range grid {
-		if !allJoined(b) {
-			jc++
-		}
-	}
-	fmt.Println("after graph sides", jc)
+	graphSide(grid, size, xy{0, 3}, xy{1, 2}, east, south, true)
+	graphSide(grid, size, xy{0, 2}, xy{1, 1}, north, west, true)
 }
 
 func graphSide(grid map[xy]*block, size int, s1, s2 xy, s1side, s2side side, invert bool) {
 	s1blocks := []*block{}
 	s2blocks := []*block{}
-	fmt.Println(s1, s2, s1side == north)
+
 	for pt, b := range grid {
 		if !b.perimeter {
 			continue
@@ -258,8 +249,11 @@ func graphSide(grid map[xy]*block, size int, s1, s2 xy, s1side, s2side side, inv
 
 	if len(s1blocks) != len(s2blocks) {
 		fmt.Println("lists are uneven", len(s1blocks), len(s2blocks), s1, s2, s1side, s2side)
-		return
+		panic("not like this")
 	}
+
+	sortBlocks(s1blocks)
+	sortBlocks(s2blocks)
 
 	for i := 0; i < len(s1blocks); i++ {
 		start := s1blocks[i]
@@ -438,7 +432,7 @@ func getGraph(grid map[xy]*block) {
 }
 
 func allJoined(b *block) bool {
-	return b.left != nil && b.right != nil && b.up != nil && b.down != nil
+	return b.contents != blank && b.left != nil && b.right != nil && b.up != nil && b.down != nil
 }
 
 func minmax(grid map[xy]*block) (xy, xy) {
