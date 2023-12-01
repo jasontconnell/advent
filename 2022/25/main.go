@@ -22,7 +22,7 @@ func main() {
 	p1, p1time := common.Time(part1, in)
 
 	w := common.TeeOutput(os.Stdout)
-	fmt.Fprintln(w, "--2022 day 20 solution--")
+	fmt.Fprintln(w, "--2022 day 25 solution--")
 	fmt.Fprintln(w, "Part 1:", p1)
 	fmt.Printf("Time %v ", p1time)
 }
