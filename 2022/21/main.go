@@ -79,6 +79,7 @@ func findHuman(monkeys []monkey, find, human string) int {
 		}
 		if mm.id == human {
 			hidx = i
+			monkeys[i].l.value = 3952288690728
 		}
 	}
 

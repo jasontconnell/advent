@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -48,13 +49,17 @@ type xy struct {
 	x, y int
 }
 
+func (p xy) String() string {
+	return fmt.Sprintf("(%d,%d)", p.x, p.y)
+}
+
 type block struct {
 	pt          xy
 	contents    content
 	left, right *block
 	up, down    *block
-	perimeter   bool
-	opendir     direction
+	sector      xy
+	side        side
 }
 
 func (b block) String() string {
@@ -83,13 +88,6 @@ var turn map[turnkey]direction = map[turnkey]direction{
 	{left, left}:   down,
 }
 
-type cubestate struct {
-	pt       xy
-	prev     xy
-	prevside side
-	dir      direction
-}
-
 var dirval map[direction]int = map[direction]int{
 	right: 0,
 	down:  1,
@@ -97,32 +95,33 @@ var dirval map[direction]int = map[direction]int{
 	up:    3,
 }
 
-var opposite map[direction]direction = map[direction]direction{
-	left:  right,
-	right: left,
-	up:    down,
-	down:  up,
-}
-
 type side int
 
 const (
-	tbd    side = -1
-	top    side = 0
-	bottom side = 1
-	west   side = 2
-	east   side = 3
-	front  side = 4
-	back   side = 5
+	north side = iota
+	west
+	east
+	south
+	front
+	back
 )
 
-var sides []string = []string{"top", "bottom", "west", "east", "front", "back"}
-
 func (s side) String() string {
-	if s == tbd {
-		return "tbd"
-	}
-	return sides[s]
+	return []string{"north", "west", "east", "south", "front", "back"}[s]
+}
+
+type sidefacing struct {
+	side   side
+	facing direction
+}
+
+var sidefacingmap map[sidefacing]direction = map[sidefacing]direction{
+	{north, up}: right, {north, right}: right, {north, left}: right, {north, down}: down,
+	{front, up}: up, {front, right}: up, {front, left}: down, {front, down}: down,
+	{west, up}: right, {west, right}: right, {west, left}: right, {west, down}: down,
+	{east, up}: up, {east, right}: left, {east, left}: left, {east, down}: left,
+	{south, up}: up, {south, right}: left, {south, left}: left, {south, down}: left,
+	{back, up}: up, {back, right}: up, {back, left}: down, {back, down}: down,
 }
 
 func main() {
@@ -151,9 +150,48 @@ func part1(in input) output {
 func part2(in input) output {
 	grid, instrs := parseInput(in)
 	graphCube(grid)
-	return 0
-	block, dir := traverse(grid, instrs)
+	block, dir := traverseCube(grid, instrs)
 	return (block.pt.y+1)*1000 + (block.pt.x+1)*4 + dirval[dir]
+}
+
+func traverseCube(grid map[xy]*block, instrs []instruction) (*block, direction) {
+	facing := right
+	start := xy{0, 0}
+	for grid[start].contents != space && grid[start].contents != wall {
+		start.x++
+	}
+
+	cur := grid[start]
+	for _, instr := range instrs {
+		for i := 0; i < instr.count; i++ {
+			var curtmp *block
+			switch facing {
+			case left:
+				curtmp = cur.left
+			case right:
+				curtmp = cur.right
+			case up:
+				curtmp = cur.up
+			case down:
+				curtmp = cur.down
+			}
+			if curtmp.contents == wall {
+				break
+			}
+			if curtmp.sector != cur.sector {
+				// switch facing
+
+				sfkey := sidefacing{cur.side, facing}
+				if dir, ok := sidefacingmap[sfkey]; ok {
+					facing = dir
+				}
+			}
+			cur = curtmp
+		}
+
+		facing = doTurn(facing, instr.dir)
+	}
+	return cur, facing
 }
 
 func traverse(grid map[xy]*block, instrs []instruction) (*block, direction) {
@@ -196,9 +234,130 @@ func doTurn(facing direction, t direction) direction {
 }
 
 func graphCube(grid map[xy]*block) {
-	min, max := minmax(grid)
-	getGraph(grid)
+	size := getSize(grid)
 
+	getGraph(grid)
+	setSectors(grid, size)
+
+	graphSide(grid, size, xy{1, 0}, xy{0, 3}, north, west, false)
+	graphSide(grid, size, xy{1, 0}, xy{0, 2}, west, west, true)
+
+	graphSide(grid, size, xy{2, 0}, xy{0, 3}, north, south, false)
+	graphSide(grid, size, xy{2, 0}, xy{1, 2}, east, east, true)
+	graphSide(grid, size, xy{2, 0}, xy{1, 1}, south, east, false)
+
+	graphSide(grid, size, xy{0, 2}, xy{1, 1}, north, west, false)
+	graphSide(grid, size, xy{0, 3}, xy{1, 2}, east, south, false)
+
+	setCubeSide(grid, xy{1, 0}, north)
+	setCubeSide(grid, xy{2, 0}, east)
+	setCubeSide(grid, xy{1, 1}, front)
+	setCubeSide(grid, xy{0, 2}, west)
+	setCubeSide(grid, xy{1, 2}, south)
+	setCubeSide(grid, xy{0, 3}, back)
+}
+
+func setCubeSide(grid map[xy]*block, sector xy, cubeside side) {
+	for _, b := range grid {
+		if b.sector == sector {
+			b.side = cubeside
+		}
+	}
+}
+
+func graphSide(grid map[xy]*block, size int, s1, s2 xy, s1side, s2side side, invert bool) {
+	s1blocks := []*block{}
+	s2blocks := []*block{}
+
+	for pt, b := range grid {
+		if b.contents == blank || allJoined(b) {
+			continue
+		}
+		if b.sector == s1 {
+			if s1side == west && s1.x*size == pt.x {
+				s1blocks = append(s1blocks, b)
+			}
+			if s1side == east && s1.x*size+size-1 == pt.x {
+				s1blocks = append(s1blocks, b)
+			}
+			if s1side == north && s1.y*size == pt.y {
+				s1blocks = append(s1blocks, b)
+			}
+			if s1side == south && s1.y*size+size-1 == pt.y {
+				s1blocks = append(s1blocks, b)
+			}
+		}
+		if b.sector == s2 {
+			if s2side == west && s2.x*size == pt.x {
+				s2blocks = append(s2blocks, b)
+			}
+			if s2side == east && s2.x*size+size-1 == pt.x {
+				s2blocks = append(s2blocks, b)
+			}
+			if s2side == north && s2.y*size == pt.y {
+				s2blocks = append(s2blocks, b)
+			}
+			if s2side == south && s2.y*size+size-1 == pt.y {
+				s2blocks = append(s2blocks, b)
+			}
+		}
+	}
+
+	if len(s1blocks) != len(s2blocks) {
+		fmt.Println("lists are uneven", len(s1blocks), len(s2blocks), s1, s2, s1side, s2side)
+		panic("not like this")
+	}
+
+	sortBlocks(s1blocks)
+	sortBlocks(s2blocks)
+
+	for i := 0; i < len(s1blocks); i++ {
+		start := s1blocks[i]
+		dest := s2blocks[i]
+
+		if invert {
+			dest = s2blocks[len(s2blocks)-1-i]
+		}
+
+		switch s1side {
+		case north:
+			start.up = dest
+		case south:
+			start.down = dest
+		case west:
+			start.left = dest
+		case east:
+			start.right = dest
+		}
+
+		switch s2side {
+		case north:
+			dest.up = start
+		case south:
+			dest.down = start
+		case west:
+			dest.left = start
+		case east:
+			dest.right = start
+		}
+	}
+}
+
+func sortBlocks(list []*block) {
+	sort.Slice(list, func(i, j int) bool {
+		lval := list[i].pt.y*10 + list[i].pt.x
+		rval := list[j].pt.y*10 + list[j].pt.x
+		return lval < rval
+	})
+}
+
+func setSectors(grid map[xy]*block, size int) {
+	for pt := range grid {
+		grid[pt].sector = xy{pt.x / size, pt.y / size}
+	}
+}
+
+func getSize(grid map[xy]*block) int {
 	notblank := 0
 	for _, b := range grid {
 		if b.contents != blank {
@@ -206,173 +365,7 @@ func graphCube(grid map[xy]*block) {
 		}
 	}
 
-	size := int(math.Sqrt(float64(notblank / 6)))
-	perimeter := getPerimeter(grid)
-	last := len(perimeter)
-
-	for len(perimeter) > 0 {
-		for _, pr := range perimeter {
-			// fmt.Println("mapping", pr, pr.up, pr.down)
-			if allJoined(pr) {
-				continue
-			}
-			m1, m2 := mapInternalPoints(pr, perimeter, size, min, max)
-
-			if m1 != nil && m2 != nil {
-				if allJoined(m1) {
-					delete(perimeter, m1.pt)
-				}
-				if allJoined(m2) {
-					delete(perimeter, m2.pt)
-				}
-			}
-		}
-		if last == len(perimeter) {
-			break
-		}
-		last = len(perimeter)
-	}
-
-	fmt.Println("len", len(perimeter), "mapping external")
-	for len(perimeter) > 0 {
-		for _, pr := range perimeter {
-			// fmt.Println("mapping", pr, pr.up, pr.down)
-			if allJoined(pr) {
-				continue
-			}
-			m1, m2 := mapExternalPoints(pr, perimeter, size, min, max)
-			if m1 != nil && m2 != nil {
-				if allJoined(m1) {
-					delete(perimeter, m1.pt)
-				}
-				if allJoined(m2) {
-					delete(perimeter, m2.pt)
-				}
-				// fmt.Println("len", len(perimeter), "mapped external")
-			}
-		}
-
-		if len(perimeter) == last {
-			break
-		}
-		last = len(perimeter)
-	}
-	fmt.Println("perimeter points remaining", len(perimeter))
-	if len(perimeter) > 0 {
-		// // fmt.Println("can't find matches for", len(perimeter))
-		// for _, pr := range perimeter {
-		// 	fmt.Println(pr.pt, "left", pr.left, "right", pr.right, "up", pr.up, "down", pr.down)
-		// }
-		// panic("can't find matches for all points")
-	}
-	// fmt.Println(perimeter)
-}
-
-func allJoined(b *block) bool {
-	return countJoined(b) == 4
-}
-
-func countJoined(b *block) int {
-	count := 0
-	if b.left != nil {
-		count++
-	}
-	if b.right != nil {
-		count++
-	}
-	if b.up != nil {
-		count++
-	}
-	if b.down != nil {
-		count++
-	}
-	return count
-}
-
-func mapExternalPoints(b *block, m map[xy]*block, cubesize int, min, max xy) (*block, *block) {
-	var minblock *block
-	var mindist int = math.MaxInt32
-	for _, check := range m {
-		if b.pt == check.pt || b.pt.x == check.pt.x || b.pt.y == check.pt.y {
-			continue
-		}
-
-		fmt.Println(b.pt, "left", b.left, "right", b.right, "up", b.up, "down", b.down, check.pt)
-
-		d := dist(b.pt, check.pt)
-		sq := abs(b.pt.x-check.pt.y) == abs(b.pt.y-check.pt.x)
-		fmt.Println(b.pt, check.pt, d, sq, d%2)
-		if d < mindist && d%2 == 1 {
-			mindist = d
-			minblock = check
-			break
-		}
-	}
-
-	if minblock == nil {
-		// panic("external minblock is nil " + b.String())
-		return nil, nil
-	}
-
-	mapToSide(b, minblock)
-	mapToSide(minblock, b)
-
-	fmt.Println("closest point to", b, "is", minblock)
-	return b, minblock
-}
-
-func mapInternalPoints(b *block, m map[xy]*block, cubesize int, min, max xy) (*block, *block) {
-	if b.up == nil || b.down == nil {
-		return nil, nil
-	}
-	var minblock *block
-	var mindist int = math.MaxInt32
-	for _, check := range m {
-		if b.pt == check.pt {
-			continue
-		}
-		if b.left == nil {
-			if check.pt.x >= b.pt.x && (check.up != nil && check.down != nil) {
-				continue
-			}
-		}
-		if b.right == nil {
-			if check.pt.x <= b.pt.x && (check.up != nil && check.down != nil) {
-				continue
-			}
-		}
-
-		d := dist(b.pt, check.pt)
-		sq := abs(b.pt.x-check.pt.y) == abs(b.pt.y-check.pt.x)
-
-		if d < mindist && sq {
-			mindist = d
-			minblock = check
-			break
-		}
-	}
-
-	if minblock == nil {
-		// panic("minblock is nil " + b.String())
-		return nil, nil
-	}
-
-	mapToSide(b, minblock)
-	mapToSide(minblock, b)
-
-	return b, minblock
-}
-
-func mapToSide(b, tomap *block) {
-	if b.down == nil {
-		b.down = tomap
-	} else if b.up == nil {
-		b.up = tomap
-	} else if b.left == nil {
-		b.left = tomap
-	} else if b.right == nil {
-		b.right = tomap
-	}
+	return int(math.Sqrt(float64(notblank / 6)))
 }
 
 func abs(n int) int {
@@ -384,17 +377,6 @@ func dist(p1, p2 xy) int {
 	dy := p1.y - p2.y
 
 	return abs(dx) + abs(dy)
-}
-
-func getPerimeter(grid map[xy]*block) map[xy]*block {
-	getGraph(grid) // this method could be called before it, let's make sure to graph points first
-	p := make(map[xy]*block)
-	for pt, b := range grid {
-		if b.perimeter {
-			p[pt] = b
-		}
-	}
-	return p
 }
 
 func graphSides(grid map[xy]*block) {
@@ -475,23 +457,11 @@ func getGraph(grid map[xy]*block) {
 			b.down = n
 			n.up = b
 		}
-
-		b.perimeter = !allJoined(b)
-		if b.perimeter {
-			if b.left == nil {
-				b.opendir = left
-			}
-			if b.right == nil {
-				b.opendir = right
-			}
-			if b.up == nil {
-				b.opendir = up
-			}
-			if b.down == nil {
-				b.opendir = down
-			}
-		}
 	}
+}
+
+func allJoined(b *block) bool {
+	return b.contents != blank && b.left != nil && b.right != nil && b.up != nil && b.down != nil
 }
 
 func minmax(grid map[xy]*block) (xy, xy) {
