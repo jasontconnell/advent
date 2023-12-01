@@ -30,12 +30,12 @@ func main() {
 }
 
 func part1(in input) output {
-	v := getCalibrations(in)
+	v := getCalibrations(in, false)
 	return sum(v)
 }
 
 func part2(in input) output {
-	v := getWordCalibrations(in)
+	v := getCalibrations(in, true)
 	return sum(v)
 }
 
@@ -47,7 +47,7 @@ func sum(ints []int) int {
 	return s
 }
 
-func getCalibrations(list []string) []int {
+func getCalibrations(list []string, words bool) []int {
 	ints := []int{}
 	for _, s := range list {
 		f := -1
@@ -57,29 +57,7 @@ func getCalibrations(list []string) []int {
 			ce := s[len(s)-i-1]
 			if f == -1 && strings.ContainsAny(string(cs), "0123456789") {
 				f, _ = strconv.Atoi(string(cs))
-			}
-			if l == -1 && strings.ContainsAny(string(ce), "0123456789") {
-				l, _ = strconv.Atoi(string(ce))
-			}
-		}
-
-		ints = append(ints, f*10+l)
-	}
-
-	return ints
-}
-
-func getWordCalibrations(list []string) []int {
-	ints := []int{}
-	for _, s := range list {
-		f := -1
-		l := -1
-		for i := 0; i < len(s); i++ {
-			cs := s[i]
-			ce := s[len(s)-i-1]
-			if f == -1 && strings.ContainsAny(string(cs), "0123456789") {
-				f, _ = strconv.Atoi(string(cs))
-			} else if f == -1 {
+			} else if words && f == -1 {
 				for k, v := range nums {
 					if strings.HasPrefix(s[i:], k) {
 						f = v
@@ -88,7 +66,7 @@ func getWordCalibrations(list []string) []int {
 			}
 			if l == -1 && strings.ContainsAny(string(ce), "0123456789") {
 				l, _ = strconv.Atoi(string(ce))
-			} else if l == -1 {
+			} else if words && l == -1 {
 				for k, v := range nums {
 					if strings.HasPrefix(s[len(s)-i-1:], k) {
 						l = v
