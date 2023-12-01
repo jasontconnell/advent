@@ -6,9 +6,8 @@
 #     }
 # }
 
-$y = 2022
-$d = 1
-initaoc -d $d -y $y
+$y = 2023
+initaoc -y $y
 
 
 # for ($i = 12; $i -lt 26; $i++) {

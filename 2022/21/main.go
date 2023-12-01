@@ -83,6 +83,7 @@ func findHuman(monkeys []monkey, find, human string) int {
 	}
 
 	fval, test, success := findRoot(monkeys, find)
+	fmt.Println(fval - test)
 	var mult float64
 	val := 1
 	for !success {
