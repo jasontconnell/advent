@@ -6,13 +6,31 @@ import (
 	"testing"
 )
 
+func TestDequeue(t *testing.T) {
+	q := NewPriorityQueue(func(i int) int {
+		return i
+	})
+
+	var count int = 12
+	for i := 0; i < count; i++ {
+		q.Enqueue(rand.Int() % 100)
+	}
+
+	// visually observe that items are in order biggest to smallest
+	for q.Any() {
+		item := q.Dequeue()
+		t.Log(item)
+	}
+
+}
+
 func TestHeap(t *testing.T) {
 	q := NewPriorityQueue(func(i int) int {
 		return i
 	})
 
 	var count int = 400
-	for i := 0; i < 400; i++ {
+	for i := 0; i < count; i++ {
 		q.Enqueue(rand.Int() % 100)
 	}
 
