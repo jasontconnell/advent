@@ -50,7 +50,8 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	games := parseInput(in)
+	return getPower(games)
 }
 
 func getPossible(games []game, r, g, b int) int {
@@ -61,6 +62,18 @@ func getPossible(games []game, r, g, b int) int {
 		}
 	}
 	return possible
+}
+
+func getPower(games []game) int {
+	sum := 0
+	for _, gm := range games {
+		r := getMaxCubeDraws(gm, "red")
+		g := getMaxCubeDraws(gm, "green")
+		b := getMaxCubeDraws(gm, "blue")
+
+		sum += (r * g * b)
+	}
+	return sum
 }
 
 func isPossible(gm game, r, g, b int) bool {
