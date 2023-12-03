@@ -1,17 +1,14 @@
-# for ($y = 2015; $y -lt 2021; $y++) {
-#     for ($i = 1; $i -lt 26; $i++) {
-#         Write-Host "Day $i"
+param (
+    [string]$year = "",
+    [string]$day = ""
+)
 
-#         initaoc -d $i -y $y
-#     }
-# }
+if ($year -eq "") {
+    $year = Get-Date -Format "yyyy"
+}
 
-$y = 2023
-initaoc -y $y
+if ($day -eq "") {
+    $day = Get-Date -Format "dd"
+}
 
-
-# for ($i = 12; $i -lt 26; $i++) {
-#     Write-Host "Day $i"
-
-#     initaoc -d $i -y $y
-# }
+initaoc -y $year -d $day
