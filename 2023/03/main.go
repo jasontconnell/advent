@@ -16,27 +16,15 @@ type xy struct {
 	x, y int
 }
 
-func (p xy) String() string {
-	return fmt.Sprintf("(%d,%d)", p.x, p.y)
-}
-
 type num struct {
 	number int
 	start  xy
 	end    xy
 }
 
-func (n num) String() string {
-	return fmt.Sprintf("%d %v %v", n.number, n.start, n.end)
-}
-
 type symbol struct {
 	sym   rune
 	point xy
-}
-
-func (s symbol) String() string {
-	return fmt.Sprintf("%c %v", s.sym, s.point)
 }
 
 type gear struct {
