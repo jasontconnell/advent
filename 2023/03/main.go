@@ -39,6 +39,12 @@ func (s symbol) String() string {
 	return fmt.Sprintf("%c %v", s.sym, s.point)
 }
 
+type gear struct {
+	point xy
+	first num
+	last  num
+}
+
 func main() {
 	in, err := common.ReadStrings(common.InputFilename(os.Args))
 	if err != nil {
@@ -62,7 +68,9 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	n, s := parseInput(in)
+	grs := getGearRatios(n, s)
+	return sum(grs)
 }
 
 func sum(nums []int) int {
@@ -82,19 +90,59 @@ func getPartNumbers(nums []num, syms []symbol) []int {
 
 	partnums := []int{}
 	for _, n := range nums {
-		found := false
-		for y := n.start.y - 1; y <= n.end.y+1 && !found; y++ {
-			for x := n.start.x - 1; x <= n.end.x+1 && !found; x++ {
-				pt := xy{x, y}
+		s := getAdjSymbol(n, sm)
+		if s == nil {
+			continue
+		}
+		partnums = append(partnums, n.number)
+	}
+	return partnums
+}
 
-				if _, ok := sm[pt]; ok {
-					partnums = append(partnums, n.number)
-					found = true
-				}
+func getGearRatios(nums []num, syms []symbol) []int {
+	gm := make(map[xy]symbol)
+	for _, s := range syms {
+		if s.sym != '*' {
+			continue
+		}
+		gm[s.point] = s
+	}
+
+	gr := make(map[xy]gear)
+	for _, n := range nums {
+		s := getAdjSymbol(n, gm)
+		if s == nil {
+			continue
+		}
+
+		if _, ok := gr[s.point]; !ok {
+			gr[s.point] = gear{first: n}
+		} else {
+			g := gr[s.point]
+			g.last = n
+			gr[s.point] = g
+		}
+	}
+
+	ratios := []int{}
+	for _, r := range gr {
+		ratios = append(ratios, r.first.number*r.last.number)
+	}
+	return ratios
+}
+
+func getAdjSymbol(n num, sm map[xy]symbol) *symbol {
+	var s *symbol
+	for y := n.start.y - 1; y <= n.end.y+1 && s == nil; y++ {
+		for x := n.start.x - 1; x <= n.end.x+1 && s == nil; x++ {
+			pt := xy{x, y}
+
+			if tmp, ok := sm[pt]; ok {
+				s = &tmp
 			}
 		}
 	}
-	return partnums
+	return s
 }
 
 func parseInput(in input) ([]num, []symbol) {
