@@ -19,6 +19,11 @@ type card struct {
 	mine    []int
 }
 
+type cardcopy struct {
+	id         int
+	isOriginal bool
+}
+
 func main() {
 	in, err := common.ReadStrings(common.InputFilename(os.Args))
 	if err != nil {
@@ -37,43 +42,74 @@ func main() {
 
 func part1(in input) output {
 	list := parseInput(in)
-
 	return getWorth(list)
 }
 
 func part2(in input) output {
-	return 0
+	list := parseInput(in)
+	return playCards(list)
 }
 
 func getWorth(cards []card) int {
 	totalWorth := 0
 	for _, c := range cards {
-		wm := make(map[int]int)
-
-		for _, w := range c.winners {
-			wm[w] = w
-		}
-
 		worth := 0
-		for _, m := range c.mine {
-			if _, ok := wm[m]; ok {
-				if worth == 0 {
-					worth = 1
-				} else {
-					worth *= 2
-				}
+		matches := getMatches(c)
+		for i := 0; i < matches; i++ {
+			if worth == 0 {
+				worth = 1
+				continue
 			}
+			worth *= 2
 		}
 		totalWorth += worth
 	}
 	return totalWorth
 }
 
+func playCards(cards []card) int {
+	cmap := make(map[int]card)
+	counts := make(map[int]int)
+	for _, c := range cards {
+		cmap[c.id] = c
+		counts[c.id] = 1
+	}
+
+	for _, card := range cards {
+		m := getMatches(card)
+		v := counts[card.id]
+
+		for midx := 1; midx <= m; midx++ {
+			counts[card.id+midx] += v
+		}
+	}
+
+	total := 0
+	for _, v := range counts {
+		total += v
+	}
+	return total
+}
+
+func getMatches(c card) int {
+	matches := 0
+	wm := make(map[int]int)
+	for _, w := range c.winners {
+		wm[w] = w
+	}
+	for _, m := range c.mine {
+		if _, ok := wm[m]; ok {
+			matches++
+		}
+	}
+	return matches
+}
+
 func parseInput(in input) []card {
 	cards := []card{}
 	for _, line := range in {
 		parts := strings.Split(line, ":")
-		idstr := strings.Split(parts[0], " ")[1]
+		idstr := strings.Fields(parts[0])[1]
 		id, _ := strconv.Atoi(idstr)
 
 		sp := strings.Split(parts[1], "|")
