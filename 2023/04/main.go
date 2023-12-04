@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -48,16 +49,9 @@ func part2(in input) output {
 func getWorth(cards []card) int {
 	totalWorth := 0
 	for _, c := range cards {
-		worth := 0
 		matches := getMatches(c)
-		for i := 0; i < matches; i++ {
-			if worth == 0 {
-				worth = 1
-				continue
-			}
-			worth *= 2
-		}
-		totalWorth += worth
+		worth := math.Pow(2, float64(matches-1))
+		totalWorth += int(worth)
 	}
 	return totalWorth
 }
