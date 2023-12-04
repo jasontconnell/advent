@@ -19,11 +19,6 @@ type card struct {
 	mine    []int
 }
 
-type cardcopy struct {
-	id         int
-	isOriginal bool
-}
-
 func main() {
 	in, err := common.ReadStrings(common.InputFilename(os.Args))
 	if err != nil {
@@ -68,10 +63,8 @@ func getWorth(cards []card) int {
 }
 
 func playCards(cards []card) int {
-	cmap := make(map[int]card)
 	counts := make(map[int]int)
 	for _, c := range cards {
-		cmap[c.id] = c
 		counts[c.id] = 1
 	}
 
