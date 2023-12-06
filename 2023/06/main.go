@@ -36,12 +36,13 @@ func part1(in input) output {
 		rwins := race(ts[i], ds[i], 1)
 		wins *= rwins
 	}
-	fmt.Println(ts, ds)
 	return wins
 }
 
 func part2(in input) output {
-	return 0
+	t, d := parseKerning(in)
+	wins := race(t, d, 1)
+	return wins
 }
 
 func race(t int, d int, acc int) int {
@@ -65,11 +66,22 @@ func race(t int, d int, acc int) int {
 		if cur+1 < t {
 			queue = append(queue, cur+1)
 		}
-
-		fmt.Println(cur, speed, dist)
 	}
 
 	return wins
+}
+
+func parseKerning(in input) (int, int) {
+	timestr := strings.Fields(strings.Split(in[0], ":")[1])
+	diststr := strings.Fields(strings.Split(in[1], ":")[1])
+
+	ts := strings.Join(timestr, "")
+	ds := strings.Join(diststr, "")
+
+	t, _ := strconv.Atoi(ts)
+	d, _ := strconv.Atoi(ds)
+
+	return t, d
 }
 
 func parseInput(in input) ([]int, []int) {
