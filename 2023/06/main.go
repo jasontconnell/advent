@@ -48,7 +48,6 @@ func part2(in input) output {
 func race(t int, d int, acc int) int {
 	queue := []int{}
 	queue = append(queue, 1)
-
 	wins := 0
 
 	for len(queue) > 0 {
@@ -56,7 +55,6 @@ func race(t int, d int, acc int) int {
 		queue = queue[1:]
 
 		speed := cur * acc
-
 		dist := (t - cur) * speed
 
 		if dist > d {
