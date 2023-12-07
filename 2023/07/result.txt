@@ -1,3 +1,3 @@
 --2023 day 07 solution--
 Part 1: 248812215
-Part 2: 0
+Part 2: 250057090
