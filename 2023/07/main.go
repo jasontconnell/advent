@@ -86,7 +86,7 @@ func totalWinnings(deals []deal) int {
 func updateJokers(deals []deal) {
 	for i := 0; i < len(deals); i++ {
 		for j := 0; j < len(deals[i].hand.cards); j++ {
-			if deals[i].hand.cards[j].val == 11 {
+			if deals[i].hand.cards[j].valc == 'J' {
 				deals[i].hand.cards[j].val = 1
 			}
 		}
@@ -157,6 +157,7 @@ func handStrength(h hand, jokers bool) strength {
 		if list[i].val == 0 {
 			continue
 		}
+
 		if list[i].val == 5 {
 			st = FiveKind
 			break
