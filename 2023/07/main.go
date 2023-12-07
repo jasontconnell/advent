@@ -17,7 +17,7 @@ type output = int
 type deal struct {
 	hand     hand
 	bid      int
-	strength int
+	strength strength
 }
 
 type hand struct {
@@ -27,6 +27,11 @@ type hand struct {
 type card struct {
 	val  int
 	valc rune
+}
+
+type aggregate struct {
+	val int
+	ch  rune
 }
 
 type strength int
@@ -59,12 +64,15 @@ func main() {
 
 func part1(in input) output {
 	deals := parseInput(in)
-	ordered := sortWinners(deals)
+	ordered := sortWinners(deals, false)
 	return totalWinnings(ordered)
 }
 
 func part2(in input) output {
-	return 0
+	deals := parseInput(in)
+	updateJokers(deals)
+	ordered := sortWinners(deals, true)
+	return totalWinnings(ordered)
 }
 
 func totalWinnings(deals []deal) int {
@@ -75,13 +83,24 @@ func totalWinnings(deals []deal) int {
 	return w
 }
 
-func sortWinners(deals []deal) []deal {
+func updateJokers(deals []deal) {
+	for i := 0; i < len(deals); i++ {
+		for j := 0; j < len(deals[i].hand.cards); j++ {
+			if deals[i].hand.cards[j].val == 11 {
+				deals[i].hand.cards[j].val = 1
+			}
+		}
+	}
+}
+
+func sortWinners(deals []deal, jokers bool) []deal {
 	res := []deal{}
 	for _, d := range deals {
-		s := handStrength(d.hand)
-		res = append(res, deal{hand: d.hand, bid: d.bid, strength: int(s)})
+		s := handStrength(d.hand, jokers)
+		res = append(res, deal{hand: d.hand, bid: d.bid, strength: s})
 	}
 
+	// sort by hand strength then card values
 	sort.Slice(res, func(i, j int) bool {
 		less := res[i].strength < res[j].strength
 		if res[i].strength == res[j].strength {
@@ -94,36 +113,66 @@ func sortWinners(deals []deal) []deal {
 		}
 		return less
 	})
+
 	return res
 }
 
-func handStrength(h hand) strength {
+func handStrength(h hand, jokers bool) strength {
 	m := map[rune]int{}
 	for _, c := range h.cards {
 		m[c.valc]++
 	}
 
-	if len(m) == len(h.cards) {
-		return HighCard
+	list := []aggregate{}
+	for k, v := range m {
+		list = append(list, aggregate{val: v, ch: k})
 	}
 
-	st := HighCard
-	for _, v := range m {
-		if v == 5 {
-			st = FiveKind
-		} else if v == 4 {
-			st = FourKind
-		}
+	jcount, ok := m['J']
+	hasJ := jokers && ok
 
-		if v == 3 {
-			if st == OnePair {
-				st = FullHouse
-			} else {
-				st = ThreeKind
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].val < list[j].val
+	})
+
+	if hasJ && jcount < 5 {
+		applied := false
+		for i := len(list) - 1; i >= 0; i-- {
+			if list[i].ch != 'J' && !applied {
+				list[i].val += jcount
+				applied = true
+			} else if list[i].ch == 'J' {
+				list[i].val = 0
 			}
 		}
 
-		if v == 2 {
+		// re-sort due to updated values
+		sort.Slice(list, func(i, j int) bool {
+			return list[i].val < list[j].val
+		})
+	}
+
+	var st strength = HighCard
+	for i := len(list) - 1; i >= 0; i-- {
+		if list[i].val == 0 {
+			continue
+		}
+		if list[i].val == 5 {
+			st = FiveKind
+			break
+		}
+
+		if list[i].val == 4 {
+			st = FourKind
+			break
+		}
+
+		if list[i].val == 3 {
+			st = ThreeKind
+			continue
+		}
+
+		if list[i].val == 2 {
 			if st == ThreeKind {
 				st = FullHouse
 			} else if st == OnePair {
@@ -133,6 +182,7 @@ func handStrength(h hand) strength {
 			}
 		}
 	}
+
 	return st
 }
 
