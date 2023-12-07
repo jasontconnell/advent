@@ -37,13 +37,13 @@ type aggregate struct {
 type strength int
 
 const (
-	HighCard  strength = 0
-	OnePair            = 1000
-	TwoPair            = 2000
-	ThreeKind          = 3000
-	FullHouse          = 4000
-	FourKind           = 5000
-	FiveKind           = 6000
+	HighCard strength = iota
+	OnePair
+	TwoPair
+	ThreeKind
+	FullHouse
+	FourKind
+	FiveKind
 )
 
 func main() {
