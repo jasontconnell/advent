@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/jasontconnell/advent/common"
 )
@@ -41,7 +42,8 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	dirs, instr := parseInput(in)
+	return ghostTraverse(dirs, instr, "A", "Z")
 }
 
 func find(dirs []int, nodes []nodeinstr, start, search string) int {
@@ -50,7 +52,6 @@ func find(dirs []int, nodes []nodeinstr, start, search string) int {
 		m[n.node] = n
 	}
 	found := false
-
 	cur := start
 	steps := 0
 	diridx := 0
@@ -58,14 +59,28 @@ func find(dirs []int, nodes []nodeinstr, start, search string) int {
 	for !found {
 		cdir := dirs[diridx]
 		cnode := m[cur]
-
 		cur = cnode.nodepair[cdir]
 		steps++
 		diridx = (diridx + 1) % len(dirs)
-
-		found = cur == search
+		found = strings.HasSuffix(cur, search)
 	}
 	return steps
+}
+
+func ghostTraverse(dirs []int, nodes []nodeinstr, startsuffix, searchsuffix string) int {
+	ghosts := []string{}
+	for _, s := range nodes {
+		if strings.HasSuffix(s.node, startsuffix) {
+			ghosts = append(ghosts, s.node)
+		}
+	}
+	res := []int{}
+	for _, g := range ghosts {
+		steps := find(dirs, nodes, g, searchsuffix)
+		res = append(res, steps)
+	}
+
+	return lcm(res[0], res[1], res[2:]...)
 }
 
 func parseInput(in input) ([]int, []nodeinstr) {
@@ -87,4 +102,25 @@ func parseInput(in input) ([]int, []nodeinstr) {
 		list = append(list, n)
 	}
 	return dirs, list
+}
+
+// greatest common divisor (GCD) via Euclidean algorithm
+func gcd(a, b int) int {
+	for b != 0 {
+		t := b
+		b = a % b
+		a = t
+	}
+	return a
+}
+
+// find Least Common Multiple (LCM) via GCD
+func lcm(a, b int, integers ...int) int {
+	result := a * b / gcd(a, b)
+
+	for i := 0; i < len(integers); i++ {
+		result = lcm(result, integers[i])
+	}
+
+	return result
 }

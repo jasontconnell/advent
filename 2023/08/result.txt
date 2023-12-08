@@ -1,3 +1,3 @@
 --2023 day 08 solution--
 Part 1: 21797
-Part 2: 0
+Part 2: 23977527174353
