@@ -35,7 +35,8 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	all := parseInput(in)
+	return extractAllReverse(all)
 }
 
 func extractAllHistory(all [][]int) int {
@@ -49,11 +50,9 @@ func extractAllHistory(all [][]int) int {
 }
 
 func extractHistory(vals []int, slvl []int) int {
-	cp := make([]int, len(vals))
-	copy(cp, vals)
 	v := make(map[int]int)
-	for i := 0; i < len(cp)-1; i++ {
-		x := cp[i+1] - cp[i]
+	for i := 0; i < len(vals)-1; i++ {
+		x := vals[i+1] - vals[i]
 		slvl[i] = x
 		v[x]++
 	}
@@ -67,6 +66,35 @@ func extractHistory(vals []int, slvl []int) int {
 	last := slvl[len(slvl)-1] + x
 
 	return last
+}
+
+func extractAllReverse(all [][]int) int {
+	s := 0
+	for _, list := range all {
+		lvl := make([]int, len(list)-1)
+		fst := extractReverse(list, lvl)
+		s += list[0] - fst
+	}
+	return s
+}
+
+func extractReverse(vals []int, slvl []int) int {
+	v := make(map[int]int)
+	for i := 0; i < len(vals)-1; i++ {
+		x := vals[i+1] - vals[i]
+		slvl[i] = x
+		v[x]++
+	}
+
+	if v[0] == len(slvl) {
+		return 0
+	}
+
+	nhst := make([]int, len(slvl)-1)
+	x := extractReverse(slvl, nhst)
+	first := slvl[0] - x
+
+	return first
 }
 
 func parseInput(in input) [][]int {
