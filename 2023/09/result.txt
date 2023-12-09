@@ -1,3 +1,3 @@
 --2023 day 09 solution--
 Part 1: 1708206096
-Part 2: 0
+Part 2: 1050
