@@ -33,14 +33,46 @@ func (pt xy) eq(p2 xy) bool {
 }
 
 type pipe struct {
-	pt     xy
-	ch     rune
-	dir    xy
-	outdir xy
+	pt    xy
+	ch    rune
+	dir   xy
+	indir xy
 }
 
 func (p pipe) String() string {
-	return fmt.Sprintf("(%d,%d) %c", p.pt.x, p.pt.y, p.ch)
+	return fmt.Sprintf("(%d,%d) %c [dir(%d,%d) out(%d,%d)]", p.pt.x, p.pt.y, p.ch, p.dir.x, p.dir.y, p.indir.x, p.indir.y)
+}
+
+func maxes(m map[xy]pipe) (int, int) {
+	mx, my := 0, 0
+	for k := range m {
+		if k.x > mx {
+			mx = k.x
+		}
+		if k.y > my {
+			my = k.y
+		}
+	}
+	return mx, my
+}
+
+func print(m map[xy]pipe, plookup map[xy]pipe, internal map[xy]bool) {
+	mx, my := maxes(m)
+	for y := 0; y <= my; y++ {
+		for x := 0; x <= mx; x++ {
+			pt := xy{x, y}
+
+			c := ' '
+			if _, ok := internal[pt]; ok {
+				c = '.'
+			}
+			if p, inloop := plookup[pt]; inloop {
+				c = p.ch
+			}
+			fmt.Print(string(c))
+		}
+		fmt.Print("\n")
+	}
 }
 
 var dirs []xy = []xy{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
@@ -69,8 +101,7 @@ func part1(in input) output {
 func part2(in input) output {
 	start, pipes := parseInput(in)
 	list := getLoopPoints(start, pipes)
-	markOuter(list, pipes)
-	return 0
+	return getEnclosedArea(pipes, list)
 }
 
 func traverse(start pipe, pipes map[xy]pipe) int {
@@ -78,53 +109,15 @@ func traverse(start pipe, pipes map[xy]pipe) int {
 	return len(list) / 2
 }
 
-func markOuter(list []pipe, pipes map[xy]pipe) {
-	outer := true // mark right side outer
-	initial := false
-	for i := 1; i < len(list); i++ {
-		cur := list[i]
-		prev := list[i-1]
+func getEnclosedArea(pipes map[xy]pipe, loop []pipe) int {
+	area := 0
+	for i := 0; i < len(loop); i++ {
+		cur := loop[i]
+		next := loop[(i+1)%len(loop)]
 
-		if !initial {
-			odir := xy{0, 1}
-			switch prev.dir {
-			case xy{0, 1}:
-				odir = xy{-1, 0}
-				if outer {
-					odir = xy{1, 0}
-				}
-			case xy{0, -1}:
-				odir = xy{1, 0}
-				if outer {
-					odir = xy{-1, 0}
-				}
-			case xy{1, 0}:
-				odir = xy{0, -1}
-				if outer {
-					odir = xy{0, 1}
-				}
-			case xy{-1, 0}:
-				odir = xy{0, 1}
-				if outer {
-					odir = xy{0, -1}
-				}
-			}
-			prev.outdir = odir
-			initial = true
-		}
-
-		if prev.dir.eq(cur.dir) {
-			cur.outdir = prev.outdir
-		}
+		area += cur.pt.y*cur.pt.x - cur.pt.x*next.pt.y
 	}
-	fmt.Println(initial, outer)
-}
-
-// a point is enclosed if it can't reach the outside
-// a point is not enclosed if it can reach another not enclosed point
-func floodfill(pt xy, pipes map[xy]pipe, loop []pipe, enclosed map[xy]bool) {
-	v := make(map[xy]bool)
-	fmt.Println(v)
+	return area - len(loop)/2 + 1
 }
 
 func getLoopPoints(start pipe, pipes map[xy]pipe) []pipe {
