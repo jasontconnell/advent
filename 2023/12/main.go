@@ -27,6 +27,10 @@ const (
 	Undefined
 )
 
+type key struct {
+	x, y, z int
+}
+
 func (c condition) String() string {
 	s := '_'
 	switch c {
@@ -58,119 +62,80 @@ func main() {
 
 func part1(in input) output {
 	list := parseInput(in)
-	return solve(list)
+	return solve(list, 1)
 }
 
 func part2(in input) output {
-	return 0
+	list := parseInput(in)
+	return solve(list, 5)
 }
 
-func solve(list []record) int {
+func solve(list []record, mult int) int {
 	total := 0
 	for _, r := range list {
-		total += getPermutations(r)
+		pattern := r.conditions
+		groups := r.arrangement
+
+		if mult > 1 {
+			pattern = multiply(mult, pattern, Unknown, true)
+			groups = multiply(mult, groups, 0, false)
+		}
+
+		m := make(map[key]int)
+		total += getPermutations(m, pattern, groups, 0, 0, 0)
 	}
 	return total
 }
 
-func sum(i []int) int {
-	s := 0
-	for _, x := range i {
-		s += x
+// use dynamic programming
+func getPermutations(dp map[key]int, pattern []condition, groups []int, pidx, gidx, curlen int) int {
+	if pidx == len(pattern) {
+		if (gidx == len(groups)-1 && groups[gidx] == curlen) || (gidx == len(groups) && curlen == 0) {
+			return 1
+		}
+		return 0
 	}
-	return s
+
+	k := key{pidx, gidx, curlen}
+	if v, ok := dp[k]; ok {
+		return v
+	}
+
+	total := 0
+	c := pattern[pidx]
+
+	// if damaged or unknown, we're in a group, move to the next pattern index and
+	// increment the current length by 1
+	if c == Unknown || c == Damaged {
+		total += getPermutations(dp, pattern, groups, pidx+1, gidx, curlen+1)
+	}
+
+	// if damaged or unknown
+	// if we are at the end of the current group length, start a new group
+	// if the current group is empty, move the pattern to the next one
+	if c == Unknown || c == Operational {
+		if curlen > 0 && gidx < len(groups) && groups[gidx] == curlen {
+			total += getPermutations(dp, pattern, groups, pidx+1, gidx+1, 0)
+		}
+
+		if curlen == 0 {
+			total += getPermutations(dp, pattern, groups, pidx+1, gidx, 0)
+		}
+	}
+	dp[k] = total
+	return total
 }
 
-func group(list []condition) [][]condition {
-	groups := [][]condition{}
-	last := Undefined
-	for _, c := range list {
-		if c != last {
-			g := []condition{c}
-			groups = append(groups, g)
-		} else {
-			groups[len(groups)-1] = append(groups[len(groups)-1], c)
-		}
-		last = c
-	}
-	return groups
-}
-
-func firstoccurrence(c condition, list []condition) int {
-	idx := -1
-	for i := range list {
-		if list[i] == c {
-			idx = i
-			break
+func multiply[T any](num int, list []T, sep T, dosep bool) []T {
+	ret := []T{}
+	for i := 0; i < num; i++ {
+		ret = append(ret, list...)
+		if i < num-1 && dosep {
+			ret = append(ret, sep)
 		}
 	}
-	return idx
-}
 
-func occurrences(c condition, list []condition) int {
-	x := 0
-	for _, cc := range list {
-		if cc == c {
-			x++
-		}
-	}
-	return x
-}
-
-func replace(c condition, list []condition, idx int) []condition {
-	cp := make([]condition, len(list))
-	copy(cp, list)
-	cp[idx] = c
-	return cp
-}
-
-func getPermutations(r record) int {
-	maxperms := 0
-
-	queue := [][]condition{}
-	queue = append(queue, r.conditions)
-	permutations := [][]condition{}
-
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
-
-		fst := firstoccurrence(Unknown, cur)
-		if fst == -1 {
-			permutations = append(permutations, cur)
-			continue
-		}
-
-		// permutate
-		n1 := replace(Operational, cur, fst)
-		n2 := replace(Damaged, cur, fst)
-		queue = append(queue, n1, n2)
-	}
-
-	for _, p := range permutations {
-		if occurrences(Damaged, p) != sum(r.arrangement) {
-			continue
-		}
-		gg := group(p)
-		pass := true
-		gidx := 0
-		for _, arr := range r.arrangement {
-			if gidx >= len(gg)-1 {
-				break
-			}
-			for gg[gidx][0] != Damaged {
-				gidx++
-			}
-			if len(gg[gidx]) != arr {
-				pass = false
-			}
-			gidx++
-		}
-		if pass {
-			maxperms++
-		}
-	}
-	return maxperms
+	return ret
 }
 
 func parseInput(in input) []record {
