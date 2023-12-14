@@ -23,6 +23,19 @@ type rock struct {
 	movable bool
 }
 
+func maxes(g map[xy]rock) (int, int) {
+	mx, my := 0, 0
+	for k := range g {
+		if k.x > mx {
+			mx = k.x
+		}
+		if k.y > my {
+			my = k.y
+		}
+	}
+	return mx, my
+}
+
 func main() {
 	in, err := common.ReadStrings(common.InputFilename(os.Args))
 	if err != nil {
@@ -46,20 +59,35 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
-}
+	g := parseInput(in)
+	// m := make(map[int]int)
 
-func maxes(m map[xy]rock) (int, int) {
-	mx, my := 0, 0
-	for k := range m {
-		if k.x > mx {
-			mx = k.x
+	// too low 94566
+	// too high 94606
+	// tried - 94592
+	loop := 1_000_000_000
+	lm := make(map[int][]int)
+	for i := 0; i < loop; i++ {
+		tilt(g, xy{0, -1})
+		tilt(g, xy{-1, 0})
+		tilt(g, xy{0, 1})
+		tilt(g, xy{1, 0})
+		x := calcLoad(g)
+
+		lm[x] = append(lm[x], i)
+
+		if len(lm[x]) > 5 {
+			list := lm[x]
+			fdiff := list[len(list)-1] - list[len(list)-2]
+			ediff := list[len(list)-2] - list[len(list)-3]
+			if fdiff == ediff {
+				incr := (loop - i) / fdiff
+				i += incr * fdiff
+			}
 		}
-		if k.y > my {
-			my = k.y
-		}
+
 	}
-	return mx, my
+	return calcLoad(g)
 }
 
 func calcLoad(m map[xy]rock) int {
