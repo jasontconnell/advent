@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 
 	"github.com/jasontconnell/advent/common"
@@ -98,7 +99,8 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	m := parseInput(in)
+	return findMaxEnergized(m)
 }
 
 func countEnergized(m map[xy]block) int {
@@ -130,6 +132,46 @@ func maxes(m map[xy]block) (int, int) {
 		}
 	}
 	return mx, my
+}
+
+func findMaxEnergized(m map[xy]block) int {
+	mx, my := maxes(m)
+	maxenergy := 0
+	for y := 0; y <= my; y++ {
+		trackLight(m, lightbeam{pos: xy{0, y}, dir: east}, make(map[lightbeam]bool))
+		left := countEnergized(m)
+		reset(m)
+		trackLight(m, lightbeam{pos: xy{mx, y}, dir: west}, make(map[lightbeam]bool))
+		right := countEnergized(m)
+		reset(m)
+		maxenergy = max(maxenergy, left, right)
+	}
+
+	for x := 0; x <= mx; x++ {
+		trackLight(m, lightbeam{pos: xy{x, 0}, dir: south}, make(map[lightbeam]bool))
+		top := countEnergized(m)
+		reset(m)
+		trackLight(m, lightbeam{pos: xy{x, my}, dir: north}, make(map[lightbeam]bool))
+		bottom := countEnergized(m)
+		reset(m)
+
+		maxenergy = max(maxenergy, bottom, top)
+	}
+
+	return maxenergy
+}
+
+func max(v1, v2, v3 int) int {
+	m := int(math.Max(float64(v1), float64(v2)))
+	m = int(math.Max(float64(m), float64(v3)))
+	return m
+}
+
+func reset(m map[xy]block) {
+	for k, b := range m {
+		b.energized = false
+		m[k] = b
+	}
 }
 
 func trackLight(m map[xy]block, beam lightbeam, v map[lightbeam]bool) {
