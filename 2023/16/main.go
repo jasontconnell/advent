@@ -21,19 +21,16 @@ func (pt xy) add(p2 xy) xy {
 }
 
 type block struct {
-	pt        xy
 	mir       *mirror
 	spl       *splitter
 	energized bool
 }
 
 type mirror struct {
-	pt    xy
 	slant slant
 }
 
 type splitter struct {
-	pt  xy
 	dir splitdir
 }
 
@@ -46,33 +43,19 @@ type dir xy
 type slant rune
 type splitdir rune
 
-var (
+const (
 	front      slant    = '/'
 	back       slant    = '\\'
-	north      dir      = dir{0, -1}
-	south      dir      = dir{0, 1}
-	west       dir      = dir{-1, 0}
-	east       dir      = dir{1, 0}
 	eastwest   splitdir = '-'
 	northsouth splitdir = '|'
 )
 
-func print(g map[xy]block) {
-	mx, my := maxes(g)
-	for y := 0; y <= my; y++ {
-		for x := 0; x <= mx; x++ {
-			pt := xy{x, y}
-			if b, ok := g[pt]; ok {
-				c := '.'
-				if b.energized {
-					c = '#'
-				}
-				fmt.Print(string(c))
-			}
-		}
-		fmt.Println()
-	}
-}
+var (
+	north dir = dir{0, -1}
+	south dir = dir{0, 1}
+	west  dir = dir{-1, 0}
+	east  dir = dir{1, 0}
+)
 
 func main() {
 	in, err := common.ReadStrings(common.InputFilename(os.Args))
@@ -108,12 +91,7 @@ func countEnergized(m map[xy]block) int {
 	mx, my := maxes(m)
 	for y := 0; y <= my; y++ {
 		for x := 0; x <= mx; x++ {
-			b, ok := m[xy{x, y}]
-			if !ok {
-				continue
-			}
-
-			if b.energized {
+			if m[xy{x, y}].energized {
 				total++
 			}
 		}
@@ -138,23 +116,14 @@ func findMaxEnergized(m map[xy]block) int {
 	mx, my := maxes(m)
 	maxenergy := 0
 	for y := 0; y <= my; y++ {
-		trackLight(m, lightbeam{pos: xy{0, y}, dir: east}, make(map[lightbeam]bool))
-		left := countEnergized(m)
-		reset(m)
-		trackLight(m, lightbeam{pos: xy{mx, y}, dir: west}, make(map[lightbeam]bool))
-		right := countEnergized(m)
-		reset(m)
+		left := calculateEnergized(m, lightbeam{pos: xy{0, y}, dir: east})
+		right := calculateEnergized(m, lightbeam{pos: xy{mx, y}, dir: west})
 		maxenergy = max(maxenergy, left, right)
 	}
 
 	for x := 0; x <= mx; x++ {
-		trackLight(m, lightbeam{pos: xy{x, 0}, dir: south}, make(map[lightbeam]bool))
-		top := countEnergized(m)
-		reset(m)
-		trackLight(m, lightbeam{pos: xy{x, my}, dir: north}, make(map[lightbeam]bool))
-		bottom := countEnergized(m)
-		reset(m)
-
+		top := calculateEnergized(m, lightbeam{pos: xy{x, 0}, dir: south})
+		bottom := calculateEnergized(m, lightbeam{pos: xy{x, my}, dir: north})
 		maxenergy = max(maxenergy, bottom, top)
 	}
 
@@ -174,25 +143,25 @@ func reset(m map[xy]block) {
 	}
 }
 
+func calculateEnergized(m map[xy]block, beam lightbeam) int {
+	reset(m)
+	trackLight(m, beam, make(map[lightbeam]bool))
+	return countEnergized(m)
+}
+
 func trackLight(m map[xy]block, beam lightbeam, v map[lightbeam]bool) {
-	mx, my := maxes(m)
 	done := false
 	for !done {
 		b, ok := m[beam.pos]
 		if !ok {
-			done = true
 			break
 		}
 
 		if _, ok := v[beam]; ok {
-			// we've seen this beam going in this direction already
-			// nothing changed
-			beam.pos = beam.pos.add(xy(beam.dir))
-			done = true
-			continue
+			break
 		}
-		v[beam] = true
 
+		v[beam] = true
 		b.energized = true
 
 		if b.mir != nil {
@@ -233,7 +202,6 @@ func trackLight(m map[xy]block, beam lightbeam, v map[lightbeam]bool) {
 
 		m[beam.pos] = b
 		beam.pos = beam.pos.add(xy(beam.dir))
-		done = beam.pos.x < 0 || beam.pos.y < 0 || beam.pos.x > mx || beam.pos.y > my
 	}
 }
 
@@ -245,14 +213,14 @@ func parseInput(in input) map[xy]block {
 			pt := xy{x, y}
 
 			if c == '-' || c == '|' {
-				b.spl = &splitter{pt: pt}
+				b.spl = &splitter{}
 				if c == '-' {
 					b.spl.dir = eastwest
 				} else {
 					b.spl.dir = northsouth
 				}
 			} else if c == '/' || c == '\\' {
-				b.mir = &mirror{pt: pt}
+				b.mir = &mirror{}
 				if c == '/' {
 					b.mir.slant = front
 				} else {
