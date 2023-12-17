@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 	"os"
 
 	"github.com/jasontconnell/advent/common"
@@ -114,25 +113,29 @@ func maxes(m map[xy]block) (int, int) {
 
 func findMaxEnergized(m map[xy]block) int {
 	mx, my := maxes(m)
-	maxenergy := 0
+	vals := []int{}
 	for y := 0; y <= my; y++ {
 		left := calculateEnergized(m, lightbeam{pos: xy{0, y}, dir: east})
 		right := calculateEnergized(m, lightbeam{pos: xy{mx, y}, dir: west})
-		maxenergy = max(maxenergy, left, right)
+		vals = append(vals, left, right)
 	}
 
 	for x := 0; x <= mx; x++ {
 		top := calculateEnergized(m, lightbeam{pos: xy{x, 0}, dir: south})
 		bottom := calculateEnergized(m, lightbeam{pos: xy{x, my}, dir: north})
-		maxenergy = max(maxenergy, bottom, top)
+		vals = append(vals, top, bottom)
 	}
 
-	return maxenergy
+	return max(vals)
 }
 
-func max(v1, v2, v3 int) int {
-	m := int(math.Max(float64(v1), float64(v2)))
-	m = int(math.Max(float64(m), float64(v3)))
+func max(list []int) int {
+	m := 0
+	for _, v := range list {
+		if v > m {
+			m = v
+		}
+	}
 	return m
 }
 
@@ -147,6 +150,15 @@ func calculateEnergized(m map[xy]block, beam lightbeam) int {
 	reset(m)
 	trackLight(m, beam, make(map[lightbeam]bool))
 	return countEnergized(m)
+}
+
+func deflect(s slant, d dir) dir {
+	var nd dir = dir{x: d.y, y: d.x}
+	if s == front {
+		nd.x = -nd.x
+		nd.y = -nd.y
+	}
+	return nd
 }
 
 func trackLight(m map[xy]block, beam lightbeam, v map[lightbeam]bool) {
@@ -165,27 +177,7 @@ func trackLight(m map[xy]block, beam lightbeam, v map[lightbeam]bool) {
 		b.energized = true
 
 		if b.mir != nil {
-			if b.mir.slant == front {
-				if beam.dir == east {
-					beam.dir = north
-				} else if beam.dir == west {
-					beam.dir = south
-				} else if beam.dir == north {
-					beam.dir = east
-				} else if beam.dir == south {
-					beam.dir = west
-				}
-			} else if b.mir.slant == back {
-				if beam.dir == east {
-					beam.dir = south
-				} else if beam.dir == west {
-					beam.dir = north
-				} else if beam.dir == north {
-					beam.dir = west
-				} else if beam.dir == south {
-					beam.dir = east
-				}
-			}
+			beam.dir = deflect(b.mir.slant, beam.dir)
 		} else if b.spl != nil {
 			// continue tracking this beam in this line of logic
 			// but track a new light beam on a recursive call
