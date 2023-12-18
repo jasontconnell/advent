@@ -92,8 +92,8 @@ func maxes(m map[xy]block) (int, int) {
 }
 
 func traverse(m map[xy]block, start xy, goal xy, minstraight, maxstraight int) int {
-	queue := common.NewPriorityQueue(func(s state) float64 {
-		return 1 / float64(s.heatloss)
+	queue := common.NewPriorityQueue(func(s state) int {
+		return s.heatloss
 	})
 
 	itr := 0
