@@ -111,11 +111,9 @@ func getArea(instrs []diginstr, hexmode bool) int {
 		}
 		totalholes += val
 
-		if true {
-			next = cur.add(xy(instrdir).mult(val))
-			area += cur.x*next.y - cur.y*next.x + val
-			cur = next
-		}
+		next = cur.add(xy(instrdir).mult(val))
+		area += cur.x*next.y - cur.y*next.x + val
+		cur = next
 	}
 
 	return area/2 + 1
