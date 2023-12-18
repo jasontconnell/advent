@@ -1,5 +1,7 @@
 package common
 
+import "fmt"
+
 type Number interface {
 	int | float64
 }
@@ -9,14 +11,18 @@ type Item[T any, N Number] struct {
 	value N
 }
 
-type Queue[T any, N Number] struct {
-	items []Item[T, N]
-	value func(item T) N
+func (s Item[T, N]) String() string {
+	return fmt.Sprintf("%v", s.value)
 }
 
-func NewPriorityQueue[T any, N Number](val func(item T) N) *Queue[T, N] {
+type Queue[T any, N Number] struct {
+	items []Item[T, N]
+	cost  func(item T) N
+}
+
+func NewPriorityQueue[T any, N Number](cost func(item T) N) *Queue[T, N] {
 	h := new(Queue[T, N])
-	h.value = val
+	h.cost = cost
 	return h
 }
 
@@ -26,17 +32,33 @@ func NewQueue[T any, N Number]() *Queue[T, N] {
 }
 
 func (h *Queue[T, N]) Enqueue(item T) {
-	if h.value == nil {
+	if h.cost == nil {
 		h.items = append(h.items, Item[T, N]{item: item})
 	} else {
-		v := h.value(item)
+		v := h.cost(item)
 		idx := -1
-		for i := 0; i < len(h.items); i++ {
-			r := h.items[i].value
+		if len(h.items) > 0 && h.items[0].value > v {
+			idx = 0
+		} else if len(h.items) > 0 && v < h.items[len(h.items)-1].value {
+			lbound, ubound := 0, len(h.items)
+			found := false
+			for !found {
+				idx = (lbound + ubound) / 2
+				midval := h.items[idx].value
+				if v == midval {
+					break
+				} else if v > midval {
+					lbound = idx
+				} else {
+					ubound = idx
+				}
 
-			if v > r {
-				idx = i
-				break
+				if ubound-lbound <= 1 {
+					if v > h.items[ubound].value {
+						idx = ubound
+					}
+					found = true
+				}
 			}
 		}
 
@@ -46,6 +68,8 @@ func (h *Queue[T, N]) Enqueue(item T) {
 		} else {
 			h.items = append(h.items[:idx], append([]Item[T, N]{i}, h.items[idx:]...)...)
 		}
+
+		// fmt.Println(h.items)
 	}
 }
 
