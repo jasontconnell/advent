@@ -1,3 +1,3 @@
 --2023 day 18 solution--
 Part 1: 50746
-Part 2: 0
+Part 2: 70086216556038
