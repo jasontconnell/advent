@@ -85,8 +85,10 @@ func part1(in input) output {
 func part2(in input) output {
 	w := parseInput(in)
 	pattern := getRockPattern()
+	fmt.Println(lcm(len(w), len(pattern)))
 
 	cycles := 1_000_000_000_000
+	fmt.Println(cycles/(len(w)*5), cycles%(len(w)*5))
 	return simulate(cycles, 7, w, pattern)
 }
 
@@ -122,7 +124,8 @@ func animate(cycle, cycles int, rp rockpattern, grid map[xy]bool, width, height 
 	heightdelta := 0
 
 	ckey := cachekey{ridx: ridx, widx: widx % len(winds)}
-	if state, ok := mem[ckey]; ok && state.lastseen > 0 && cycle > startcache {
+	if state, ok := mem[ckey]; ok && state.lastseen > 0 && cycle >= startcache {
+		fmt.Println(cycle, state.lastseen, cycles)
 		if (cycle - state.lastseen) < cycles-cycle {
 			cycledelta = cycle - state.lastseen
 			heightdelta = height - state.height
@@ -163,7 +166,7 @@ func animate(cycle, cycles int, rp rockpattern, grid map[xy]bool, width, height 
 				heightdelta = 0
 			}
 
-			if heightdelta > 0 && cycle > startcache {
+			if heightdelta > 0 && cycle >= startcache {
 				mem[ckey] = cache{
 					lastseen: cycle,
 					height:   height + heightdelta,
@@ -330,7 +333,7 @@ func keys[K comparable, V any](m map[K]V) []K {
 	return ks
 }
 
-func gcd(a, b int64) int64 {
+func gcd[N int | int64](a, b N) N {
 	for b != 0 {
 		t := b
 		b = a % b
@@ -340,7 +343,7 @@ func gcd(a, b int64) int64 {
 }
 
 // find Least Common Multiple (LCM) via GCD
-func lcm(a, b int64, integers ...int64) int64 {
+func lcm[N int | int64](a, b N, integers ...N) N {
 	result := a * b / gcd(a, b)
 
 	for i := 0; i < len(integers); i++ {

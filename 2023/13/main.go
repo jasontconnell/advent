@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
 
 	"github.com/jasontconnell/advent/common"
 )
@@ -82,59 +81,49 @@ func sumReflections(gs []grid) int {
 
 func getReflections(m grid) int {
 	mx, my := maxes(m)
+	fmt.Println("---- check cols------")
 	midx := getMirrorMidpoint(m, mx, my, m.ItemColRow)
+	fmt.Println("---- check rows------")
 	midy := getMirrorMidpoint(m, my, mx, m.ItemRowCol)
 	return 100*midy + midx
 }
 
 func getMirrorMidpoint(g grid, max1, max2 int, getitem func(i, j int) terrain) int {
-	done := false
-	mird := [][]int{}
-
-	for i := 0; i <= max1 && !done; i++ {
-		mird = append(mird, []int{})
-		for i2 := max1; i2 >= 0; i2-- {
-			all := true
+	m := make(map[int]int)
+	mid := 0
+	cur := max1
+	for i := 0; i <= max1; i++ {
+		for i2 := cur; i2 > i; i2-- {
+			diffs := 0
 			for j := 0; j <= max2; j++ {
 				item1 := getitem(i, j)
 				item2 := getitem(i2, j)
 
 				if item1.ch != item2.ch {
-					all = false
-					break
+					diffs++
 				}
 			}
-			if all {
-				mird[i] = append(mird[i], i2)
+
+			if diffs == 0 {
+				m[i] = i2
+				m[i2] = i
+				_, haszero := m[0]
+				_, hasmax := m[max1]
+				fmt.Println(cur, i, i2, haszero, hasmax, m)
+				if cur-i2 == 1 && (haszero || hasmax) {
+					fmt.Println("got thing", i)
+					mid = i + 1
+					fmt.Println("newmid", mid)
+				}
+				cur--
+				break
 			}
 		}
 	}
 
-	distm := make(map[int]int)
-	dist := []int{}
-	for _, j := range mird {
-		if len(j) < 2 {
-			continue
-		}
-		for x := 0; x < len(j); x++ {
-			if _, ok := distm[j[x]]; !ok {
-				distm[j[x]] = j[x]
-				dist = append(dist, j[x])
-			}
-		}
-	}
-	contig := true
-	sort.Ints(dist)
-	for i := 0; i < len(dist)-1; i++ {
-		if dist[i+1]-dist[i] != 1 {
-			contig = false
-		}
-	}
-	contig = contig && len(dist) != 0 && (dist[0] == 0 || dist[len(dist)-1] == max1)
-	mid := 0
-	if contig {
-		mid = (dist[len(dist)-1]+dist[0])/2 + 1
-	}
+	print(g)
+	fmt.Println(m)
+	fmt.Println("mid", mid)
 	return mid
 }
 
