@@ -60,11 +60,6 @@ func part1(in input) output {
 
 func part2(in input) output {
 	g := parseInput(in)
-	// m := make(map[int]int)
-
-	// too low 94566
-	// too high 94606
-	// tried - 94592
 	loop := 1_000_000_000
 	lm := make(map[int][]int)
 	for i := 0; i < loop; i++ {
