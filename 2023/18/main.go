@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -22,8 +21,12 @@ func (pt xy) add(p2 xy) xy {
 	return xy{pt.x + p2.x, pt.y + p2.y}
 }
 
-func (pt xy) adddir(p2 dir) xy {
-	return pt.add(xy(p2))
+func (pt xy) mult(x int) xy {
+	return xy{pt.x * x, pt.y * x}
+}
+
+func (pt xy) adddir(d dir) xy {
+	return pt.add(xy(d))
 }
 
 type diginstr struct {
@@ -45,44 +48,6 @@ var (
 	west  dir = dir{-1, 0}
 )
 
-func print(m map[xy]block) {
-	min, max := minmax(m)
-	fmt.Println(len(m), min, max)
-	for y := min.y; y <= max.y; y++ {
-		for x := min.x; x <= max.x; x++ {
-			pt := xy{x, y}
-			if _, ok := m[pt]; ok {
-				fmt.Print("#")
-			} else {
-				fmt.Print(".")
-			}
-		}
-		fmt.Println()
-	}
-}
-
-func minmax(m map[xy]block) (xy, xy) {
-	min := xy{math.MaxInt32, math.MaxInt32}
-	max := xy{math.MinInt32, math.MinInt32}
-
-	for k := range m {
-		if k.x < min.x {
-			min.x = k.x
-		}
-		if k.y < min.y {
-			min.y = k.y
-		}
-		if k.x > max.x {
-			max.x = k.x
-		}
-		if k.y > max.y {
-			max.y = k.y
-		}
-	}
-
-	return min, max
-}
-
 func main() {
 	in, err := common.ReadStrings(common.InputFilename(os.Args))
 	if err != nil {
@@ -101,70 +66,59 @@ func main() {
 
 func part1(in input) output {
 	instrs := parseInput(in)
-	m := dig(instrs)
-	return getEnclosedArea(m)
+	return getArea(instrs, false)
 }
 
 func part2(in input) output {
-	return 0
+	instrs := parseInput(in)
+	return getArea(instrs, true)
 }
 
-func dig(instrs []diginstr) map[xy]block {
-	m := make(map[xy]block)
-	cur := xy{0, 0}
-	for _, instr := range instrs {
-		for i := 0; i < instr.dist; i++ {
-			b := block{color: instr.color}
-			m[cur] = b
-			cur = cur.adddir(instr.dir)
-		}
+func hexvalue(instr diginstr) (dir, int) {
+	dr := rune(instr.color[len(instr.color)-1])
+	hex := instr.color[1 : len(instr.color)-1]
+	val, _ := strconv.ParseInt(hex, 16, 32)
+
+	var d dir
+	switch dr {
+	case '0':
+		d = east
+	case '1':
+		d = south
+	case '2':
+		d = west
+	case '3':
+		d = north
 	}
-	return m
+
+	return d, int(val)
 }
 
-func getEnclosedArea(m map[xy]block) int {
-	loop := getLoop(m)
+func getArea(instrs []diginstr, hexmode bool) int {
 	area := 0
-	for i := 0; i < len(loop); i++ {
-		cur := loop[i]
-		next := loop[(i+1)%len(loop)]
-		area += cur.y*cur.x - cur.x*next.y
-	}
-	return area - len(loop)/2 + 1 + len(loop)
-}
+	totalholes := 0
+	var cur, next xy
 
-func getLoop(m map[xy]block) []xy {
-	var start xy
-	startfound := false
-	min, max := minmax(m)
-	for y := min.y; y <= max.y && !startfound; y++ {
-		for x := min.x; x <= max.x; x++ {
-			pt := xy{x, y}
-			if _, ok := m[pt]; ok {
-				start = pt
-				startfound = true
-				break
-			}
+	for i := 0; i < len(instrs); i++ {
+		var instrdir dir
+		var val int
+		var instr diginstr
+
+		instr = instrs[i]
+		instrdir, val = instr.dir, instr.dist
+		if hexmode {
+			instrdir, val = hexvalue(instr)
+		}
+		totalholes += val
+
+		if true {
+			next = cur.add(xy(instrdir).mult(val))
+			area += cur.x*next.y - cur.y*next.x + val
+			cur = next
 		}
 	}
 
-	loop := []xy{start}
-	cur := start
-	v := make(map[xy]bool)
-	v[start] = true
-	for i := 0; i < len(m); i++ {
-		for _, d := range []dir{north, south, east, west} {
-			np := cur.adddir(d)
-			_, vok := v[np]
-			if _, ok := m[np]; ok && !vok {
-				loop = append(loop, np)
-				cur = np
-				v[np] = true
-				break
-			}
-		}
-	}
-	return loop
+	return area/2 + 1
 }
 
 func parseInput(in input) []diginstr {
@@ -183,7 +137,8 @@ func parseInput(in input) []diginstr {
 			d = west
 		}
 		dist, _ := strconv.Atoi(sp[1])
-		instr := diginstr{dir: d, dist: dist, color: sp[2]}
+		color := strings.TrimRight(strings.TrimLeft(sp[2], "("), ")")
+		instr := diginstr{dir: d, dist: dist, color: color}
 		instrs = append(instrs, instr)
 	}
 	return instrs
