@@ -122,8 +122,47 @@ func part1(in input) output {
 	return evalWorkflow(wflist, plist, "in")
 }
 
-func part2(in input) output {
+func part2(in input) int64 {
+	wflist, _ := parseInput(in)
+	return determineParts(wflist, 1, 4000)
+}
+
+func determineParts(wflist []workflow, min, max int) int64 {
+	acceptWorkflows := []workflow{}
+	for _, w := range wflist {
+		accept := doesAccept(w.rule)
+		if accept {
+			acceptWorkflows = append(acceptWorkflows, w)
+		}
+	}
+
+	// go through each workflow that accepts
+	// find the values of each x, m, a, s that can accept
+	// multiply them all together. it's gon be big
+	fmt.Println(len(acceptWorkflows), "out of", len(wflist))
+
 	return 0
+}
+
+func doesAccept(r *rule) bool {
+	if r.accept {
+		return true
+	}
+	if r.reject {
+		return false
+	}
+	checkrules := []*rule{}
+	if r.passrule != nil {
+		checkrules = append(checkrules, r.passrule)
+	}
+	if r.failrule != nil {
+		checkrules = append(checkrules, r.failrule)
+	}
+	accept := false
+	for _, cr := range checkrules {
+		accept = accept || doesAccept(cr)
+	}
+	return accept
 }
 
 func evalWorkflow(wflist []workflow, plist []part, startwf string) int {
