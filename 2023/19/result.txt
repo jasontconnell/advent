@@ -1,0 +1,3 @@
+--2023 day 19 solution--
+Part 1: 377025
+Part 2: 0
