@@ -153,9 +153,6 @@ func determineGoal(mods map[string]*module, startname string, startpulse pulse, 
 			}
 
 			m, _ := mods[cur.name]
-			if m == nil {
-				continue
-			}
 			res := queuePulses(mods, m, cur.from, cur.pulse, cur.name == startname)
 			for _, r := range res {
 				queue.Enqueue(r)
@@ -271,11 +268,7 @@ func queuePulses(mm map[string]*module, m *module, from string, p pulse, isorigi
 
 func parseInput(in input) map[string]*module {
 	ms := []*module{}
-	hasoutput := false
 	for _, line := range in {
-		if !hasoutput {
-			hasoutput = strings.Index(line, "output") != -1
-		}
 		sp := strings.Split(line, " -> ")
 		mname := strings.Trim(sp[0], " ")
 		flipflop := mname[0] == '%'
@@ -292,10 +285,6 @@ func parseInput(in input) map[string]*module {
 		tgs := strings.Split(sp[1], ", ")
 		mod.targets = tgs
 		ms = append(ms, mod)
-	}
-
-	if hasoutput {
-		ms = append(ms, &module{name: "output", output: true})
 	}
 
 	mm := make(map[string]*module)
