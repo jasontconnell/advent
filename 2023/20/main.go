@@ -20,16 +20,6 @@ const (
 	high
 )
 
-func (p pulse) String() string {
-	s := "none"
-	if p == low {
-		s = "low"
-	} else if p == high {
-		s = "high"
-	}
-	return s
-}
-
 type state int
 
 const (
@@ -37,16 +27,6 @@ const (
 	off
 	on
 )
-
-func (st state) String() string {
-	s := "nostate"
-	if st == off {
-		s = "off"
-	} else if st == on {
-		s = "on"
-	}
-	return s
-}
 
 type module struct {
 	name        string
@@ -63,10 +43,6 @@ type pulseState struct {
 	name  string
 	from  string
 	pulse pulse
-}
-
-func (m *module) String() string {
-	return fmt.Sprintf("%s: flipflop: %t conj: %t state: %v targets: %d watches: %d", m.name, m.flipflop, m.conjunction, m.state, len(m.targets), len(m.watches))
 }
 
 func main() {
