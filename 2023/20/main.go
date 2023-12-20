@@ -96,12 +96,12 @@ func part2(in input) int64 {
 	return determineGoal(modules, "broadcaster", low, "rx")
 }
 
-func getParentConjuctions(mods map[string]*module, cur, goalstate string) []*module {
-	cm := mods[cur]
+func getParentConjuctions(mods map[string]*module, goalstate string) []*module {
+	cm := mods[goalstate]
 	if !cm.conjunction {
 		for _, m := range mods {
 			for _, tg := range m.targets {
-				if tg == cur {
+				if tg == goalstate {
 					cm = m
 					break
 				}
@@ -125,7 +125,7 @@ func determineGoal(mods map[string]*module, startname string, startpulse pulse, 
 	}
 
 	checkStates := make(map[string]int)
-	c := getParentConjuctions(mods, goalstate, goalstate)
+	c := getParentConjuctions(mods, goalstate)
 	for _, cs := range c {
 		checkStates[cs.name] = 0
 	}
