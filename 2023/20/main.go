@@ -66,7 +66,7 @@ type pulseState struct {
 }
 
 func (m *module) String() string {
-	return fmt.Sprintf("%s: flipflop: %t conj: %t state: %v", m.name, m.flipflop, m.conjunction, m.state)
+	return fmt.Sprintf("%s: flipflop: %t conj: %t state: %v targets: %d watches: %d", m.name, m.flipflop, m.conjunction, m.state, len(m.targets), len(m.watches))
 }
 
 func main() {
@@ -91,8 +91,105 @@ func part1(in input) output {
 	return low * high
 }
 
-func part2(in input) output {
-	return 0
+func part2(in input) int64 {
+	modules := parseInput(in)
+	return determineGoal(modules, "broadcaster", low, "rx")
+}
+
+func getParentConjuctions(mods map[string]*module, cur, goalstate string) []*module {
+	cm := mods[cur]
+	if !cm.conjunction {
+		for _, m := range mods {
+			for _, tg := range m.targets {
+				if tg == cur {
+					cm = m
+					break
+				}
+			}
+		}
+	}
+	list := []*module{}
+	for _, w := range cm.watches {
+		mw := mods[w]
+		if mw.conjunction {
+			list = append(list, mw)
+		}
+	}
+
+	return list
+}
+
+func determineGoal(mods map[string]*module, startname string, startpulse pulse, goalstate string) int64 {
+	if _, ok := mods[goalstate]; !ok && goalstate != "" {
+		mods[goalstate] = &module{name: goalstate}
+	}
+
+	checkStates := make(map[string]int)
+	c := getParentConjuctions(mods, goalstate, goalstate)
+	for _, cs := range c {
+		checkStates[cs.name] = 0
+	}
+
+	found := false
+	i := 1
+	for !found {
+		queue := common.NewQueue[pulseState, int]()
+		queue.Enqueue(pulseState{name: startname, pulse: startpulse})
+		for queue.Any() {
+			cur := queue.Dequeue()
+
+			if csv, ok := checkStates[cur.name]; ok && cur.pulse == low && csv == 0 {
+				checkStates[cur.name] = i
+				allset := true
+				for _, v := range checkStates {
+					if v == 0 {
+						allset = false
+					}
+				}
+				if allset {
+					found = true
+					break
+				}
+			}
+
+			m, _ := mods[cur.name]
+			if m == nil {
+				continue
+			}
+			res := queuePulses(mods, m, cur.from, cur.pulse, cur.name == startname)
+			for _, r := range res {
+				queue.Enqueue(r)
+			}
+		}
+		i++
+	}
+
+	vals := []int64{}
+	for _, v := range checkStates {
+		vals = append(vals, int64(v))
+	}
+	return lcm(vals[0], vals[1], vals[2:]...)
+}
+
+// greatest common divisor (GCD) via Euclidean algorithm
+func gcd(a, b int64) int64 {
+	for b != 0 {
+		t := b
+		b = a % b
+		a = t
+	}
+	return a
+}
+
+// find Least Common Multiple (LCM) via GCD
+func lcm(a, b int64, integers ...int64) int64 {
+	result := a * b / gcd(a, b)
+
+	for i := 0; i < len(integers); i++ {
+		result = lcm(result, integers[i])
+	}
+
+	return result
 }
 
 func pushButton(mods map[string]*module, startname string, startpulse pulse, times int) (int, int) {
@@ -115,7 +212,6 @@ func pushButton(mods map[string]*module, startname string, startpulse pulse, tim
 			}
 			res := queuePulses(mods, m, cur.from, cur.pulse, cur.name == startname)
 			for _, r := range res {
-
 				queue.Enqueue(r)
 			}
 		}
