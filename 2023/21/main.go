@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 
 	"github.com/jasontconnell/advent/common"
 )
 
 type input = []string
-type output = int
+type output = int64
 
 type xy struct {
 	x, y int
@@ -28,38 +29,7 @@ type block struct {
 
 type state struct {
 	pt    xy
-	prev  xy
-	steps int
-}
-
-func maxes(m map[xy]block) (int, int) {
-	mx, my := 0, 0
-	for k := range m {
-		if k.x > mx {
-			mx = k.x
-		}
-		if k.y > my {
-			my = k.y
-		}
-	}
-	return mx, my
-}
-
-func print(m map[xy]block, v map[xy]bool) {
-	mx, my := maxes(m)
-	for y := 0; y <= my; y++ {
-		for x := 0; x <= mx; x++ {
-			pt := xy{x, y}
-			b := m[pt]
-			c := b.ch
-			if _, ok := v[pt]; ok {
-				c = 'O'
-			}
-			fmt.Print(string(c))
-		}
-		fmt.Println()
-	}
-	fmt.Println()
+	steps int64
 }
 
 func main() {
@@ -84,53 +54,95 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	start, m := parseInput(in)
+	return calculateLarge(start, m, 26501365)
 }
 
-func pointsFromStart(start xy, m map[xy]block, steps int) int {
+func calculateLarge(start xy, m map[xy]block, steps int64) int64 {
+	size := int64(math.Sqrt(float64(len(m))))
+
+	gridw := steps/size - 1
+	oddg := int64(math.Pow(float64(gridw/2*2+1), 2))
+	eveng := int64(math.Pow(float64((gridw+1)/2*2), 2))
+
+	odd := pointsFromStart(start, m, size*2+1)
+	even := pointsFromStart(start, m, size*2)
+
+	var corners int64
+	for _, p := range []xy{
+		{start.x, 0},
+		{start.x, int(size - 1)},
+		{0, start.y},
+		{int(size - 1), start.y},
+	} {
+		corners += pointsFromStart(p, m, size-1)
+	}
+
+	var smallcorners int64
+	for _, p := range []xy{
+		{0, 0},
+		{0, int(size - 1)},
+		{int(size - 1), 0},
+		{int(size - 1), int(size - 1)},
+	} {
+		smallcorners += pointsFromStart(p, m, size/2-1)
+	}
+
+	var largecorners int64
+	for _, p := range []xy{
+		{0, 0},
+		{0, int(size - 1)},
+		{int(size - 1), 0},
+		{int(size - 1), int(size - 1)},
+	} {
+		largecorners += pointsFromStart(p, m, 3*size/2-1)
+	}
+
+	return oddg*odd + eveng*even + corners + (gridw+1)*smallcorners + gridw*largecorners
+}
+
+func pointsFromStart(start xy, m map[xy]block, steps int64) int64 {
 	queue := common.NewQueue[state, int]()
-	queue.Enqueue(state{pt: start, steps: 0})
+	queue.Enqueue(state{pt: start, steps: steps})
 
-	goals := make(map[xy]bool)
+	var goals int64
 
-	vs := make(map[int]map[xy]bool)
-
+	v := make(map[xy]bool)
 	for queue.Any() {
 		cur := queue.Dequeue()
-		if vs[cur.steps] == nil {
-			vs[cur.steps] = make(map[xy]bool)
-		} else if _, ok := vs[cur.steps][cur.pt]; ok {
+
+		if _, ok := v[cur.pt]; ok {
 			continue
 		}
-		vs[cur.steps][cur.pt] = true
+		v[cur.pt] = true
 
-		if _, ok := goals[cur.pt]; ok {
-			continue
+		if cur.steps%2 == 0 {
+			goals++
 		}
 
-		if cur.steps == steps {
-			goals[cur.pt] = true
+		if cur.steps == 0 {
 			continue
 		}
 
-		mvs := getMoves(m, cur.pt, cur.prev)
+		mvs := getMoves(m, cur.pt, cur.steps)
 		for _, mv := range mvs {
-			st := state{pt: mv, prev: cur.pt, steps: cur.steps + 1}
-			queue.Enqueue(st)
+			queue.Enqueue(mv)
 		}
 	}
-	return len(goals)
+	return goals
 }
 
-func getMoves(m map[xy]block, pt, prev xy) []xy {
+func getMoves(m map[xy]block, pt xy, steps int64) []state {
 	dirs := []xy{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}
-	mvs := []xy{}
+	mvs := []state{}
 	for _, d := range dirs {
 		np := pt.add(d)
-		if b, ok := m[np]; !ok || b.rock || pt == prev {
+
+		if b, ok := m[np]; !ok || b.rock {
 			continue
 		}
-		mvs = append(mvs, np)
+		st := state{pt: np, steps: steps - 1}
+		mvs = append(mvs, st)
 	}
 	return mvs
 }
