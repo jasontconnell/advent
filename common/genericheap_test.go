@@ -28,7 +28,7 @@ func TestHeap(t *testing.T) {
 		return i
 	})
 
-	var count int = 400
+	var count int = 600
 	for i := 0; i < count; i++ {
 		q.Enqueue(rand.Int() % 100)
 	}
@@ -51,7 +51,7 @@ func TestHeap(t *testing.T) {
 	}
 
 	if !sort.IntsAreSorted(ints) {
-		t.Log(q.items)
+		t.Log("not sorted", q.items)
 		t.Fail()
 	}
 }
