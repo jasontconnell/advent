@@ -24,7 +24,10 @@ type Graph[V comparable, W Number] interface {
 	RemoveEdge(v1, v2 V)
 
 	GetEdge(v1, v2 V) Edge[V, W]
-	GetPaths(v1, v2 V) [][]Edge[V, W]
+
+	// GetPaths(v1, v2 V) [][]Edge[V, W]
+	DFS(v1, v2 V) []Edge[V, W]
+	BFS(v1, v2 V) []Edge[V, W]
 }
 
 func NewGraph[V comparable]() Graph[V, int] {
@@ -200,8 +203,8 @@ func (g *graph[V, W]) RemoveEdge(v1, v2 V) {
 }
 
 func (g graph[V, W]) Print() {
-	fmt.Println(g.vertices)
-	fmt.Println(g.originmap)
+	fmt.Println("vertices:", len(g.vertices), g.vertices)
+	fmt.Println("edges:", len(g.originmap), g.originmap)
 }
 
 func (g graph[V, W]) GetEdge(v1, v2 V) Edge[V, W] {

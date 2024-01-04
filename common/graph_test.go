@@ -79,13 +79,13 @@ func TestRemoveEdge(t *testing.T) {
 
 func TestGetPaths(t *testing.T) {
 	g := getSampleGraph()
-	paths := g.GetPaths(1, 23)
+	paths := g.DFS(1, 23)
 	t.Log(paths)
-	if len(paths) < 2 {
+	if len(paths) == 0 {
 		t.Fail()
 	}
 
-	nopath := g.GetPaths(1, 17)
+	nopath := g.DFS(1, 17)
 	t.Log(nopath)
 	if len(nopath) > 0 {
 		t.Fail()
@@ -103,6 +103,6 @@ func TestGetPath(t *testing.T) {
 	g.AddEdge(xy{0, 1}, xy{1, 2})
 	g.AddEdge(xy{1, 2}, xy{3, 4})
 	g.AddEdge(xy{3, 4}, xy{5, 5})
-	p := g.GetPaths(xy{0, 0}, xy{5, 5})
+	p := g.BFS(xy{0, 0}, xy{5, 5})
 	t.Log(p)
 }
