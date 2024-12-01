@@ -73,15 +73,15 @@ func (g graph[V, W]) BFS(v1, v2 V) []Edge[V, W] {
 }
 
 func (g *graph[V, W]) AStar(v1, v2 V, h func(e Edge[V, W]) W) []Edge[V, W] {
-	queue := NewPriorityQueue[edgestate[V, W], W](func(s edgestate[V, W]) W {
-		return h(s.edge)
-	})
+	// queue := NewPriorityQueue[edgestate[V, W], W](func(s edgestate[V, W]) W {
+	// 	return h(s.edge)
+	// })
 
-	gscore := make(map[V]W)
-	cameFrom := make(map[V]V)
-	for _, edge := range g.originsFrom(v1) {
-		queue.Enqueue(edgestate[V, W]{edge: edge, total: edge.GetWeight()})
-	}
+	// gscore := make(map[V]W)
+	// cameFrom := make(map[V]V)
+	// for _, edge := range g.originsFrom(v1) {
+	// 	queue.Enqueue(edgestate[V, W]{edge: edge, total: edge.GetWeight()})
+	// }
 
 	return nil
 }
