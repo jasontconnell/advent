@@ -9,7 +9,6 @@ type state[V comparable, W Number] struct {
 
 type edgestate[V comparable, W Number] struct {
 	edge  Edge[V, W]
-	path  []Edge[V, W]
 	total W
 }
 
@@ -73,44 +72,19 @@ func (g graph[V, W]) BFS(v1, v2 V) []Edge[V, W] {
 	return path
 }
 
-// func (g graph[V, W]) GetPaths(v1, v2 V) [][]Edge[V, W] {
-// 	paths := [][]Edge[V, W]{}
-// 	queue := NewPriorityQueue[state[V, W], W](func(s state[V, W]) W {
-// 		return s.edge.GetWeight()
-// 	})
+func (g *graph[V, W]) AStar(v1, v2 V, h func(e Edge[V, W]) W) []Edge[V, W] {
+	queue := NewPriorityQueue[edgestate[V, W], W](func(s edgestate[V, W]) W {
+		return h(s.edge)
+	})
 
-// 	mvs := g.originsFrom(v1)
-// 	if mvs == nil {
-// 		return nil
-// 	}
+	gscore := make(map[V]W)
+	cameFrom := make(map[V]V)
+	for _, edge := range g.originsFrom(v1) {
+		queue.Enqueue(edgestate[V, W]{edge: edge, total: edge.GetWeight()})
+	}
 
-// 	for _, mv := range mvs {
-// 		queue.Enqueue(state[V, W]{edge: mv, path: []Edge[V, W]{mv}})
-// 	}
-
-// 	v := make(map[statekey[V]]bool)
-
-// 	for queue.Any() {
-// 		cur := queue.Dequeue()
-
-// 		if cur.edge.GetRight() == v2 {
-// 			paths = append(paths, cur.path)
-// 			continue
-// 		}
-
-// 		mvs := getMoves[V, W](g, cur.edge.GetRight())
-// 		for _, mv := range mvs {
-// 			k := statekey[V]{left: mv.GetLeft(), right: mv.GetRight()}
-// 			fmt.Println("k", k)
-// 			if _, ok := v[k]; ok {
-// 				continue
-// 			}
-// 			v[k] = true
-// 			queue.Enqueue(state[V, W]{edge: mv, path: append(cur.path, mv)})
-// 		}
-// 	}
-// 	return paths
-// }
+	return nil
+}
 
 func getMoves[V comparable, W Number](g graph[V, W], from V) []Edge[V, W] {
 	mvs := []Edge[V, W]{}

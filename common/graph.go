@@ -25,9 +25,9 @@ type Graph[V comparable, W Number] interface {
 
 	GetEdge(v1, v2 V) Edge[V, W]
 
-	// GetPaths(v1, v2 V) [][]Edge[V, W]
 	DFS(v1, v2 V) []Edge[V, W]
 	BFS(v1, v2 V) []Edge[V, W]
+	AStar(v1, v2 V, h func(e Edge[V, W]) W) []Edge[V, W]
 }
 
 func NewGraph[V comparable]() Graph[V, int] {

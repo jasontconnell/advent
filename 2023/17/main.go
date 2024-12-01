@@ -97,7 +97,7 @@ func traverse(m map[xy]block, start xy, goal xy, minstraight, maxstraight int) i
 	})
 
 	itr := 0
-	v := make(map[key]bool)
+	v := make(map[key]int)
 	min := math.MaxInt32
 	queue.Enqueue(state{pos: start, heatloss: 0, dir: xy{1, 0}})
 	queue.Enqueue(state{pos: start, heatloss: 0, dir: xy{0, 1}})
@@ -108,7 +108,7 @@ func traverse(m map[xy]block, start xy, goal xy, minstraight, maxstraight int) i
 		if _, ok := v[k]; ok {
 			continue
 		}
-		v[k] = true
+		v[k] = cur.heatloss
 
 		if cur.pos == goal {
 			if cur.heatloss < min {

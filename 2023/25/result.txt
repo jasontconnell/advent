@@ -1,0 +1,2 @@
+--2023 day 25 solution--
+Part 1: 0
