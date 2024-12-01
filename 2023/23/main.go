@@ -39,9 +39,41 @@ type block struct {
 }
 
 type state struct {
-	path  []xy
-	steps int
 	point xy
+	steps int
+}
+
+func print(m map[xy]block, path []common.Edge[xy, int]) {
+	mx, my := maxes(m)
+	cm := make(map[xy]rune)
+	for y := 0; y <= my; y++ {
+		for x := 0; x <= mx; x++ {
+			pt := xy{x, y}
+			c := '#'
+			b := m[pt]
+			if b.open {
+				c = '.'
+			}
+			if b.slope {
+				c = 'S'
+			}
+			cm[pt] = c
+		}
+	}
+
+	for _, e := range path {
+		p := e.GetLeft()
+		cm[p] = 'O'
+	}
+
+	for y := 0; y <= my; y++ {
+		for x := 0; x <= mx; x++ {
+			pt := xy{x, y}
+			c := cm[pt]
+			fmt.Print(string(c))
+		}
+		fmt.Println()
+	}
 }
 
 func main() {
@@ -102,43 +134,93 @@ func dist(p1, p2 xy) int {
 }
 
 func getLongestPath(m map[xy]block, slippery bool) int {
-	max := 0
 	start, end := findStartEnd(m)
-	queue := common.NewPriorityQueue(func(s state) int {
-		return -s.steps
-	})
-	// queue := common.NewQueue[state, int]()
-	v := make(map[xy]bool)
-	queue.Enqueue(state{path: []xy{start}, point: start, steps: 0})
-	for queue.Any() {
-		cur := queue.Dequeue()
-
-		if cur.point == end {
-			if cur.steps > max {
-				max = cur.steps
-			}
-			continue
-		}
-
-		if _, ok := v[cur.point]; ok {
-			continue
-		}
-		v[cur.point] = true
-
-		mvs := getMoves(m, cur, slippery)
-		for _, mv := range mvs {
-			queue.Enqueue(state{point: mv, path: append(cur.path, mv), steps: cur.steps + 1})
-		}
+	g := getGraph(m, start, end, slippery)
+	edges := g.GetEdges()
+	for _, e := range edges {
+		fmt.Println(e.GetLeft(), e.GetRight(), e.GetWeight())
 	}
-	return max
+	path := g.DFS(start, end)
+	sum := 0
+	for _, edge := range path {
+		sum += edge.GetWeight()
+	}
+	return sum
 }
 
-func getMoves(m map[xy]block, st state, slippery bool) []xy {
-	onslope := m[st.point].slope
-	slopedir := m[st.point].slopedir
+func getGraph(m map[xy]block, start, end xy, slippery bool) common.Graph[xy, int] {
+	g := common.NewGraph[xy]()
+
+	intersections := getIntersections(m, slippery)
+	intersections[start] = true
+	intersections[end] = true
+
+	list := []xy{start, end}
+	for k := range intersections {
+		g.AddVertex(k)
+		if k != start && k != end {
+			list = append(list, k)
+		}
+	}
+
+	for k := range intersections {
+		queue := []state{{point: k, steps: 0}}
+		v := make(map[xy]bool)
+
+		for len(queue) > 0 {
+			cur := queue[0]
+			queue = queue[1:]
+
+			if _, ok := intersections[cur.point]; ok && k != cur.point {
+				g.AddWeightedEdge(k, cur.point, cur.steps)
+				continue
+			}
+
+			mvs := getMoves(m, cur.point, slippery)
+			for _, mv := range mvs {
+				if _, ok := v[mv]; ok {
+					continue
+				}
+				v[mv] = true
+
+				st := state{point: mv, steps: cur.steps + 1}
+				queue = append(queue, st)
+			}
+		}
+	}
+	return g
+}
+
+func getIntersections(m map[xy]block, slippery bool) map[xy]bool {
+	imap := make(map[xy]bool)
+	for k, b := range m {
+		if !b.open {
+			continue
+		}
+		opencount := 0
+		for _, d := range []xy{north, south, east, west} {
+			dest := k.add(d)
+			db, ok := m[dest]
+			if !ok || !db.open {
+				continue
+			}
+			if db.open {
+				opencount++
+			}
+		}
+		if opencount > 2 {
+			imap[k] = true
+		}
+	}
+	return imap
+}
+
+func getMoves(m map[xy]block, pt xy, slippery bool) []xy {
+	onslope := m[pt].slope
+	slopedir := m[pt].slopedir
 	mvs := []xy{}
 	for _, d := range []xy{north, south, east, west} {
-		dest := st.point.add(d)
+		dest := pt.add(d)
 		if p, ok := m[dest]; !ok || !p.open {
 			continue
 		}

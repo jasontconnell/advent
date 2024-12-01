@@ -63,6 +63,17 @@ type result struct {
 	jump           string
 }
 
+type exresult struct {
+	presults []presult
+	accept   bool
+	reject   bool
+}
+
+type presult struct {
+	param    string
+	min, max *int
+}
+
 func (r *rule) String() string {
 	var ops string
 	if r.op != none {
@@ -124,45 +135,111 @@ func part1(in input) output {
 
 func part2(in input) int64 {
 	wflist, _ := parseInput(in)
-	return determineParts(wflist, 1, 4000)
+	return examine(wflist, "in", 1, 4000)
 }
 
-func determineParts(wflist []workflow, min, max int) int64 {
-	acceptWorkflows := []workflow{}
+func examine(wflist []workflow, startwf string, min, max int) int64 {
+	wfm := make(map[string]workflow)
 	for _, w := range wflist {
-		accept := doesAccept(w.rule)
-		if accept {
-			acceptWorkflows = append(acceptWorkflows, w)
+		wfm[w.name] = w
+	}
+	start := wfm[startwf]
+	mins := map[string]int{
+		"x": max, "m": max, "a": max, "s": max,
+	}
+	maxes := map[string]int{
+		"x": min, "m": min, "a": min, "s": min,
+	}
+
+	exresults := examineRule(start.rule, wfm)
+	fmt.Println("in examine", exresults)
+	for _, res := range exresults.presults {
+		if res.min != nil && *res.min < mins[res.param] {
+			mins[res.param] = *res.min
+		} else if res.max != nil && *res.max > maxes[res.param] {
+			maxes[res.param] = *res.max
+		}
+	}
+	var total int64 = 1
+	for k := range mins {
+		if maxes[k] == min {
+			maxes[k] = max
+		}
+		total *= int64(maxes[k] - mins[k])
+	}
+	fmt.Println(mins)
+	fmt.Println(maxes)
+	fmt.Println(167409079868000)
+	fmt.Println(total)
+	fmt.Println(4000 * 4000 * 4000 * 4000)
+	return total
+}
+
+func abs(i int) int {
+	if i < 0 {
+		i = i * -1
+	}
+	return i
+}
+
+func examineRule(r *rule, wfm map[string]workflow) exresult {
+	// min, max := 0, 0
+	// if r.lparam != "" && r.rval != nil {
+	// 	switch r.op {
+	// 	case lt:
+	// 		max = *r.rval
+	// 	case gt:
+	// 		min = *r.rval
+	// 	}
+	// }
+
+	if r.accept {
+		return exresult{accept: true}
+	} else if r.reject {
+		return exresult{reject: true}
+	}
+
+	presults := []presult{}
+	if r.passrule != nil && r.failrule != nil {
+		fmt.Println("recurse pass or fail")
+		for _, porf := range []*rule{r.passrule, r.failrule} {
+			res := examineRule(porf, wfm)
+			if res.accept {
+				if r.op == lt {
+					pres := presult{param: r.lparam, max: r.rval}
+					presults = append(presults, pres)
+				} else {
+					pres := presult{param: r.lparam, min: r.rval}
+					presults = append(presults, pres)
+				}
+			}
+			// else if res.reject {
+			// 	if r.op == lt {
+			// 		pres := presult{param: r.lparam, min: r.rval}
+			// 		presults = append(presults, pres)
+			// 	} else {
+			// 		pres := presult{param: r.lparam, max: r.rval}
+			// 		presults = append(presults, pres)
+			// 	}
+			// }
+			presults = append(presults, res.presults...)
 		}
 	}
 
-	// go through each workflow that accepts
-	// find the values of each x, m, a, s that can accept
-	// multiply them all together. it's gon be big
-	fmt.Println(len(acceptWorkflows), "out of", len(wflist))
+	// if r.failrule != nil {
+	// 	fmt.Println("recurse fail")
+	// 	examineRule(r.failrule, wfm)
+	// }
 
-	return 0
-}
+	if r.jump != "" {
+		wf := wfm[r.jump]
+		res := examineRule(wf.rule, wfm)
+		fmt.Println("from jump", res)
+		presults = append(presults, res.presults...)
+	}
 
-func doesAccept(r *rule) bool {
-	if r.accept {
-		return true
-	}
-	if r.reject {
-		return false
-	}
-	checkrules := []*rule{}
-	if r.passrule != nil {
-		checkrules = append(checkrules, r.passrule)
-	}
-	if r.failrule != nil {
-		checkrules = append(checkrules, r.failrule)
-	}
-	accept := false
-	for _, cr := range checkrules {
-		accept = accept || doesAccept(cr)
-	}
-	return accept
+	// fmt.Println(min, max)
+	return exresult{presults: presults}
 }
 
 func evalWorkflow(wflist []workflow, plist []part, startwf string) int {
