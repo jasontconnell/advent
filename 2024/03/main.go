@@ -88,16 +88,11 @@ func parse(in string) []mul {
 			inmul = false
 			infunc = false
 			cur = ""
-			a = 0
-			b = 0
 		case '(':
 			if inmul {
 				infunc = true
 			}
-			fname = ""
 			cur = ""
-			a = 0
-			b = 0
 		case ')':
 			if infunc && isb {
 				b, _ = strconv.Atoi(cur)
@@ -108,15 +103,10 @@ func parse(in string) []mul {
 			infunc = false
 			isb = false
 			inmul = false
-			a = 0
-			b = 0
 		case ',':
 			if inmul && infunc {
 				a, _ = strconv.Atoi(cur)
 				isb = true
-			} else {
-				inmul = false
-				infunc = false
 			}
 			cur = ""
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -125,9 +115,6 @@ func parse(in string) []mul {
 			inmul = false
 			infunc = false
 			cur = ""
-			fname = ""
-			a = 0
-			b = 0
 		}
 	}
 	return m
