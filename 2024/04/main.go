@@ -32,7 +32,8 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	pts := findDiagonals("MAS", 'A', parse(in))
+	return len(pts)
 }
 
 func findOccurrences(word string, graph map[xy]byte) int {
@@ -57,6 +58,41 @@ type xy struct {
 
 func (p xy) add(p2 xy) xy {
 	return xy{p.x + p2.x, p.y + p2.y}
+}
+
+func findDiagonals(word string, key byte, graph map[xy]byte) []xy {
+	starts := []xy{}
+	deltas := [][]xy{
+		{{1, 1}, {0, 0}, {-1, -1}},
+		{{-1, -1}, {0, 0}, {1, 1}},
+		{{1, -1}, {0, 0}, {-1, 1}},
+		{{-1, 1}, {0, 0}, {1, -1}},
+	}
+	for k, _ := range graph {
+		if graph[k] != key {
+			continue
+		}
+		count := 0
+
+		for _, da := range deltas {
+			w := ""
+			for i := 0; i < len(da); i++ {
+				c := k.add(da[i])
+				if b, ok := graph[c]; ok {
+					w += string(b)
+				}
+			}
+			if w == word {
+				count++
+			}
+		}
+
+		if count == 2 {
+			starts = append(starts, k)
+		}
+	}
+
+	return starts
 }
 
 func getWordsAt(pt xy, graph map[xy]byte, maxlen int) []string {
