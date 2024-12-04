@@ -68,7 +68,7 @@ func findDiagonals(word string, key byte, graph map[xy]byte) int {
 		{{1, -1}, {0, 0}, {-1, 1}},
 		{{-1, 1}, {0, 0}, {1, -1}},
 	}
-	for k, _ := range graph {
+	for k := range graph {
 		if graph[k] != key {
 			continue
 		}
