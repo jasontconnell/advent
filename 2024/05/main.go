@@ -47,7 +47,61 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
+	rules, updates := parse(in)
+	rm := getRuleMap(rules)
+	return fix(updates, rm)
+}
+
+func fix(updates []update, rules map[int][]int) int {
+	fixed := []update{}
+	for i := 0; i < len(updates); i++ {
+		if !verifyUpdate(updates[i], rules) {
+			fixed = append(fixed, fixUpdate(updates[i], rules))
+		}
+	}
+	return verify(fixed, rules)
+}
+
+func fixUpdate(upd update, rules map[int][]int) update {
+	nupdate := update{}
+	for _, n := range upd {
+		if len(nupdate) == 0 {
+			nupdate = append(nupdate, n)
+			continue
+		}
+
+		idx := getInsertIndex(nupdate, rules, n)
+		if idx == -1 {
+			nupdate = append([]int{n}, nupdate...)
+		} else if idx >= len(nupdate) {
+			nupdate = append(nupdate, n)
+		} else {
+			nupdate = append(nupdate[:idx], append([]int{n}, nupdate[idx:]...)...)
+		}
+
+	}
+	return nupdate
+}
+
+func getInsertIndex(upd update, rules map[int][]int, n int) int {
+	i := len(upd)
+	if i == 0 {
+		return 0
+	}
+
+	rn := rules[n]
+	rnm := make(map[int]int)
+	for _, r := range rn {
+		rnm[r] = r
+	}
+	for idx, x := range upd {
+		if _, ok := rnm[x]; ok {
+			i = idx
+			break
+		}
+	}
+
+	return i
 }
 
 func verify(updates []update, rules map[int][]int) int {
