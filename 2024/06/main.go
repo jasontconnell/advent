@@ -29,6 +29,11 @@ type xy struct {
 	x, y int
 }
 
+type visit struct {
+	pt xy
+	d  dir
+}
+
 func (p xy) add(p2 xy) xy {
 	return xy{p.x + p2.x, p.y + p2.y}
 }
@@ -55,11 +60,14 @@ func main() {
 
 func part1(in input) output {
 	grid, start, d := parse(in)
-	return patrol(grid, start, d)
+	visited, _ := patrol(grid, start, d)
+	return visited
 }
 
 func part2(in input) output {
-	return 0
+	grid, start, d := parse(in)
+	obstructions := placeObstructions(grid, start, d)
+	return obstructions
 }
 
 func minmax(g map[xy]block) (xy, xy) {
@@ -83,17 +91,45 @@ func minmax(g map[xy]block) (xy, xy) {
 	return min, max
 }
 
-func patrol(g map[xy]block, start xy, startdir dir) int {
-	visited := make(map[xy]bool)
+func placeObstructions(g map[xy]block, start xy, startdir dir) int {
+	count := 0
+	cp := make(map[xy]block)
+	for k, v := range g {
+		cp[k] = v
+	}
+
+	for k := range cp {
+		if cp[k].wall {
+			continue
+		}
+
+		cp[k] = block{wall: true}
+		if _, looped := patrol(cp, start, startdir); looped {
+			count++
+		}
+		cp[k] = block{wall: false}
+	}
+	return count
+}
+
+func patrol(g map[xy]block, start xy, startdir dir) (int, bool) {
+	visited := make(map[visit]bool)
 	min, max := minmax(g)
 	cur := start
 	d := startdir
+	loops := false
 	for {
 		if cur.x < min.x || cur.y < min.y || cur.x > max.x || cur.y > max.y {
 			break
 		}
 
-		visited[cur] = true
+		vkey := visit{pt: cur, d: d}
+		if _, ok := visited[vkey]; ok {
+			loops = true
+			break
+		}
+
+		visited[vkey] = true
 		test := cur.add(turndir[d])
 		if b, ok := g[test]; (ok && !b.wall) || !ok {
 			cur = test
@@ -102,7 +138,7 @@ func patrol(g map[xy]block, start xy, startdir dir) int {
 			d = turnRight(d)
 		}
 	}
-	return len(visited)
+	return len(visited), loops
 }
 
 func turnRight(d dir) dir {

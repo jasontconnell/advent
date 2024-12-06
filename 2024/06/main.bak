@@ -1,0 +1,275 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"math"
+	"os"
+
+	"github.com/jasontconnell/advent/common"
+)
+
+type input = []string
+type output = int
+
+type dir int
+
+const (
+	E dir = iota
+	W
+	N
+	S
+)
+
+func (d dir) String() string {
+	switch d {
+	case E:
+		return "E"
+	case W:
+		return "W"
+	case N:
+		return "N"
+	case S:
+		return "S"
+	}
+	return ""
+}
+
+var turndir map[dir]xy = map[dir]xy{
+	E: {1, 0}, W: {-1, 0}, S: {0, 1}, N: {0, -1},
+}
+
+type xy struct {
+	x, y int
+}
+
+func (p xy) add(p2 xy) xy {
+	return xy{p.x + p2.x, p.y + p2.y}
+}
+
+func (p xy) reverse() xy {
+	return xy{p.x * -1, p.y * -1}
+}
+
+type block struct {
+	wall bool
+}
+
+func main() {
+	in, err := common.ReadStrings(common.InputFilename(os.Args))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	p1, p1time := common.Time(part1, in)
+	p2, p2time := common.Time(part2, in)
+
+	w := common.TeeOutput(os.Stdout)
+	fmt.Fprintln(w, "--2024 day 06 solution--")
+	fmt.Fprintln(w, "Part 1:", p1)
+	fmt.Fprintln(w, "Part 2:", p2)
+	fmt.Printf("Time %v (%v, %v)", p1time+p2time, p1time, p2time)
+}
+
+func part1(in input) output {
+	grid, start, d := parse(in)
+	c, _ := patrol(grid, start, d, false)
+	return c
+}
+
+func part2(in input) output {
+	grid, start, d := parse(in)
+	_, obs := patrol(grid, start, d, true)
+	return obs
+}
+
+func printgrid(g map[xy]block, min, max, obs xy) {
+	for y := min.y; y <= max.y; y++ {
+		for x := min.x; x <= max.x; x++ {
+			pt := xy{x, y}
+			b := g[pt]
+			c := '.'
+			if b.wall {
+				c = '#'
+			}
+			if pt == obs {
+				c = 'O'
+			}
+			fmt.Print(string(c))
+		}
+		fmt.Println()
+	}
+	fmt.Println()
+}
+
+func minmax(g map[xy]block) (xy, xy) {
+	min := xy{math.MaxInt32, math.MaxInt32}
+	max := xy{math.MinInt32, math.MinInt32}
+
+	for k := range g {
+		if k.x < min.x {
+			min.x = k.x
+		}
+		if k.y < min.y {
+			min.y = k.y
+		}
+		if k.x > max.x {
+			max.x = k.x
+		}
+		if k.y > max.y {
+			max.y = k.y
+		}
+	}
+	return min, max
+}
+
+func calculateObstruction(g map[xy]block, pt xy, d dir, min, max xy) (bool, xy) {
+	curd := d
+	nosearch := xy{-99, -99}
+	obs := false
+	cur := pt
+
+	for i := 0; i < 2; i++ {
+		curd = turnRight(curd)
+		obs, cur = hasInFront(g, cur, turndir[curd], nosearch, false, min, max)
+		if !obs {
+			break
+		}
+	}
+
+	if !obs {
+		return false, xy{}
+	}
+
+	curd = turnRight(curd)
+
+	log.Println("turned and looking for blank", pt, cur, curd)
+
+	var next xy
+	switch curd {
+	case E, W:
+		next.x = pt.x
+		next.y = cur.y
+	case N, S:
+		next.y = pt.y
+		next.x = cur.x
+	}
+
+	obsSpot := next.add(turndir[curd])
+
+	log.Println("blank spot should be at ", next)
+
+	if blank, _ := hasInFront(g, next, turndir[curd], next, true, min, max); blank {
+		obs = true
+	} else if blank, _ := hasInFront(g, next, turndir[curd], next, true, min, max); blank {
+		obs = true
+	}
+
+	log.Println("found?", obs)
+
+	if obs {
+		curd = turnRight(curd)
+		obs, _ = hasInFront(g, next, turndir[curd], pt, true, min, max)
+	}
+
+	return obs, obsSpot
+}
+
+func hasInFront(g map[xy]block, pt, delta, search xy, searchpt bool, min, max xy) (bool, xy) {
+	found := false
+	var fpt xy
+	cur := pt
+	for {
+		if cur.x < min.x || cur.y < min.y || cur.x > max.x || cur.y > max.y {
+			found = false
+			break
+		}
+
+		if searchpt && cur == search {
+			found = true
+			fpt = cur
+			break
+		}
+
+		if b, ok := g[cur]; ok && b.wall {
+			found = !searchpt
+			fpt = cur
+			break
+		}
+
+		cur = cur.add(delta)
+	}
+	return found, fpt.add(delta.reverse()) // back a step to the open space
+}
+
+func patrol(g map[xy]block, start xy, startdir dir, countObs bool) (int, int) {
+	visited := make(map[xy]bool)
+	obs := 0
+	min, max := minmax(g)
+	cur := start
+	d := startdir
+	for {
+		if cur.x < min.x || cur.y < min.y || cur.x > max.x || cur.y > max.y {
+			break
+		}
+		visited[cur] = true
+		test := cur.add(turndir[d])
+		if b, ok := g[test]; (ok && !b.wall) || !ok {
+			cur = test
+			continue
+		} else if b.wall {
+			// check for valid obstruction placement before turning
+			if countObs {
+				isobs, placement := calculateObstruction(g, cur, d, min, max)
+				if isobs {
+					obs++
+					printgrid(g, min, max, placement)
+				}
+			}
+			d = turnRight(d)
+		}
+	}
+	return len(visited), obs
+}
+
+func turnRight(d dir) dir {
+	var nd dir
+	switch d {
+	case E:
+		nd = S
+	case W:
+		nd = N
+	case S:
+		nd = W
+	case N:
+		nd = E
+	}
+	return nd
+}
+
+func parse(in []string) (map[xy]block, xy, dir) {
+	m := make(map[xy]block)
+	var d dir
+	var start xy
+	for y := 0; y < len(in); y++ {
+		for x := 0; x < len(in[y]); x++ {
+			c := in[y][x]
+			m[xy{x, y}] = block{wall: c == '#'}
+
+			if c != '.' && c != '#' {
+				start = xy{x, y}
+				switch c {
+				case '<':
+					d = W
+				case '>':
+					d = E
+				case '^':
+					d = N
+				case 'v':
+					d = S
+				}
+			}
+		}
+	}
+	return m, start, d
+}
