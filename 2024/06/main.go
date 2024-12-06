@@ -61,7 +61,7 @@ func main() {
 func part1(in input) output {
 	grid, start, d := parse(in)
 	visited, _ := patrol(grid, start, d)
-	return visited
+	return len(visited)
 }
 
 func part2(in input) output {
@@ -92,17 +92,14 @@ func minmax(g map[xy]block) (xy, xy) {
 }
 
 func placeObstructions(g map[xy]block, start xy, startdir dir) int {
+	visited, _ := patrol(g, start, startdir)
 	count := 0
 	cp := make(map[xy]block)
 	for k, v := range g {
 		cp[k] = v
 	}
 
-	for k := range cp {
-		if cp[k].wall {
-			continue
-		}
-
+	for k := range visited {
 		cp[k] = block{wall: true}
 		if _, looped := patrol(cp, start, startdir); looped {
 			count++
@@ -112,8 +109,9 @@ func placeObstructions(g map[xy]block, start xy, startdir dir) int {
 	return count
 }
 
-func patrol(g map[xy]block, start xy, startdir dir) (int, bool) {
-	visited := make(map[visit]bool)
+func patrol(g map[xy]block, start xy, startdir dir) (map[xy]bool, bool) {
+	visited := make(map[xy]bool)
+	loopcheck := make(map[visit]bool)
 	min, max := minmax(g)
 	cur := start
 	d := startdir
@@ -123,13 +121,15 @@ func patrol(g map[xy]block, start xy, startdir dir) (int, bool) {
 			break
 		}
 
+		visited[cur] = true
+
 		vkey := visit{pt: cur, d: d}
-		if _, ok := visited[vkey]; ok {
+		if _, ok := loopcheck[vkey]; ok {
 			loops = true
 			break
 		}
 
-		visited[vkey] = true
+		loopcheck[vkey] = true
 		test := cur.add(turndir[d])
 		if b, ok := g[test]; (ok && !b.wall) || !ok {
 			cur = test
@@ -138,7 +138,7 @@ func patrol(g map[xy]block, start xy, startdir dir) (int, bool) {
 			d = turnRight(d)
 		}
 	}
-	return len(visited), loops
+	return visited, loops
 }
 
 func turnRight(d dir) dir {
