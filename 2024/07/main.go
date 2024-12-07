@@ -29,10 +29,6 @@ func (op add) do(a, b int) int {
 	return a + b
 }
 
-func (op add) String() string {
-	return "add"
-}
-
 type mult struct{}
 
 func (op mult) do(a, b int) int {
@@ -52,8 +48,16 @@ func (op concat) do(a, b int) int {
 	return a*ceil10 + b
 }
 
+func (op add) String() string {
+	return "add"
+}
+
 func (op mult) String() string {
 	return "mult"
+}
+
+func (op concat) String() string {
+	return "concat"
 }
 
 func main() {
@@ -74,21 +78,32 @@ func main() {
 
 func part1(in input) output {
 	list := parse(in)
+	ops := []op{add{}, mult{}}
+
+	return checkAll(list, ops, nil)
+}
+
+func part2(in input) output {
+	list := parse(in)
+	ops := []op{add{}, mult{}}
+
+	return checkAll(list, ops, &concat{})
+}
+
+func checkAll(list []problem, validops []op, concatop op) int {
 	total := 0
 	for _, p := range list {
-		if check(p) {
+		if check(p, validops) {
+			total += p.solution
+		} else if concatop != nil && check(p, append(validops, concatop)) {
 			total += p.solution
 		}
 	}
 	return total
 }
 
-func part2(in input) output {
-	return 0
-}
-
-func check(p problem) bool {
-	ops := permOps(p)
+func check(p problem, validops []op) bool {
+	ops := common.AllCombinations(validops, len(p.operands)-1)
 	result := false
 	for _, oplist := range ops {
 		opnum := 0
@@ -106,12 +121,14 @@ func check(p problem) bool {
 	return result
 }
 
-func permOps(p problem) [][]op {
-	ops := []op{add{}, mult{}}
-
+func permOps(p problem, validops []op) [][]op {
 	bits := len(p.operands) - 1
 	if bits == 1 {
-		return [][]op{{add{}}, {mult{}}}
+		res := [][]op{}
+		for _, opp := range validops {
+			res = append(res, []op{opp})
+		}
+		return res
 	}
 	end := int(math.Pow(2, float64(bits)))
 	res := make([][]op, end)
@@ -120,7 +137,7 @@ func permOps(p problem) [][]op {
 		for j := 0; j < bits; j++ {
 			b := i >> j
 			v := b & 1
-			res[i] = append([]op{ops[v]}, res[i]...)
+			res[i] = append([]op{validops[v]}, res[i]...)
 		}
 	}
 
