@@ -24,5 +24,63 @@ func Permutate[T any](list []T) [][]T {
 	}
 
 	return ret
+}
 
+func AllCombinations[T any](list []T, count int) [][]T {
+	indices := getCombinationsIndices(len(list)-1, count)
+	ret := [][]T{}
+	for _, x := range indices {
+		next := []T{}
+		for i := 0; i < len(x); i++ {
+			next = append(next, list[x[i]])
+		}
+		ret = append(ret, next)
+	}
+	return ret
+}
+
+func getCombinationsIndices(max int, num int) [][]int {
+	res := [][]int{}
+	cur := make([]int, num)
+	for i := 0; i < num; i++ {
+		cur[i] = 0
+	}
+	res = append(res, cur)
+	for {
+		next, safe := addOne(cur, max)
+		if !safe {
+			break
+		}
+		res = append(res, next)
+		cur = next
+	}
+	return res
+}
+
+func addOne(list []int, max int) ([]int, bool) {
+	c := make([]int, len(list))
+	copy(c, list)
+	safe := true
+	for j := len(c) - 1; j >= 0; j-- {
+		if c[j] < max {
+			c[j]++
+			break
+		} else if c[j] == max {
+			if j == 0 {
+				// overflow
+				safe = false
+				break
+			} else {
+				if c[j-1] == max {
+					continue
+				}
+				c[j-1]++
+				for i := j; i < len(c); i++ {
+					c[i] = 0
+				}
+				break
+			}
+		}
+	}
+	return c, safe
 }
