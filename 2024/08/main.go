@@ -39,11 +39,12 @@ func main() {
 
 func part1(in input) output {
 	m := parse(in)
-	return findAntinodes(m)
+	return findAntinodes(m, false)
 }
 
 func part2(in input) output {
-	return 0
+	m := parse(in)
+	return findAntinodes(m, true)
 }
 
 func minmax(g map[xy]block) (xy, xy) {
@@ -67,7 +68,7 @@ func minmax(g map[xy]block) (xy, xy) {
 	return min, max
 }
 
-func findAntinodes(m map[xy]block) int {
+func findAntinodes(m map[xy]block, resonantHarmonics bool) int {
 	lookup := make(map[rune][]xy)
 	for k, v := range m {
 		if v.antenna {
@@ -85,7 +86,12 @@ func findAntinodes(m map[xy]block) int {
 					continue
 				}
 
-				an := plotAntinodes(p1, p2)
+				var an []xy
+				if !resonantHarmonics {
+					an = plotAntinodes(p1, p2)
+				} else {
+					an = plotResonantHarmonics(p1, p2, min, max)
+				}
 				for _, p := range an {
 					if p.x < min.x || p.y < min.y || p.x > max.x || p.y > max.y {
 						continue
@@ -100,6 +106,34 @@ func findAntinodes(m map[xy]block) int {
 
 func distance(p1, p2 xy) int {
 	return int(math.Abs(math.Abs(float64(p1.x-p2.x)) + math.Abs(float64(p1.y-p2.y))))
+}
+
+func plotResonantHarmonics(p1, p2, min, max xy) []xy {
+	dx := p1.x - p2.x
+	dy := p1.y - p2.y
+
+	if dx == 0 {
+		log.Fatal("0 slope ", p1, p2)
+	}
+
+	m := float64(dy) / float64(dx)
+
+	list := []xy{}
+	for y := min.y; y <= max.y; y++ {
+		for x := min.x; x <= max.x; x++ {
+			if x == p1.x {
+				continue
+			}
+			dx1 := p1.x - x
+			dy1 := p1.y - y
+			m1 := float64(dy1) / float64(dx1)
+			if m1 == m {
+				list = append(list, xy{x, y})
+			}
+		}
+	}
+
+	return list
 }
 
 func plotAntinodes(p1, p2 xy) []xy {
