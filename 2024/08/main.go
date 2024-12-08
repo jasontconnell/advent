@@ -88,9 +88,6 @@ func findAntinodes(m map[xy]block, usedist bool) int {
 
 				an := plotAntinodes(p1, p2, min, max, usedist)
 				for _, p := range an {
-					if p.x < min.x || p.y < min.y || p.x > max.x || p.y > max.y {
-						continue
-					}
 					antinodes[p] = true
 				}
 			}
