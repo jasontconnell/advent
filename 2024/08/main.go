@@ -39,12 +39,12 @@ func main() {
 
 func part1(in input) output {
 	m := parse(in)
-	return findAntinodes(m, false)
+	return findAntinodes(m, true)
 }
 
 func part2(in input) output {
 	m := parse(in)
-	return findAntinodes(m, true)
+	return findAntinodes(m, false)
 }
 
 func minmax(g map[xy]block) (xy, xy) {
@@ -68,7 +68,7 @@ func minmax(g map[xy]block) (xy, xy) {
 	return min, max
 }
 
-func findAntinodes(m map[xy]block, resonantHarmonics bool) int {
+func findAntinodes(m map[xy]block, usedist bool) int {
 	lookup := make(map[rune][]xy)
 	for k, v := range m {
 		if v.antenna {
@@ -86,12 +86,7 @@ func findAntinodes(m map[xy]block, resonantHarmonics bool) int {
 					continue
 				}
 
-				var an []xy
-				if !resonantHarmonics {
-					an = plotAntinodes(p1, p2)
-				} else {
-					an = plotResonantHarmonics(p1, p2, min, max)
-				}
+				an := plotAntinodes(p1, p2, min, max, usedist)
 				for _, p := range an {
 					if p.x < min.x || p.y < min.y || p.x > max.x || p.y > max.y {
 						continue
@@ -108,9 +103,11 @@ func distance(p1, p2 xy) int {
 	return int(math.Abs(math.Abs(float64(p1.x-p2.x)) + math.Abs(float64(p1.y-p2.y))))
 }
 
-func plotResonantHarmonics(p1, p2, min, max xy) []xy {
+func plotAntinodes(p1, p2, min, max xy, usedist bool) []xy {
 	dx := p1.x - p2.x
 	dy := p1.y - p2.y
+
+	dist := distance(p1, p2)
 
 	if dx == 0 {
 		log.Fatal("0 slope ", p1, p2)
@@ -127,42 +124,18 @@ func plotResonantHarmonics(p1, p2, min, max xy) []xy {
 			dx1 := p1.x - x
 			dy1 := p1.y - y
 			m1 := float64(dy1) / float64(dx1)
+			np := xy{x, y}
 			if m1 == m {
-				list = append(list, xy{x, y})
+				d1 := distance(p1, np)
+				d2 := distance(p2, np)
+				if !usedist || (usedist && (d1 == dist && d2 == dist*2 || d1 == dist*2 && d2 == dist)) {
+					list = append(list, np)
+				}
 			}
 		}
 	}
 
 	return list
-}
-
-func plotAntinodes(p1, p2 xy) []xy {
-	dx := p1.x - p2.x
-	dy := p1.y - p2.y
-
-	test := []xy{
-		{p1.x - dx, p1.y - dy},
-		{p1.x + dx, p1.y + dy},
-		{p1.x - dx, p1.y + dy},
-		{p1.x + dx, p1.y - dy},
-		{p2.x - dx, p2.y - dy},
-		{p2.x + dx, p2.y + dy},
-		{p2.x - dx, p2.y + dy},
-		{p2.x + dx, p2.y - dy},
-	}
-
-	chkdist := distance(p1, p2)
-
-	pts := []xy{}
-	for _, p := range test {
-		dp1 := distance(p, p1)
-		dp2 := distance(p, p2)
-		if (dp1 == chkdist && dp2 == chkdist*2) || (dp1 == chkdist*2 && dp2 == chkdist) {
-			pts = append(pts, p)
-		}
-	}
-
-	return pts
 }
 
 func parse(in []string) map[xy]block {
