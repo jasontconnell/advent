@@ -9,6 +9,9 @@ if ($year -eq "") {
 
 if ($day -eq "") {
     $day = Get-Date -Format "dd"
+    if ($day[0] -eq "0") {
+        $day = $day[1]
+    }
 }
 
 initaoc -y $year -d $day
