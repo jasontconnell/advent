@@ -46,9 +46,7 @@ func findAllPaths(m map[xy]int, start, goal int, distinct bool) int {
 	sum := 0
 	starts := findStarts(m, start)
 	for _, pt := range starts {
-		log.Println("starting from", pt)
 		score := countPaths(m, pt, goal, distinct)
-		log.Println("result", pt, score)
 		sum += score
 	}
 	return sum
