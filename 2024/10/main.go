@@ -34,26 +34,27 @@ func main() {
 
 func part1(in input) output {
 	m := parse(in)
-	return findAllPaths(m, 0, 9)
+	return findAllPaths(m, 0, 9, true)
 }
 
 func part2(in input) output {
-	return 0
+	m := parse(in)
+	return findAllPaths(m, 0, 9, false)
 }
 
-func findAllPaths(m map[xy]int, start, goal int) int {
+func findAllPaths(m map[xy]int, start, goal int, distinct bool) int {
 	sum := 0
 	starts := findStarts(m, start)
 	for _, pt := range starts {
 		log.Println("starting from", pt)
-		score := countPaths(m, pt, goal)
+		score := countPaths(m, pt, goal, distinct)
 		log.Println("result", pt, score)
 		sum += score
 	}
 	return sum
 }
 
-func countPaths(m map[xy]int, start xy, goal int) int {
+func countPaths(m map[xy]int, start xy, goal int, distinct bool) int {
 	np := 0
 	v := make(map[xy]bool)
 	queue := []xy{start}
@@ -61,7 +62,7 @@ func countPaths(m map[xy]int, start xy, goal int) int {
 		cur := queue[0]
 		queue = queue[1:]
 
-		if _, ok := v[cur]; ok {
+		if _, ok := v[cur]; ok && distinct {
 			continue
 		}
 		v[cur] = true
