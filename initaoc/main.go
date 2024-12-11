@@ -59,7 +59,7 @@ func main() {
 
 	err = runInit(y, *day, createYearDir, session, useragent, *boilerplateFolder, *pbaseUrl, *pinput, *pmain)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("couldn't init aoc with the params day: %d year %d err: %s", *day, *year, err.Error()))
+		log.Fatalf("couldn't init aoc with the params day: %d year %d err: %s", *day, *year, err.Error())
 	}
 }
 
@@ -113,12 +113,13 @@ func runInit(year, day int, createYearDir bool, session, useragent, boilerplate,
 	return nil
 }
 
-func initFile(dir, filename, contents string, failIfExists bool) error {
+func initFile(dir, filename, contents string, skipIfExists bool) error {
 	fpath := filepath.Join(dir, filename)
 	_, err := os.Stat(fpath)
 
-	if failIfExists && (os.IsExist(err) || err == nil) {
-		return fmt.Errorf("i won't overwrite a file that already exists. %s", fpath)
+	if skipIfExists && (os.IsExist(err) || err == nil) {
+		log.Println("i won't overwrite a file that already exists. ", fpath)
+		return nil
 	}
 
 	f, err := os.Create(fpath)
@@ -170,8 +171,8 @@ func readFolder(folder string) ([]file, error) {
 
 		f := file{filename: fn}
 
-		b, err := os.ReadFile(path)
-		if err != nil {
+		b, rerr := os.ReadFile(path)
+		if rerr != nil {
 			return err
 		}
 		f.contents = string(b)
