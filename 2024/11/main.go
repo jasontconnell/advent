@@ -36,99 +36,78 @@ func main() {
 }
 
 func part1(in input) output {
-	start := parse(in)
-	return count(blink(start, 25))
+	m := parse(in)
+	return count(blink(m, 25))
 }
 
 func part2(in input) output {
-	return 0
+	m := parse(in)
+	return count(blink(m, 75))
 }
 
-func count(start *stone) int {
+func count(m map[string]int) int {
 	c := 0
-	cur := start
-	for cur != nil {
-		c++
-		cur = cur.next
+	for k, v := range m {
+		if v < 0 {
+			log.Println("< 0", k, v)
+			break
+		}
+		c += v
 	}
 	return c
 }
 
-func blink(start *stone, n int) *stone {
+func blink(m map[string]int, n int) map[string]int {
 	for i := 0; i < n; i++ {
-		start = change(start)
+		log.Println(i, len(m))
+		m = change(m)
 	}
-	return start
+	return m
 }
 
-func change(start *stone) *stone {
-	cur := start
-	for cur != nil {
-		x, _ := strconv.Atoi(cur.digits)
-		if cur.digits == "0" {
-			cur.digits = "1"
-		} else if len(cur.digits)%2 == 0 {
-			left, right := &stone{}, &stone{}
-			ldigits := cur.digits[:len(cur.digits)/2]
-			rdigits := cur.digits[len(cur.digits)/2:]
+func change(m map[string]int) map[string]int {
+	list := []string{}
+	counts := make(map[string]int)
+	for k, v := range m {
+		if v == 0 {
+			continue
+		}
+		counts[k] = v
+		list = append(list, k)
+	}
+	for _, k := range list {
+		count := counts[k]
+		x, _ := strconv.Atoi(k)
+		if k == "0" {
+			m["1"] += count
+			m["0"] -= count
+		} else if len(k)%2 == 0 {
+			ldigits := k[:len(k)/2]
+			rdigits := k[len(k)/2:]
 
-			ln, _ := strconv.Atoi(ldigits)
-			rn, _ := strconv.Atoi(rdigits)
+			lni, _ := strconv.Atoi(ldigits)
+			rni, _ := strconv.Atoi(rdigits)
+			ln := fmt.Sprintf("%d", lni)
+			rn := fmt.Sprintf("%d", rni)
 
-			left.digits = strconv.Itoa(ln)
-			right.digits = strconv.Itoa(rn)
-
-			repl := cur
-
-			if cur.prev == nil {
-				start = left
-			}
-
-			left.prev = repl.prev
-			left.next = right
-			right.prev = left
-			right.next = repl.next
-			if repl.prev != nil {
-				repl.prev.next = left
-			}
-			if repl.next != nil {
-				cur.next.prev = right
-			}
-			repl.next = nil
-			repl.prev = nil
-			cur = right
+			m[k] -= count
+			m[ln] += count
+			m[rn] += count
 		} else {
 			n := x * 2024
-			cur.digits = strconv.Itoa(n)
+			nn := strconv.Itoa(n)
+			m[nn] += count
+			m[k] -= count
 		}
-		cur = cur.next
 	}
-	return start
+	return m
 }
 
-func print(msg string, start *stone) {
-	cur := start
-	fmt.Print(msg + "   ")
-	for cur != nil {
-		fmt.Print(cur.digits, " ")
-		cur = cur.next
-	}
-	fmt.Println()
-}
-
-func parse(in string) *stone {
+func parse(in string) map[string]int {
 	sp := strings.Fields(in)
-	var last *stone
-	var first *stone
+	m := make(map[string]int)
 	for _, s := range sp {
-		st := &stone{digits: s, prev: last}
-		if last != nil {
-			last.next = st
-		}
-		if first == nil {
-			first = st
-		}
-		last = st
+		m[s]++
 	}
-	return first
+	return m
 }
