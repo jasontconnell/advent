@@ -28,7 +28,6 @@ func main() {
 	boilerplateFolder := flag.String("b", "./boilerplate/", "boilerplate folder")
 	pbaseUrl := flag.String("url", "https://adventofcode.com", "aoc url")
 	pinput := flag.String("input", "input.txt", "input filename")
-	pmain := flag.String("main", "main.go", "main go filename")
 	flag.Parse()
 
 	cwd, err := os.Getwd()
@@ -57,13 +56,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = runInit(y, *day, createYearDir, session, useragent, *boilerplateFolder, *pbaseUrl, *pinput, *pmain)
+	err = runInit(y, *day, createYearDir, session, useragent, *boilerplateFolder, *pbaseUrl, *pinput)
 	if err != nil {
 		log.Fatalf("couldn't init aoc with the params day: %d year %d err: %s", *day, *year, err.Error())
 	}
 }
 
-func runInit(year, day int, createYearDir bool, session, useragent, boilerplate, baseUrl, inputFilename, mainFilename string) error {
+func runInit(year, day int, createYearDir bool, session, useragent, boilerplate, baseUrl, inputFilename string) error {
 	syear, sday := strconv.Itoa(year), strconv.Itoa(day)
 	pathDay := "0" + sday
 	pathDay = pathDay[len(pathDay)-2:]
