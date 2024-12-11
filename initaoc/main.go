@@ -125,7 +125,7 @@ func initFile(dir, filename, contents string, skipIfExists bool) (bool, error) {
 
 	_, err = f.WriteString(contents)
 
-	return err != nil, err
+	return err == nil, err
 }
 
 func getInput(url, session, useragent string) (string, error) {
