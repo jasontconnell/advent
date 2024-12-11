@@ -89,47 +89,43 @@ func runInit(year, day int, createYearDir bool, session, useragent, boilerplate,
 		return err
 	}
 
+	files = append(files, file{filename: inputFilename, contents: input})
+
 	for _, f := range files {
 		contents := f.contents
 		contents = strings.ReplaceAll(contents, "{year}", syear)
 		contents = strings.ReplaceAll(contents, "{day}", pathDay)
 
-		err = initFile(dirPath, f.filename, contents, true)
+		success, err := initFile(dirPath, f.filename, contents, true)
 		if err != nil {
-			return err
-		} else {
+			log.Printf("error creating file %s\\%s, %s", dirPath, f.filename, err.Error())
+		} else if success {
 			log.Printf("init'd file %s\\%s", dirPath, f.filename)
+		} else {
+			log.Printf("skipped file %s\\%s", dirPath, f.filename)
 		}
-	}
-
-	err = initFile(dirPath, inputFilename, input, false)
-	if err != nil {
-		log.Println("input file error", err)
-	} else {
-		log.Printf("init'd file %s\\%s", dirPath, inputFilename)
 	}
 
 	return nil
 }
 
-func initFile(dir, filename, contents string, skipIfExists bool) error {
+func initFile(dir, filename, contents string, skipIfExists bool) (bool, error) {
 	fpath := filepath.Join(dir, filename)
 	_, err := os.Stat(fpath)
 
 	if skipIfExists && (os.IsExist(err) || err == nil) {
-		log.Println("i won't overwrite a file that already exists. ", fpath)
-		return nil
+		return false, nil
 	}
 
 	f, err := os.Create(fpath)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer f.Close()
 
 	_, err = f.WriteString(contents)
 
-	return err
+	return err != nil, err
 }
 
 func getInput(url, session, useragent string) (string, error) {
