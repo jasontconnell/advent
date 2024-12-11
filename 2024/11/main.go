@@ -41,11 +41,7 @@ func part2(in input) output {
 
 func count(m map[string]int) int {
 	c := 0
-	for k, v := range m {
-		if v < 0 {
-			log.Println("< 0", k, v)
-			break
-		}
+	for _, v := range m {
 		c += v
 	}
 	return c
@@ -53,7 +49,6 @@ func count(m map[string]int) int {
 
 func blink(m map[string]int, n int) map[string]int {
 	for i := 0; i < n; i++ {
-		log.Println(i, len(m))
 		m = change(m)
 	}
 	return m
