@@ -13,12 +13,6 @@ import (
 type input = string
 type output = int
 
-type stone struct {
-	digits string
-	next   *stone
-	prev   *stone
-}
-
 func main() {
 	in, err := common.ReadString(common.InputFilename(os.Args))
 	if err != nil {
