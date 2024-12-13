@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"regexp"
 	"strconv"
@@ -53,7 +52,8 @@ func part1(in input) output {
 
 func part2(in input) output {
 	machines := parse(in)
-	return solveAll(modifyMachines(machines))
+	machines = modifyMachines(machines)
+	return solveAll(machines)
 }
 
 func solveAll(machines []clawmachine) int {
@@ -67,7 +67,6 @@ func solveAll(machines []clawmachine) int {
 }
 
 func modifyMachines(machines []clawmachine) []clawmachine {
-	return machines
 	for i := 0; i < len(machines); i++ {
 		machines[i].prize.x += 10000000000000
 		machines[i].prize.y += 10000000000000
@@ -76,67 +75,14 @@ func modifyMachines(machines []clawmachine) []clawmachine {
 }
 
 func solveOne(mach clawmachine) (int, bool) {
+	d := mach.a.xdelta*mach.b.ydelta - mach.b.xdelta*mach.a.ydelta
+	d1 := mach.prize.x*mach.b.ydelta - mach.prize.y*mach.b.xdelta
+	d2 := mach.prize.y*mach.a.xdelta - mach.prize.x*mach.a.ydelta
 
-	ab := mach.prize.x / mach.a.xdelta
-	bb := mach.prize.x / mach.b.xdelta
-	start := common.Min(ab, bb)
-
-	left := start == ab
-	queue := []state{{presses: start}}
-	visit := make(map[state]bool)
-	min := math.MaxInt32
-	solved := false
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
-
-		if cur.presses <= 0 {
-			continue
-		}
-
-		if _, ok := visit[cur]; ok {
-			continue
-		}
-		visit[cur] = true
-
-		var abutton, bbutton button
-
-		if left {
-			abutton = mach.a
-			bbutton = mach.b
-		} else {
-			abutton = mach.b
-			bbutton = mach.a
-		}
-
-		avx := abutton.xdelta * cur.presses
-		avy := abutton.ydelta * cur.presses
-
-		if (mach.prize.x-avx)%bbutton.xdelta == 0 && (mach.prize.y-avy)%bbutton.ydelta == 0 {
-			// even divide
-			rem := (mach.prize.x - avx) / bbutton.xdelta
-			if avy+rem*bbutton.ydelta == mach.prize.y {
-				solved = true
-
-				apress := cur.presses
-				bpress := rem
-
-				if !left {
-					apress = rem
-					bpress = cur.presses
-				}
-
-				total := apress*3 + bpress
-				if total < min {
-					min = total
-				}
-				continue
-			}
-		}
-
-		queue = append(queue, state{presses: cur.presses - 1})
+	if d1%d != 0 || d2%d != 0 {
+		return 0, false
 	}
-	return min, solved
+	return (d1/d)*3 + d2/d, true
 }
 
 func parse(in []string) []clawmachine {
@@ -144,12 +90,7 @@ func parse(in []string) []clawmachine {
 	preg := regexp.MustCompile(`^Prize: X=([0-9]+), Y=([0-9]+)$`)
 	machines := []clawmachine{}
 	mach := clawmachine{}
-	for i, line := range in {
-		if line == "" || i == len(in)-1 {
-			machines = append(machines, mach)
-			continue
-		}
-
+	for _, line := range in {
 		if breg.MatchString(line) {
 			m := breg.FindStringSubmatch(line)
 			x, _ := strconv.Atoi(m[2])
@@ -167,6 +108,8 @@ func parse(in []string) []clawmachine {
 			x, _ := strconv.Atoi(m[1])
 			y, _ := strconv.Atoi(m[2])
 			mach.prize = xy{x, y}
+			machines = append(machines, mach)
+			mach = clawmachine{}
 		}
 	}
 	return machines
