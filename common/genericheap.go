@@ -4,15 +4,6 @@ import (
 	"fmt"
 )
 
-type Number interface {
-	int | float64
-}
-
-type Item[T any, N Number] struct {
-	item  T
-	value N
-}
-
 func (s Item[T, N]) String() string {
 	return fmt.Sprintf("%v", s.value)
 }
