@@ -7,7 +7,6 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	"time"
 
 	"github.com/jasontconnell/advent/common"
 )
@@ -94,7 +93,6 @@ func print(bots []bot, w, h int) {
 		fmt.Println()
 	}
 	fmt.Println()
-	time.Sleep(1 * time.Second)
 }
 
 func rootMeanSquare(bots []bot) float64 {
