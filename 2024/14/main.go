@@ -114,40 +114,6 @@ func rootMeanSquare(bots []bot) float64 {
 	return math.Sqrt(float64(ans) / (fnum * fnum))
 }
 
-func isTree(bots []bot, w, h int) bool {
-	m := make(map[xy]bot)
-	for _, b := range bots {
-		m[b.pos] = b
-	}
-
-	fx := w / 2
-	sp := xy{fx, h - 1}
-	// check for top center point
-	if _, ok := m[sp]; !ok {
-		return false
-	}
-
-	tree := true
-	ccol := 1
-	for y := 0; y < h && tree; y++ {
-		col := 0
-		for x := 0; x < w && tree; x++ {
-			pt := xy{x, y}
-			if _, ok := m[pt]; ok {
-				col++
-			}
-		}
-		if col > 0 || col != ccol {
-			tree = false
-			break
-		} else {
-			ccol += 2
-		}
-	}
-
-	return tree
-}
-
 func simulate(bots []bot, sec, w, h int) []bot {
 	for i := 0; i < sec; i++ {
 		for idx, b := range bots {
