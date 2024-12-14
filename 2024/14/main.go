@@ -136,7 +136,6 @@ func countQuadrants(bots []bot, w, h int) int {
 	quads := make(map[int]int)
 	for _, b := range bots {
 		k := b.pos
-		log.Println(k, w, h)
 		if k.x < w/2 && k.y < h/2 {
 			quads[0]++
 		} else if k.x > w/2 && k.y < h/2 {
@@ -148,8 +147,7 @@ func countQuadrants(bots []bot, w, h int) int {
 		}
 	}
 	total := 1
-	for k, v := range quads {
-		log.Println("quad", k, v)
+	for _, v := range quads {
 		total *= v
 	}
 	return total
