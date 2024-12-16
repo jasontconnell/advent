@@ -48,13 +48,18 @@ type state struct {
 	pt     xy
 	score  int
 	facing dir
-	path   []state
+	path   []xyscore
 	isturn bool
 }
 
 type statekey struct {
 	pt     xy
 	facing dir
+}
+
+type xyscore struct {
+	pt    xy
+	score int
 }
 
 func main() {
@@ -91,11 +96,11 @@ func traverse(m map[xy]rune, start, end xy, trackpath bool, maxscore int) (int, 
 		return s.score
 	})
 	startstate := state{pt: start, score: 0, facing: Right}
-	startstate.path = append(startstate.path, startstate)
+	startstate.path = append(startstate.path, xyscore{pt: start, score: 0})
 	queue.Enqueue(startstate)
 
 	visit := make(map[statekey]state)
-	best := make(map[xy]state)
+	best := make(map[xy]xyscore)
 
 	lowscore := math.MaxInt32
 	solves := 0
@@ -155,7 +160,7 @@ func traverse(m map[xy]rune, start, end xy, trackpath bool, maxscore int) (int, 
 			continue
 		}
 
-		mvs := getMoves(cur, trackpath)
+		mvs := getMoves(m, cur, trackpath)
 		for _, mv := range mvs {
 			if _, ok := m[mv.pt]; ok {
 				queue.Enqueue(mv)
@@ -165,20 +170,20 @@ func traverse(m map[xy]rune, start, end xy, trackpath bool, maxscore int) (int, 
 	return lowscore, len(best)
 }
 
-func getMoves(cur state, trackpath bool) []state {
-	var pcopy []state
-
-	next := cur.pt.add(cur.facing.xy())
+func getMoves(m map[xy]rune, cur state, trackpath bool) []state {
+	var pcopy []xyscore
 
 	if trackpath {
-		pcopy = make([]state, len(cur.path))
+		pcopy = make([]xyscore, len(cur.path))
 		copy(pcopy, cur.path)
 	}
 
 	mvs := []state{}
+
+	next := cur.pt.add(cur.facing.xy())
 	mvstate := state{pt: next, score: cur.score + 1, facing: cur.facing}
 	if trackpath {
-		mvstate.path = append(pcopy, mvstate)
+		mvstate.path = append(pcopy, xyscore{pt: mvstate.pt, score: mvstate.score})
 	}
 	mvs = append(mvs, mvstate)
 
@@ -186,47 +191,42 @@ func getMoves(cur state, trackpath bool) []state {
 		return mvs
 	}
 
-	switch cur.facing {
-	case Up, Down:
-		state1 := state{pt: cur.pt, score: cur.score + 1000, facing: Right, isturn: true}
-		state2 := state{pt: cur.pt, score: cur.score + 1000, facing: Left, isturn: true}
-		state3 := state{pt: cur.pt, score: cur.score + 2000, facing: Down, isturn: true}
-		state4 := state{pt: cur.pt, score: cur.score + 2000, facing: Up, isturn: true}
-		if trackpath {
-			state1.path = append(pcopy, state1)
-			state2.path = append(pcopy, state2)
+	right := state{pt: cur.pt, score: cur.score, facing: Right, isturn: true}
+	left := state{pt: cur.pt, score: cur.score, facing: Left, isturn: true}
+	down := state{pt: cur.pt, score: cur.score, facing: Down, isturn: true}
+	up := state{pt: cur.pt, score: cur.score, facing: Up, isturn: true}
+
+	tmvs := []state{right, left, down, up}
+	for i := 0; i < len(tmvs); i++ {
+		s := tmvs[i]
+		fpt := s.pt.add(s.facing.xy())
+		if _, ok := m[fpt]; !ok {
+			continue
 		}
-		mvs = append(mvs, state1)
-		mvs = append(mvs, state2)
-		// rotate twice to get opposite
-		if cur.facing == Up {
-			state3.path = append(pcopy, state3)
-			mvs = append(mvs, state3)
-		} else {
-			state4.path = append(pcopy, state4)
-			mvs = append(mvs, state4)
+		if s.facing == cur.facing {
+			continue
 		}
-	case Left, Right:
-		state1 := state{pt: cur.pt, score: cur.score + 1000, facing: Up, isturn: true}
-		state2 := state{pt: cur.pt, score: cur.score + 1000, facing: Down, isturn: true}
-		state3 := state{pt: cur.pt, score: cur.score + 2000, facing: Right, isturn: true}
-		state4 := state{pt: cur.pt, score: cur.score + 2000, facing: Left, isturn: true}
-		if trackpath {
-			state1.path = append(pcopy, state1)
-			state2.path = append(pcopy, state2)
-		}
-		mvs = append(mvs, state1)
-		mvs = append(mvs, state2)
-		// rotate twice to get opposite
-		if cur.facing == Left {
-			state3.path = append(pcopy, state3)
-			mvs = append(mvs, state3)
-		} else {
-			mvs = append(mvs, state4)
-			state4.path = append(pcopy, state4)
+		switch cur.facing {
+		case Up, Down:
+			if s.facing == Left || s.facing == Right {
+				s.score += 1000
+			} else {
+				s.score += 2000
+			}
+		case Left, Right:
+			if s.facing == Up || s.facing == Down {
+				s.score += 1000
+			} else {
+				s.score += 2000
+			}
 		}
 
+		if trackpath {
+			s.path = append(pcopy, xyscore{pt: s.pt, score: s.score})
+		}
+		mvs = append(mvs, s)
 	}
+
 	return mvs
 }
 
