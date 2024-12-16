@@ -213,7 +213,8 @@ func getMoves(m map[xy]rune, cur state, trackpath bool) []state {
 				add = true
 			}
 		}
-
+		s.score += 1
+		s.pt = fpt
 		if trackpath {
 			s.path = append(pcopy, xyscore{pt: s.pt, score: s.score})
 		}
