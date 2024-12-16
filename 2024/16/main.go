@@ -140,9 +140,7 @@ func traverse(m map[xy]rune, start, end xy, trackpath bool) (int, int) {
 
 		if cur.pt == end {
 			if trackpath && cur.score < lowscore {
-				for k := range best {
-					delete(best, k)
-				}
+				best = make(map[xy]xyscore)
 			}
 			if cur.score <= lowscore {
 				lowscore = cur.score
