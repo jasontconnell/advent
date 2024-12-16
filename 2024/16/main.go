@@ -20,10 +20,6 @@ func (p xy) add(p2 xy) xy {
 	return xy{p.x + p2.x, p.y + p2.y}
 }
 
-func dist(p1, p2 xy) int {
-	return int(math.Abs(float64(p1.x-p2.x)) + math.Abs(float64(p1.y-p2.y)))
-}
-
 type dir int
 
 const (
@@ -78,20 +74,19 @@ func main() {
 }
 
 func part1(in input) output {
-	return 0
 	m, start, end := parse(in)
-	log.Println(start, end)
-	lowscore, _ := traverse(m, start, end, false)
+	lowscore, _ := traverse(m, start, end, false, math.MaxInt32)
 	return lowscore
 }
 
 func part2(in input) output {
 	m, start, end := parse(in)
-	_, length := traverse(m, start, end, true)
+	lowscore, _ := traverse(m, start, end, false, math.MaxInt32)
+	_, length := traverse(m, start, end, true, lowscore)
 	return length
 }
 
-func traverse(m map[xy]rune, start, end xy, trackpath bool) (int, int) {
+func traverse(m map[xy]rune, start, end xy, trackpath bool, maxscore int) (int, int) {
 	queue := common.NewPriorityQueue(func(s state) int {
 		return s.score
 	})
@@ -109,6 +104,10 @@ func traverse(m map[xy]rune, start, end xy, trackpath bool) (int, int) {
 		cur := queue.Dequeue()
 
 		if cur.score > lowscore {
+			continue
+		}
+
+		if trackpath && cur.score > maxscore+1 {
 			continue
 		}
 
@@ -182,12 +181,12 @@ func getMoves(cur state, trackpath bool) []state {
 		mvstate.path = append(pcopy, mvstate)
 	}
 	mvs = append(mvs, mvstate)
+
 	if cur.isturn {
 		return mvs
 	}
 
-	sd := cur.facing
-	switch sd {
+	switch cur.facing {
 	case Up, Down:
 		state1 := state{pt: cur.pt, score: cur.score + 1000, facing: Right, isturn: true}
 		state2 := state{pt: cur.pt, score: cur.score + 1000, facing: Left, isturn: true}
@@ -196,15 +195,15 @@ func getMoves(cur state, trackpath bool) []state {
 		if trackpath {
 			state1.path = append(pcopy, state1)
 			state2.path = append(pcopy, state2)
-			state3.path = append(pcopy, state3)
-			state4.path = append(pcopy, state4)
 		}
 		mvs = append(mvs, state1)
 		mvs = append(mvs, state2)
 		// rotate twice to get opposite
-		if sd == Up {
+		if cur.facing == Up {
+			state3.path = append(pcopy, state3)
 			mvs = append(mvs, state3)
 		} else {
+			state4.path = append(pcopy, state4)
 			mvs = append(mvs, state4)
 		}
 	case Left, Right:
@@ -215,16 +214,16 @@ func getMoves(cur state, trackpath bool) []state {
 		if trackpath {
 			state1.path = append(pcopy, state1)
 			state2.path = append(pcopy, state2)
-			state3.path = append(pcopy, state3)
-			state4.path = append(pcopy, state4)
 		}
 		mvs = append(mvs, state1)
 		mvs = append(mvs, state2)
 		// rotate twice to get opposite
-		if sd == Left {
+		if cur.facing == Left {
+			state3.path = append(pcopy, state3)
 			mvs = append(mvs, state3)
 		} else {
 			mvs = append(mvs, state4)
+			state4.path = append(pcopy, state4)
 		}
 
 	}
