@@ -80,20 +80,23 @@ func main() {
 
 func part1(in input) output {
 	m, start, end := parse(in)
-	lowscore, _ := traverse(m, start, end, false, math.MaxInt32)
+	lowscore, _ := traverse(m, start, end, false)
 	return lowscore
 }
 
 func part2(in input) output {
 	m, start, end := parse(in)
-	lowscore, _ := traverse(m, start, end, false, math.MaxInt32)
-	_, length := traverse(m, start, end, true, lowscore)
+	_, length := traverse(m, start, end, true)
 	return length
 }
 
-func traverse(m map[xy]rune, start, end xy, trackpath bool, maxscore int) (int, int) {
+func traverse(m map[xy]rune, start, end xy, trackpath bool) (int, int) {
 	queue := common.NewPriorityQueue(func(s state) int {
-		return s.score
+		h := s.score
+		if trackpath {
+			h = h * len(s.path)
+		}
+		return h
 	})
 	startstate := state{pt: start, score: 0, facing: Right}
 	startstate.path = append(startstate.path, xyscore{pt: start, score: 0})
@@ -101,18 +104,12 @@ func traverse(m map[xy]rune, start, end xy, trackpath bool, maxscore int) (int, 
 
 	visit := make(map[statekey]state)
 	best := make(map[xy]xyscore)
-
 	lowscore := math.MaxInt32
-	solves := 0
 
 	for queue.Any() {
 		cur := queue.Dequeue()
 
 		if cur.score > lowscore {
-			continue
-		}
-
-		if trackpath && cur.score > maxscore+1 {
 			continue
 		}
 
@@ -142,13 +139,12 @@ func traverse(m map[xy]rune, start, end xy, trackpath bool, maxscore int) (int, 
 		visit[sk] = cur
 
 		if cur.pt == end {
-			if cur.score < lowscore && trackpath {
+			if trackpath && cur.score < lowscore {
 				for k := range best {
 					delete(best, k)
 				}
 			}
 			if cur.score <= lowscore {
-				solves++
 				lowscore = cur.score
 				if trackpath {
 					for _, st := range cur.path {
