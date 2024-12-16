@@ -202,25 +202,26 @@ func getMoves(m map[xy]rune, cur state, trackpath bool) []state {
 		if s.facing == cur.facing {
 			continue
 		}
+		add := false
 		switch cur.facing {
 		case Up, Down:
 			if s.facing == Left || s.facing == Right {
 				s.score += 1000
-			} else {
-				s.score += 2000
+				add = true
 			}
 		case Left, Right:
 			if s.facing == Up || s.facing == Down {
 				s.score += 1000
-			} else {
-				s.score += 2000
+				add = true
 			}
 		}
 
 		if trackpath {
 			s.path = append(pcopy, xyscore{pt: s.pt, score: s.score})
 		}
-		mvs = append(mvs, s)
+		if add {
+			mvs = append(mvs, s)
+		}
 	}
 
 	return mvs
