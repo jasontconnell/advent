@@ -86,6 +86,7 @@ func findQuine(prog program, regs []register) int64 {
 		for p := len(prog.ops) - len(vals); p < len(prog.ops); p++ {
 			if vals[vp] != prog.ops[p] {
 				matched = false
+				break
 			}
 			vp++
 		}
