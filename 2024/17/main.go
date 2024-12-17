@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"math"
@@ -18,17 +17,17 @@ type output = string
 
 type register struct {
 	name string
-	data int
+	data int64
 }
 
 type op struct {
 	id      int
-	operand int
+	operand int64
 }
 
 type program struct {
 	ptr int
-	ops []int
+	ops []int64
 }
 
 func main() {
@@ -49,21 +48,79 @@ func main() {
 
 func part1(in input) output {
 	regs, prog := parse(in)
-	return runProgram(prog, regs)
+	vals := runProgram(prog, regs)
+	s := ""
+	for i := 0; i < len(vals); i++ {
+		s += fmt.Sprintf("%d", vals[i])
+		if i != len(vals)-1 {
+			s += ","
+		}
+	}
+	return s
 }
 
-func part2(in input) output {
-	return ""
+func part2(in input) int64 {
+	regs, prog := parse(in)
+	return findQuine(prog, regs)
 }
 
-func runProgram(prog program, regs []register) string {
-	b := bytes.NewBufferString("")
+type state struct {
+	segs []int64
+}
+
+func findQuine(prog program, regs []register) int64 {
+	queue := []state{}
+	for i := 0; i < 8; i++ {
+		queue = append(queue, state{[]int64{int64(i)}})
+	}
+	var final int64
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		var x int64
+		for i := len(cur.segs) - 1; i >= 0; i-- {
+			s := cur.segs[i] << (3 * i)
+			x = x | s
+		}
+
+		regs[0].data = x
+		vals := runProgram(prog, regs)
+		vp := 0
+		matched := true
+		for p := len(prog.ops) - len(vals); p < len(prog.ops); p++ {
+			if vals[vp] != prog.ops[p] {
+				matched = false
+			}
+			vp++
+		}
+
+		done := matched && len(prog.ops) == len(vals)
+		if done {
+			final = x
+			break
+		}
+
+		if matched {
+			for i := 0; i < 8; i++ {
+				nseg := make([]int64, len(cur.segs))
+				copy(nseg, cur.segs)
+				nseg = append([]int64{int64(i)}, nseg...)
+				queue = append(queue, state{nseg})
+			}
+		}
+	}
+	return final
+}
+
+func runProgram(prog program, regs []register) []int64 {
+	output := []int64{}
 	rm := make(map[string]register)
 	for _, r := range regs {
 		rm[r.name] = r
 	}
 
-	getVal := func(i int) int {
+	getVal := func(i int64) int64 {
 		switch i {
 		case 0, 1, 2, 3, 7:
 			return i
@@ -77,13 +134,12 @@ func runProgram(prog program, regs []register) string {
 		return -1
 	}
 
-	setVal := func(r string, i int) {
+	setVal := func(r string, i int64) {
 		reg := rm[r]
 		reg.data = i
 		rm[r] = reg
 	}
 
-	outcount := 0
 	for {
 		if prog.ptr >= len(prog.ops) {
 			break
@@ -96,7 +152,7 @@ func runProgram(prog program, regs []register) string {
 		switch cur {
 		case 0:
 			n := rm["A"].data
-			d := int(math.Pow(2, float64(getVal(operand))))
+			d := int64(math.Pow(2, float64(getVal(operand))))
 			if d != 0 {
 				v := n / d
 				setVal("A", v)
@@ -113,7 +169,7 @@ func runProgram(prog program, regs []register) string {
 			jnz := rm["A"].data
 			if jnz != 0 {
 				dojump = false
-				prog.ptr = operand
+				prog.ptr = int(operand)
 			}
 		case 4:
 			b := rm["B"].data
@@ -122,21 +178,17 @@ func runProgram(prog program, regs []register) string {
 			setVal("B", v)
 		case 5:
 			v := getVal(operand) % 8
-			if outcount > 0 {
-				fmt.Fprint(b, ",")
-			}
-			fmt.Fprintf(b, "%d", v)
-			outcount++
+			output = append(output, v)
 		case 6:
 			n := rm["A"].data
-			d := int(math.Pow(2, float64(getVal(operand))))
+			d := int64(math.Pow(2, float64(getVal(operand))))
 			if d != 0 {
 				v := n / d
 				setVal("B", v)
 			}
 		case 7:
 			n := rm["A"].data
-			d := int(math.Pow(2, float64(getVal(operand))))
+			d := int64(math.Pow(2, float64(getVal(operand))))
 			if d != 0 {
 				v := n / d
 				setVal("C", v)
@@ -144,11 +196,10 @@ func runProgram(prog program, regs []register) string {
 		}
 		if dojump {
 			prog.ptr += jmp
-			fmt.Println("ptr", prog.ptr)
 		}
 
 	}
-	return b.String()
+	return output
 }
 
 func parse(in []string) ([]register, program) {
@@ -162,16 +213,16 @@ func parse(in []string) ([]register, program) {
 		rm := rreg.FindStringSubmatch(line)
 		if len(rm) != 0 {
 			name := rm[1]
-			val, _ := strconv.Atoi(rm[2])
+			val, _ := strconv.ParseInt(rm[2], 10, 64)
 			reg := register{name: name, data: val}
 			regs = append(regs, reg)
 		}
 		pm := preg.FindStringSubmatch(line)
 		if len(pm) != 0 {
 			ops := strings.Split(pm[1], ",")
-			vals := []int{}
+			vals := []int64{}
 			for _, s := range ops {
-				v, _ := strconv.Atoi(s)
+				v, _ := strconv.ParseInt(s, 10, 64)
 				vals = append(vals, v)
 			}
 			prog.ptr = 0
