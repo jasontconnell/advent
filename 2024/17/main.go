@@ -20,11 +20,6 @@ type register struct {
 	data int64
 }
 
-type op struct {
-	id      int
-	operand int64
-}
-
 type program struct {
 	ptr int
 	ops []int64
