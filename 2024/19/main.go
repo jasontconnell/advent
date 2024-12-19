@@ -143,7 +143,7 @@ func parse(in []string) (map[string][]string, []string) {
 	}
 	for k := range pmap {
 		subs := allSubstrings(k)
-		for _, s := subs {
+		for _, s := range subs {
 			if _, ok := pmap[s]; ok {
 				pmap[s] = append(pmap[s], s)
 			}
