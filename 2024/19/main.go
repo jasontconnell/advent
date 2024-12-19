@@ -50,10 +50,14 @@ func part2(in input) output {
 }
 
 func findValidDesigns(patterns, designs []string) int {
+	pmap := make(map[string]bool)
+	for _, p := range patterns {
+		pmap[p] = true
+	}
 	min, max := minmaxlen(patterns)
 	count := 0
 	for _, design := range designs {
-		if designValid(patterns, design, min, max) {
+		if designValid(pmap, design, min, max) {
 			count++
 		}
 	}
@@ -73,12 +77,7 @@ func minmaxlen(str []string) (int, int) {
 	return min, max
 }
 
-func designValid(patterns []string, design string, min, max int) bool {
-	pmap := make(map[string]bool)
-	for _, p := range patterns {
-		pmap[p] = true
-	}
-
+func designValid(pmap map[string]bool, design string, min, max int) bool {
 	valid := false
 	queue := common.NewQueue[state, int]()
 	initial := state{pos: 0, sub: "", total: ""}
