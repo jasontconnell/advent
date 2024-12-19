@@ -78,7 +78,18 @@ func minmaxlen(pmap map[string][]string) (int, int) {
 }
 
 func countVariations(pmap map[string][]string, design string) {
-
+	for k, v := range pmap {
+		for _, s := range v {
+			if strings.Contains(design, k) {
+				log.Println(k, "in design", design)
+				for k2 := range pmap {
+					if len(k) > len(k2) || k == k2 || len(k) == 1 {
+						continue
+					}
+				}
+			}
+		}
+	}
 }
 
 func designValid(pmap map[string][]string, design string, min, max int) bool {
@@ -128,7 +139,15 @@ func parse(in []string) (map[string][]string, []string) {
 	designs := in[2:]
 	pmap := make(map[string][]string)
 	for _, p := range patterns {
-		pmap[p] = allSubstrings(p)
+		pmap[p] = []string{}
+	}
+	for k := range pmap {
+		subs := allSubstrings(k)
+		for _, s := subs {
+			if _, ok := pmap[s]; ok {
+				pmap[s] = append(pmap[s], s)
+			}
+		}
 	}
 
 	return pmap, designs
