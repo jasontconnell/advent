@@ -46,15 +46,15 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
+	p, d := parse(in)
+	for _, design := range d {
+		countVariations(p, design)
+	}
 	return 0
 }
 
-func findValidDesigns(patterns, designs []string) int {
-	pmap := make(map[string]bool)
-	for _, p := range patterns {
-		pmap[p] = true
-	}
-	min, max := minmaxlen(patterns)
+func findValidDesigns(pmap map[string][]string, designs []string) int {
+	min, max := minmaxlen(pmap)
 	count := 0
 	for _, design := range designs {
 		if designValid(pmap, design, min, max) {
@@ -64,9 +64,9 @@ func findValidDesigns(patterns, designs []string) int {
 	return count
 }
 
-func minmaxlen(str []string) (int, int) {
+func minmaxlen(pmap map[string][]string) (int, int) {
 	min, max := math.MaxInt32, math.MinInt32
-	for _, s := range str {
+	for s := range pmap {
 		if len(s) < min {
 			min = len(s)
 		}
@@ -77,7 +77,11 @@ func minmaxlen(str []string) (int, int) {
 	return min, max
 }
 
-func designValid(pmap map[string]bool, design string, min, max int) bool {
+func countVariations(pmap map[string][]string, design string) {
+
+}
+
+func designValid(pmap map[string][]string, design string, min, max int) bool {
 	valid := false
 	queue := common.NewQueue[state, int]()
 	initial := state{pos: 0, sub: "", total: ""}
@@ -105,7 +109,7 @@ func designValid(pmap map[string]bool, design string, min, max int) bool {
 	return valid
 }
 
-func getPossibles(design string, cur state, pmap map[string]bool, min, max int) []state {
+func getPossibles(design string, cur state, pmap map[string][]string, min, max int) []state {
 	list := []state{}
 	for i := min; i <= max; i++ {
 		if cur.pos+i > len(design) {
@@ -119,8 +123,27 @@ func getPossibles(design string, cur state, pmap map[string]bool, min, max int) 
 	return list
 }
 
-func parse(in []string) ([]string, []string) {
+func parse(in []string) (map[string][]string, []string) {
 	patterns := strings.Fields(strings.ReplaceAll(in[0], ",", ""))
 	designs := in[2:]
-	return patterns, designs
+	pmap := make(map[string][]string)
+	for _, p := range patterns {
+		pmap[p] = allSubstrings(p)
+	}
+
+	return pmap, designs
+}
+
+func allSubstrings(str string) []string {
+	list := []string{}
+	for i := 0; i < len(str); i++ {
+		for j := 0; j < len(str); j++ {
+			if i > j {
+				continue
+			}
+			v := str[i : j+1]
+			list = append(list, v)
+		}
+	}
+	return list
 }
