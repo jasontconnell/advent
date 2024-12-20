@@ -67,7 +67,6 @@ func part1(in input) output {
 }
 
 func part2(in input) output {
-	return 0
 	m, start, end := parse(in)
 	ex := len(in) < 20
 	totalTime, optimalPath := traverse(m, start, end, 1, 0, 0, nil, ex)
