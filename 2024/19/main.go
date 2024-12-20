@@ -13,19 +13,6 @@ import (
 type input = []string
 type output = int
 
-type state struct {
-	pos    int
-	sub    string
-	total  string
-	pieces string
-}
-
-type statekey struct {
-	pos    int
-	sub    string
-	pieces string
-}
-
 func main() {
 	in, err := common.ReadStrings(common.InputFilename(os.Args))
 	if err != nil {
