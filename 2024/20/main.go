@@ -28,19 +28,19 @@ func (p xy) dist(p2 xy) float64 {
 
 type state struct {
 	pt         xy
-	cheated    bool
 	cheatstart xy
 	cheatend   xy
-	count      int
-	cheatmove  bool
-	dir        xy
-	path       []xy
+	cheattime  int
+	cheating   bool
+
+	count int
+	dir   xy
+	path  []xy
 }
 
 type statekey struct {
 	pt         xy
 	cheatstart xy
-	cheatend   xy
 }
 
 func main() {
@@ -69,19 +69,30 @@ func part1(in input) output {
 
 func part2(in input) output {
 	return 0
+	m, start, end := parse(in)
+	ex := len(in) < 20
+	totalTime, optimalPath := traverse(m, start, end, 0, 0, 0, nil, ex)
+	countCheats, _ := traverse(m, start, end, 20, totalTime, 100, optimalPath, ex)
+	return countCheats
 }
 
 func traverse(m map[xy]bool, start, end xy, cheattime int, compareValue, less int, optimalPath []xy, example bool) (int, []xy) {
-	initial := state{pt: start, count: 0, cheated: false, cheatstart: xy{-1, -1}, cheatend: xy{-1, -1}}
-	queue := common.NewPriorityQueue[state, float64](func(st state) float64 {
-		return st.pt.dist(end)
-	})
+	nullpoint := xy{-1, -1}
+	initial := state{pt: start, count: 0, cheatstart: nullpoint, cheatend: nullpoint}
+	queue := common.NewQueue[state, int]()
 	queue.Enqueue(initial)
 	visited := make(map[statekey]bool)
 	total := 0
 	minTime := math.MaxInt32
 	var minpath []xy
 	allowCheat := cheattime > 0
+
+	cheatmap := make(map[xy]bool)
+	for k := range m {
+		cheatmap[k] = true
+	}
+
+	leftmap := make(map[int]int)
 
 	pmap := make(map[xy]int)
 	if allowCheat && optimalPath != nil {
@@ -93,7 +104,7 @@ func traverse(m map[xy]bool, start, end xy, cheattime int, compareValue, less in
 	for queue.Any() {
 		cur := queue.Dequeue()
 
-		sk := statekey{pt: cur.pt, cheatstart: cur.cheatstart, cheatend: cur.cheatend}
+		sk := statekey{pt: cur.pt, cheatstart: cur.cheatstart}
 		if _, ok := visited[sk]; ok {
 			continue
 		}
@@ -103,21 +114,25 @@ func traverse(m map[xy]bool, start, end xy, cheattime int, compareValue, less in
 			continue
 		}
 
-		if cur.cheatmove {
+		if cur.cheatend != nullpoint {
+			if open, ok := m[cur.cheatend]; !ok || !open {
+				continue
+			}
 			// skip to end
 			eidx, eok := pmap[end]
 			nstart, nok := pmap[cur.cheatend]
 			if eok && nok {
 				fullPath := cur.count + (eidx - nstart)
 				saved := compareValue - fullPath
-				if saved < 0 {
+				if saved <= 0 {
 					continue
 				}
 				if saved >= less || example {
+					leftmap[saved]++
 					total++
 				}
-				continue
 			}
+			continue
 		}
 
 		if cur.pt == end {
@@ -130,22 +145,24 @@ func traverse(m map[xy]bool, start, end xy, cheattime int, compareValue, less in
 			continue
 		}
 
-		mvs := getMoves(m, cur, allowCheat)
+		var mvs []state
+		if cur.cheating {
+			mvs = getMoves(cheatmap, cur, allowCheat, cheattime)
+		} else {
+			mvs = getMoves(m, cur, allowCheat, cheattime)
+		}
 		for _, mv := range mvs {
-			if _, ok := m[mv.pt]; ok && mv.cheatmove {
-				queue.Enqueue(mv)
-			} else if ok {
-				queue.Enqueue(mv)
-			}
+			queue.Enqueue(mv)
 		}
 	}
+	log.Println(leftmap)
 	if allowCheat {
 		return total, nil
 	}
 	return minTime, minpath
 }
 
-func getMoves(m map[xy]bool, cur state, allowCheat bool) []state {
+func getMoves(m map[xy]bool, cur state, allowCheat bool, cheattime int) []state {
 	mvs := []state{}
 	dirs := []xy{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}
 
@@ -153,12 +170,10 @@ func getMoves(m map[xy]bool, cur state, allowCheat bool) []state {
 		np := cur.pt.add(d)
 
 		if open, ok := m[np]; ok {
-			if allowCheat && !open && !cur.cheated {
-				// np is a wall, check if we can go through a wall and end up on track
-				cp := np.add(d)
-				if f, ok := m[cp]; ok && f {
-					mvs = append(mvs, state{pt: cp, dir: d, cheated: true, cheatstart: cur.pt, cheatend: cp, cheatmove: true, count: cur.count + 2})
-				}
+			if allowCheat && !open && !cur.cheating {
+				mvs = append(mvs, state{pt: np, dir: d, cheattime: 1, cheatstart: np, cheatend: cur.cheatend, cheating: true, count: cur.count + 1})
+			} else if allowCheat && open && cur.cheating && cur.cheattime >= cheattime {
+				mvs = append(mvs, state{pt: np, dir: d, cheattime: cur.cheattime + 1, cheatstart: cur.cheatstart, cheatend: np, cheating: true, count: cur.count + 1})
 			}
 
 			if open {
@@ -168,7 +183,12 @@ func getMoves(m map[xy]bool, cur state, allowCheat bool) []state {
 					copy(path, cur.path)
 					path = append(path, np)
 				}
-				mvs = append(mvs, state{pt: np, path: path, dir: d, cheatstart: cur.cheatstart, cheatend: cur.cheatend, cheated: cur.cheated, cheatmove: false, count: cur.count + 1})
+
+				if cur.cheating {
+					mvs = append(mvs, state{pt: np, path: path, dir: d, cheatstart: cur.cheatstart, cheatend: np, cheattime: cur.cheattime + 1, count: cur.count + 1})
+				} else {
+					mvs = append(mvs, state{pt: np, path: path, dir: d, cheatstart: cur.cheatstart, cheatend: cur.cheatend, cheattime: cur.cheattime, count: cur.count + 1})
+				}
 			}
 		}
 	}
