@@ -62,8 +62,8 @@ func main() {
 func part1(in input) output {
 	m, start, end := parse(in)
 	ex := len(in) < 20
-	totalTime, optimalPath := traverse(m, start, end, false, 0, 0, nil, ex)
-	countCheats, _ := traverse(m, start, end, true, totalTime, 100, optimalPath, ex)
+	totalTime, optimalPath := traverse(m, start, end, 0, 0, 0, nil, ex)
+	countCheats, _ := traverse(m, start, end, 2, totalTime, 100, optimalPath, ex)
 	return countCheats
 }
 
@@ -71,7 +71,7 @@ func part2(in input) output {
 	return 0
 }
 
-func traverse(m map[xy]bool, start, end xy, allowCheat bool, compareValue, less int, optimalPath []xy, example bool) (int, []xy) {
+func traverse(m map[xy]bool, start, end xy, cheattime int, compareValue, less int, optimalPath []xy, example bool) (int, []xy) {
 	initial := state{pt: start, count: 0, cheated: false, cheatstart: xy{-1, -1}, cheatend: xy{-1, -1}}
 	queue := common.NewPriorityQueue[state, float64](func(st state) float64 {
 		return st.pt.dist(end)
@@ -81,6 +81,7 @@ func traverse(m map[xy]bool, start, end xy, allowCheat bool, compareValue, less 
 	total := 0
 	minTime := math.MaxInt32
 	var minpath []xy
+	allowCheat := cheattime > 0
 
 	pmap := make(map[xy]int)
 	if allowCheat && optimalPath != nil {
@@ -88,8 +89,6 @@ func traverse(m map[xy]bool, start, end xy, allowCheat bool, compareValue, less 
 			pmap[pt] = i
 		}
 	}
-
-	leftmap := make(map[int]int)
 
 	for queue.Any() {
 		cur := queue.Dequeue()
@@ -116,7 +115,6 @@ func traverse(m map[xy]bool, start, end xy, allowCheat bool, compareValue, less 
 				}
 				if saved >= less || example {
 					total++
-					leftmap[saved]++
 				}
 				continue
 			}
