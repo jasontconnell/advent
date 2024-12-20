@@ -37,8 +37,6 @@ type state struct {
 
 type statekey struct {
 	pt                   xy
-	cheated              bool
-	cheatdist            int
 	cheatstart, cheatend xy
 }
 
