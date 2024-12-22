@@ -31,12 +31,8 @@ type state struct {
 	pt        xy
 	stepIndex int
 	path      string
-	dirs      []dir
-}
-
-type statekey struct {
-	pt     xy
-	bpress byte
+	cost      int
+	last      dir
 }
 
 var numpadkeys []string = []string{"789", "456", "123", " 0A"}
@@ -121,24 +117,9 @@ func getSubsequence(start, end xy, numpad, dpad map[xy]byte, isdpad bool, level 
 		return ""
 	}
 	queue := common.NewPriorityQueue[state, int](func(st state) int {
-		if len(st.dirs) == 0 {
-			return 0
-		}
-		cost := 1
-		last := st.dirs[0]
-
-		for i, d := range st.dirs {
-			pos := len(st.dirs) - i + 1
-			m := 1
-			if last != d && i < len(st.dirs)-1 {
-				m = 1000
-			}
-			cost += d.cost * m * pos
-			last = d
-		}
-		return cost * len(st.dirs)
+		return st.cost
 	})
-	initial := state{pt: start, stepIndex: 0, path: ""}
+	initial := state{pt: start, stepIndex: 0, path: "", cost: 1}
 	queue.Enqueue(initial)
 
 	pad := numpad
@@ -173,8 +154,8 @@ func getSubsequence(start, end xy, numpad, dpad map[xy]byte, isdpad bool, level 
 					x--
 				}
 				if _, ok := bests[len(bs)]; !ok {
-					bests[len(bs)] = cur.path
 					if len(bs) < best {
+						bests[len(bs)] = cur.path
 						best = len(bs)
 					}
 				}
@@ -193,17 +174,18 @@ func getMoves(pad map[xy]byte, cur state) []state {
 	dirs := []dir{
 		{xy{0, -1}, '^', 1},
 		{xy{1, 0}, '>', 1},
-		{xy{0, 1}, 'v', 20},
+		{xy{0, 1}, 'v', 25},
 		{xy{-1, 0}, '<', 50},
 	}
 	mvs := []state{}
 	for _, d := range dirs {
 		np := cur.pt.add(d.dir)
 		if _, ok := pad[np]; ok {
-			cp := make([]dir, len(cur.dirs))
-			copy(cp, cur.dirs)
-			cp = append(cp, d)
-			mv := state{pt: np, stepIndex: cur.stepIndex + 1, path: cur.path + string(d.bpress), dirs: cp}
+			mult := 1
+			if cur.last != d && len(cur.path) > 0 {
+				mult = 10
+			}
+			mv := state{pt: np, stepIndex: cur.stepIndex + 1, path: cur.path + string(d.bpress), last: d, cost: cur.cost * d.cost * mult}
 			mvs = append(mvs, mv)
 		}
 	}
