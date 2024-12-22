@@ -15,11 +15,6 @@ type sellPoint struct {
 	a, b, c, d int
 }
 
-type highPrice struct {
-	sp    sellPoint
-	price int
-}
-
 func main() {
 	in, err := common.ReadInts(common.InputFilename(os.Args))
 	if err != nil {
@@ -82,17 +77,6 @@ func part2(in input) output {
 		}
 	}
 	return max
-}
-
-func getSellPrice(start, n int, check sellPoint, mem map[int]map[int]highPrice) int {
-	if sm, ok := mem[start]; ok {
-		for _, v := range sm {
-			if v.sp == check {
-				return v.price
-			}
-		}
-	}
-	return 0
 }
 
 func chartSellPoints(start, n int, mem map[int]map[sellPoint]int) {
