@@ -24,13 +24,14 @@ func (p xy) add(p2 xy) xy {
 type dir struct {
 	dir    xy
 	bpress byte
+	cost   int
 }
 
 type state struct {
 	pt        xy
 	stepIndex int
 	path      string
-	last      dir
+	dirs      []dir
 }
 
 type statekey struct {
@@ -83,7 +84,6 @@ func solve(keycodes []string, numpad, dpad map[xy]byte) int {
 		d2seq := getSequence(d1seq, da, numpad, dpad, true, 0)
 		log.Println("second dpad", d2seq, len(d2seq))
 		complexity += getComplexity(kc, d2seq)
-		break
 	}
 	return complexity
 }
@@ -120,7 +120,24 @@ func getSubsequence(start, end xy, numpad, dpad map[xy]byte, isdpad bool, level 
 	if start == end {
 		return ""
 	}
-	queue := common.NewQueue[state, int]()
+	queue := common.NewPriorityQueue[state, int](func(st state) int {
+		if len(st.dirs) == 0 {
+			return 0
+		}
+		cost := 1
+		last := st.dirs[0]
+
+		for i, d := range st.dirs {
+			pos := len(st.dirs) - i + 1
+			m := 1
+			if last != d && i < len(st.dirs)-1 {
+				m = 1000
+			}
+			cost += d.cost * m * pos
+			last = d
+		}
+		return cost * len(st.dirs)
+	})
 	initial := state{pt: start, stepIndex: 0, path: ""}
 	queue.Enqueue(initial)
 
@@ -143,11 +160,10 @@ func getSubsequence(start, end xy, numpad, dpad map[xy]byte, isdpad bool, level 
 		visit[cur.pt] = true
 
 		if cur.pt == end {
-			log.Println(level, cur.path)
 			if len(cur.path) < 3 || level == 0 {
 				bests[len(cur.path)] = cur.path
 				best = len(cur.path)
-			} else if level > 0 {
+			} else {
 				x := level
 
 				bs := ""
@@ -174,12 +190,20 @@ func getSubsequence(start, end xy, numpad, dpad map[xy]byte, isdpad bool, level 
 }
 
 func getMoves(pad map[xy]byte, cur state) []state {
-	dirs := []dir{{xy{1, 0}, '>'}, {xy{-1, 0}, '<'}, {xy{0, 1}, 'v'}, {xy{0, -1}, '^'}}
+	dirs := []dir{
+		{xy{0, -1}, '^', 1},
+		{xy{1, 0}, '>', 1},
+		{xy{0, 1}, 'v', 20},
+		{xy{-1, 0}, '<', 50},
+	}
 	mvs := []state{}
 	for _, d := range dirs {
 		np := cur.pt.add(d.dir)
 		if _, ok := pad[np]; ok {
-			mv := state{pt: np, stepIndex: cur.stepIndex + 1, path: cur.path + string(d.bpress)}
+			cp := make([]dir, len(cur.dirs))
+			copy(cp, cur.dirs)
+			cp = append(cp, d)
+			mv := state{pt: np, stepIndex: cur.stepIndex + 1, path: cur.path + string(d.bpress), dirs: cp}
 			mvs = append(mvs, mv)
 		}
 	}
