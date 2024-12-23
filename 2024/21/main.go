@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/jasontconnell/advent/common"
 )
@@ -21,18 +22,25 @@ func (p xy) add(p2 xy) xy {
 	return xy{p.x + p2.x, p.y + p2.y}
 }
 
+func (p xy) dist(p2 xy) int {
+	dx := p.x - p2.x
+	dy := p.y - p2.y
+	return int(math.Abs(float64(dx)) + math.Abs(float64(dy)))
+}
+
+type pair struct {
+	a, b xy
+}
+
 type dir struct {
 	dir    xy
 	bpress byte
-	cost   int
 }
 
 type state struct {
 	pt        xy
 	stepIndex int
 	path      string
-	cost      int
-	last      dir
 }
 
 var numpadkeys []string = []string{"789", "456", "123", " 0A"}
@@ -57,139 +65,131 @@ func main() {
 func part1(in input) output {
 	numpad := getPad(numpadkeys)
 	dpad := getPad(dirpadkeys)
-	return solve(in, numpad, dpad)
+	npmoves := mapAllMoves(numpad)
+	dpmoves := mapAllMoves(dpad)
+	return solve(in, numpad, dpad, npmoves, dpmoves)
 }
 
 func part2(in input) output {
 	return 0
 }
 
-func solve(keycodes []string, numpad, dpad map[xy]byte) int {
+func solve(keycodes []string, numpad, dpad map[xy]byte, npadmoves, dpadmoves map[pair][]string) int {
 	numpadc := getCoords(numpad)
 	dpadc := getCoords(dpad)
 
 	na := numpadc['A']
 	da := dpadc['A']
 
-	complexity := 0
+	complexities := make(map[string]int)
+
+	total := 0
 	for _, kc := range keycodes {
-		nseq := getSequence(kc, na, numpad, dpad, false, 2)
-		log.Println("numeric pad", kc, nseq, len(nseq))
-		d1seq := getSequence(nseq, da, numpad, dpad, true, 1)
-		log.Println("first dpad", d1seq, len(d1seq))
-		d2seq := getSequence(d1seq, da, numpad, dpad, true, 0)
-		log.Println("second dpad", d2seq, len(d2seq))
-		complexity += getComplexity(kc, d2seq)
-	}
-	return complexity
-}
+		npadseqs := getSequences(kc, na, numpad, npadmoves)
+		for _, npadseq := range npadseqs {
+			d1seqs := getSequences(npadseq, da, dpad, dpadmoves)
+			for _, d1seq := range d1seqs {
 
-func getComplexity(code, path string) int {
-	s := ""
-	for i := 0; i < len(code); i++ {
-		if code[i] >= 48 && code[i] <= 57 {
-			s += string(code[i])
-		}
-	}
-	v, _ := strconv.Atoi(s)
-	return v * len(path)
-}
+				d2seqs := getSequences(d1seq, da, dpad, dpadmoves)
+				for _, d2seq := range d2seqs {
 
-func getSequence(str string, start xy, numpad, dpad map[xy]byte, isdpad bool, level int) string {
-	rev := getCoords(numpad)
-	if isdpad {
-		rev = getCoords(dpad)
-	}
-
-	var val string
-	cur := start
-	for i := 0; i < len(str); i++ {
-		s := str[i]
-		e := rev[s]
-		val += getSubsequence(cur, e, numpad, dpad, isdpad, level) + "A"
-		cur = e
-	}
-	return val
-}
-
-func getSubsequence(start, end xy, numpad, dpad map[xy]byte, isdpad bool, level int) string {
-	if start == end {
-		return ""
-	}
-	queue := common.NewPriorityQueue[state, int](func(st state) int {
-		return st.cost
-	})
-	initial := state{pt: start, stepIndex: 0, path: "", cost: 1}
-	queue.Enqueue(initial)
-
-	pad := numpad
-	rev := getCoords(dpad)
-	if isdpad {
-		pad = dpad
-	}
-
-	best := math.MaxInt32
-	visit := make(map[xy]bool)
-	bests := make(map[int]string)
-
-	for queue.Any() {
-		cur := queue.Dequeue()
-
-		if _, ok := visit[cur.pt]; ok {
-			continue
-		}
-		visit[cur.pt] = true
-
-		if cur.pt == end {
-			if len(cur.path) < 3 || level == 0 {
-				bests[len(cur.path)] = cur.path
-				best = len(cur.path)
-			} else {
-				x := level
-
-				bs := ""
-				for x > 0 {
-					s, e := rev[cur.path[0]], rev[cur.path[len(cur.path)-1]]
-					bs += getSubsequence(s, e, numpad, dpad, true, x-1)
-					x--
-				}
-				if _, ok := bests[len(bs)]; !ok {
-					if len(bs) < best {
-						bests[len(bs)] = cur.path
-						best = len(bs)
+					check := getComplexity(kc, d2seq)
+					if c, ok := complexities[kc]; !ok || check < c {
+						complexities[kc] = check
 					}
 				}
 			}
 		}
-
-		mvs := getMoves(pad, cur)
-		for _, mv := range mvs {
-			queue.Enqueue(mv)
-		}
+		total += complexities[kc]
 	}
-	return bests[best]
+	return total
 }
 
-func getMoves(pad map[xy]byte, cur state) []state {
-	dirs := []dir{
-		{xy{0, -1}, '^', 1},
-		{xy{1, 0}, '>', 1},
-		{xy{0, 1}, 'v', 25},
-		{xy{-1, 0}, '<', 50},
+func getComplexity(code, path string) int {
+	v, _ := strconv.Atoi(code[:len(code)-1])
+	return v * len(path)
+}
+
+func getSequences(str string, start xy, pad map[xy]byte, pmoves map[pair][]string) []string {
+	rev := getCoords(pad)
+
+	cur := start
+	list := []string{}
+	for i := 0; i < len(str); i++ {
+		e := rev[str[i]]
+
+		rev := common.CartesianProduct(list, pmoves[pair{cur, e}])
+		sub := make([]string, len(rev))
+		if len(rev) == 0 {
+			sub = pmoves[pair{cur, e}]
+		}
+
+		for j := 0; j < len(rev); j++ {
+			s := strings.Join(rev[j], "")
+			sub[j] = s
+		}
+		list = sub
+		cur = e
 	}
-	mvs := []state{}
-	for _, d := range dirs {
-		np := cur.pt.add(d.dir)
-		if _, ok := pad[np]; ok {
-			mult := 1
-			if cur.last != d && len(cur.path) > 0 {
-				mult = 10
-			}
-			mv := state{pt: np, stepIndex: cur.stepIndex + 1, path: cur.path + string(d.bpress), last: d, cost: cur.cost * d.cost * mult}
-			mvs = append(mvs, mv)
+
+	minlen := math.MaxInt32
+	for i := range list {
+		if len(list[i]) < minlen {
+			minlen = len(list[i])
 		}
 	}
-	return mvs
+
+	for i := len(list) - 1; i >= 0; i-- {
+		if len(list[i]) > minlen {
+			list = append(list[:i], list[i+1:]...)
+		}
+	}
+
+	return list
+}
+
+func mapAllMoves(pad map[xy]byte) map[pair][]string {
+	dirs := []dir{
+		{xy{0, -1}, '^'},
+		{xy{1, 0}, '>'},
+		{xy{0, 1}, 'v'},
+		{xy{-1, 0}, '<'},
+	}
+
+	mps := make(map[pair][]string)
+	for k := range pad {
+		for k2 := range pad {
+			list := []string{}
+			queue := []state{{pt: k, stepIndex: 0, path: ""}}
+			for len(queue) > 0 {
+				cur := queue[0]
+				queue = queue[1:]
+
+				if _, ok := pad[cur.pt]; !ok {
+					continue
+				}
+
+				if len(cur.path) > len(pad) {
+					continue
+				}
+
+				if cur.pt == k2 {
+					list = append(list, cur.path+"A")
+					continue
+				}
+
+				for _, d := range dirs {
+					nst := state{pt: cur.pt.add(d.dir), stepIndex: cur.stepIndex + 1, path: cur.path + string(d.bpress)}
+					if nst.pt.dist(k2) < cur.pt.dist(k2) {
+						queue = append(queue, nst)
+					}
+				}
+			}
+
+			mps[pair{k, k2}] = list
+		}
+	}
+	return mps
 }
 
 func getCoords(pad map[xy]byte) map[byte]xy {

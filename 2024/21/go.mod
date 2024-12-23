@@ -4,4 +4,6 @@ go 1.23
 
 toolchain go1.23.0
 
-require github.com/jasontconnell/advent v1.1.9
+require github.com/jasontconnell/advent v1.2.0
+
+replace github.com/jasontconnell/advent => ../../
