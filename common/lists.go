@@ -27,10 +27,8 @@ func Permutate[T any](list []T) [][]T {
 }
 
 func CartesianProduct[T any](list1, list2 []T) [][]T {
-	if len(list1) == 0 {
-		return [][]T{list2}
-	} else if len(list2) == 0 {
-		return [][]T{list1}
+	if len(list1) == 0 || len(list2) == 0 {
+		return [][]T{}
 	}
 	flen := len(list1) * len(list2)
 	nlist := make([][]T, flen)
