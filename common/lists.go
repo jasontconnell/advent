@@ -26,6 +26,26 @@ func Permutate[T any](list []T) [][]T {
 	return ret
 }
 
+func CartesianProduct[T any](list1, list2 []T) [][]T {
+	if len(list1) == 0 {
+		return [][]T{list2}
+	} else if len(list2) == 0 {
+		return [][]T{list1}
+	}
+	flen := len(list1) * len(list2)
+	nlist := make([][]T, flen)
+
+	nidx := 0
+	for i := 0; i < len(list2); i++ {
+		for j := 0; j < len(list1); j++ {
+			nlist[nidx] = append(nlist[nidx], list1[j], list2[i])
+			nidx++
+		}
+	}
+
+	return nlist
+}
+
 func AllCombinations[T any](list []T, count int) [][]T {
 	indices := getCombinationsIndices(len(list)-1, count)
 	ret := [][]T{}
