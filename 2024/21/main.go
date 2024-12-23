@@ -67,14 +67,14 @@ func part1(in input) output {
 	dpad := getPad(dirpadkeys)
 	npmoves := mapAllMoves(numpad)
 	dpmoves := mapAllMoves(dpad)
-	return solve(in, numpad, dpad, npmoves, dpmoves)
+	return solve(in, numpad, dpad, npmoves, dpmoves, 2)
 }
 
 func part2(in input) output {
 	return 0
 }
 
-func solve(keycodes []string, numpad, dpad map[xy]byte, npadmoves, dpadmoves map[pair][]string) int {
+func solve(keycodes []string, numpad, dpad map[xy]byte, npadmoves, dpadmoves map[pair][]string, ndpads int) int {
 	numpadc := getCoords(numpad)
 	dpadc := getCoords(dpad)
 
@@ -85,19 +85,19 @@ func solve(keycodes []string, numpad, dpad map[xy]byte, npadmoves, dpadmoves map
 
 	total := 0
 	for _, kc := range keycodes {
-		npadseqs := getSequences(kc, na, numpad, npadmoves)
-		for _, npadseq := range npadseqs {
-			d1seqs := getSequences(npadseq, da, dpad, dpadmoves)
-			for _, d1seq := range d1seqs {
-
-				d2seqs := getSequences(d1seq, da, dpad, dpadmoves)
-				for _, d2seq := range d2seqs {
-
-					check := getComplexity(kc, d2seq)
-					if c, ok := complexities[kc]; !ok || check < c {
-						complexities[kc] = check
-					}
-				}
+		seqs := getSequences(kc, na, numpad, npadmoves)
+		for i := 0; i < ndpads; i++ {
+			var sseqs []string
+			for _, seq := range seqs {
+				dseqs := getSequences(seq, da, dpad, dpadmoves)
+				sseqs = append(sseqs, dseqs...)
+			}
+			seqs = sseqs
+		}
+		for _, fseq := range seqs {
+			check := getComplexity(kc, fseq)
+			if c, ok := complexities[kc]; !ok || check < c {
+				complexities[kc] = check
 			}
 		}
 		total += complexities[kc]
