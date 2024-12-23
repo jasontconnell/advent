@@ -11,6 +11,7 @@ type Edge[V comparable, W Number] interface {
 type Graph[V comparable, W Number] interface {
 	AddVertex(v V)
 	AddVertices(v ...V)
+	GetVertices() []V
 	AddEdge(v1, v2 V)
 	AddWeightedEdge(v1, v2 V, w W)
 	GetEdges() []Edge[V, W]
@@ -34,7 +35,7 @@ func NewGraph[V comparable]() Graph[V, int] {
 	g := new(graph[V, int])
 	g.vertices = make(map[V]vertex[V])
 	g.originmap = make(map[V][]edge[V, int])
-	g.directed = true
+	g.directed = false
 	return g
 }
 
@@ -78,6 +79,14 @@ func (g *graph[V, W]) AddVertices(vs ...V) {
 	}
 }
 
+func (g *graph[V, W]) GetVertices() []V {
+	list := []V{}
+	for _, v := range g.vertices {
+		list = append(list, v.data)
+	}
+	return list
+}
+
 func (g *graph[V, W]) AddEdge(v1, v2 V) {
 	var def W
 	g.AddWeightedEdge(v1, v2, def)
@@ -98,8 +107,11 @@ func (g *graph[V, W]) AddWeightedEdge(v1, v2 V, w W) {
 		g.vertices[v2] = v2d
 	}
 	newedge := edge[V, W]{weight: w, left: v1d, right: v2d}
-	// g.edges = append(g.edges, newedge)
 	g.originmap[v1] = append(g.originmap[v1], newedge)
+	// if !g.directed {
+	// 	indedge := edge[V, W]{weight: w, left: v2d, right: v1d}
+	// 	g.originmap[v2] = append(g.originmap[v2], indedge)
+	// }
 }
 
 func (g graph[V, W]) GetEdges() []Edge[V, W] {
@@ -131,8 +143,10 @@ func (g graph[V, W]) Adjacent(v1, v2 V) bool {
 	if list, ok := g.originmap[v1]; ok {
 		origins = list
 	}
-	if list, ok := g.originmap[v2]; ok {
-		origins = append(origins, list...)
+	if !g.directed {
+		if list, ok := g.originmap[v2]; ok {
+			origins = append(origins, list...)
+		}
 	}
 	for _, e := range origins {
 		if e.left.data == v1 && e.right.data == v2 {
@@ -181,6 +195,7 @@ func (g *graph[V, W]) RemoveVertex(v V) {
 				break
 			}
 		}
+		g.originmap[ev.right.data] = rlist
 	}
 
 	delete(g.vertices, v)
@@ -203,8 +218,23 @@ func (g *graph[V, W]) RemoveEdge(v1, v2 V) {
 }
 
 func (g graph[V, W]) Print() {
-	fmt.Println("vertices:", len(g.vertices), g.vertices)
-	fmt.Println("edges:", len(g.originmap), g.originmap)
+	fmt.Println("vertices")
+	i := 0
+	for _, v := range g.vertices {
+		fmt.Print(v)
+		i++
+		if i%10 == 0 {
+			fmt.Println()
+		}
+	}
+	fmt.Println()
+	fmt.Println("edges")
+	for _, v := range g.originmap {
+		for _, e := range v {
+			fmt.Println(e.left.data, "->", e.right.data)
+		}
+	}
+	fmt.Println()
 }
 
 func (g graph[V, W]) GetEdge(v1, v2 V) Edge[V, W] {
