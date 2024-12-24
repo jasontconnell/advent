@@ -1,14 +1,18 @@
 package common
 
-import "fmt"
+import (
+	"cmp"
+	"fmt"
+	"sort"
+)
 
-type Edge[V comparable, W Number] interface {
+type Edge[V Ordered, W Number] interface {
 	GetLeft() V
 	GetRight() V
 	GetWeight() W
 }
 
-type Graph[V comparable, W Number] interface {
+type Graph[V Ordered, W Number] interface {
 	AddVertex(v V)
 	AddVertices(v ...V)
 	GetVertices() []V
@@ -29,42 +33,49 @@ type Graph[V comparable, W Number] interface {
 	DFS(v1, v2 V) []Edge[V, W]
 	BFS(v1, v2 V) []Edge[V, W]
 	AStar(v1, v2 V, h func(e Edge[V, W]) W) []Edge[V, W]
+
+	AllCliques() [][]V
 }
 
-func NewGraph[V comparable]() Graph[V, int] {
+func NewGraph[V Ordered]() Graph[V, int] {
 	g := new(graph[V, int])
 	g.vertices = make(map[V]vertex[V])
 	g.originmap = make(map[V][]edge[V, int])
+	g.neighbors = make(map[V][]V)
 	g.directed = false
 	return g
 }
 
-func NewWeightedGraph[V comparable, W Number]() Graph[V, W] {
+func NewWeightedGraph[V Ordered, W Number]() Graph[V, W] {
 	g := new(graph[V, W])
 	g.vertices = make(map[V]vertex[V])
 	g.originmap = make(map[V][]edge[V, W])
+	g.neighbors = make(map[V][]V)
 	return g
 }
 
-func NewDirectedGraph[V comparable, W Number]() Graph[V, W] {
+func NewDirectedGraph[V Ordered, W Number]() Graph[V, W] {
 	g := new(graph[V, W])
 	g.vertices = make(map[V]vertex[V])
 	g.originmap = make(map[V][]edge[V, W])
 	g.directed = true
+	g.neighbors = make(map[V][]V)
 	return g
 }
 
-type graph[V comparable, W Number] struct {
+type graph[V Ordered, W Number] struct {
 	vertices  map[V]vertex[V]
 	originmap map[V][]edge[V, W]
+
+	neighbors map[V][]V
 	directed  bool
 }
 
-type vertex[V any] struct {
+type vertex[V Ordered] struct {
 	data V
 }
 
-type edge[V any, W Number] struct {
+type edge[V Ordered, W Number] struct {
 	weight      W
 	left, right vertex[V]
 }
@@ -108,10 +119,12 @@ func (g *graph[V, W]) AddWeightedEdge(v1, v2 V, w W) {
 	}
 	newedge := edge[V, W]{weight: w, left: v1d, right: v2d}
 	g.originmap[v1] = append(g.originmap[v1], newedge)
-	// if !g.directed {
-	// 	indedge := edge[V, W]{weight: w, left: v2d, right: v1d}
-	// 	g.originmap[v2] = append(g.originmap[v2], indedge)
-	// }
+	if !g.directed {
+		indedge := edge[V, W]{weight: w, left: v2d, right: v1d}
+		g.originmap[v2] = append(g.originmap[v2], indedge)
+	}
+	delete(g.neighbors, v1)
+	delete(g.neighbors, v2)
 }
 
 func (g graph[V, W]) GetEdges() []Edge[V, W] {
@@ -143,16 +156,9 @@ func (g graph[V, W]) Adjacent(v1, v2 V) bool {
 	if list, ok := g.originmap[v1]; ok {
 		origins = list
 	}
-	if !g.directed {
-		if list, ok := g.originmap[v2]; ok {
-			origins = append(origins, list...)
-		}
-	}
+
 	for _, e := range origins {
 		if e.left.data == v1 && e.right.data == v2 {
-			adj = true
-			break
-		} else if e.left.data == v2 && e.right.data == v1 {
 			adj = true
 			break
 		}
@@ -161,6 +167,9 @@ func (g graph[V, W]) Adjacent(v1, v2 V) bool {
 }
 
 func (g graph[V, W]) Neighbors(v V) []V {
+	if n, ok := g.neighbors[v]; ok {
+		return n
+	}
 	if _, ok := g.vertices[v]; !ok {
 		return nil
 	}
@@ -173,6 +182,8 @@ func (g graph[V, W]) Neighbors(v V) []V {
 	for _, e := range origins {
 		ns = append(ns, e.right.data)
 	}
+
+	g.neighbors[v] = ns
 	return ns
 }
 
@@ -200,6 +211,7 @@ func (g *graph[V, W]) RemoveVertex(v V) {
 
 	delete(g.vertices, v)
 	delete(g.originmap, v)
+	delete(g.neighbors, v)
 }
 
 func (g *graph[V, W]) RemoveEdge(v1, v2 V) {
@@ -215,6 +227,8 @@ func (g *graph[V, W]) RemoveEdge(v1, v2 V) {
 		}
 	}
 	g.originmap[v1] = origins
+	delete(g.neighbors, v1)
+	delete(g.neighbors, v2)
 }
 
 func (g graph[V, W]) Print() {
@@ -252,6 +266,79 @@ func (g graph[V, W]) GetEdge(v1, v2 V) Edge[V, W] {
 		}
 	}
 	return found
+}
+
+func (g graph[V, W]) AllCliques() [][]V {
+	p := g.GetVertices()
+	sort.Slice(p, func(i, j int) bool {
+		return p[i] < p[j]
+	})
+	return g.bronKerbosch([]V{}, p, []V{})
+}
+
+func (g graph[V, W]) bronKerbosch(r, p, x []V) [][]V {
+	if len(p) == 0 && len(x) == 0 {
+		return [][]V{r}
+	}
+
+	var pivot V
+	if len(p) > 0 {
+		pivot = p[0]
+	} else {
+		pivot = x[0]
+	}
+
+	var cliques [][]V
+	for _, v := range p {
+		vn := g.Neighbors(v)
+		if !contains(vn, pivot) {
+			newR := append(r, v)
+			sort.Slice(vn, func(i, j int) bool {
+				return cmp.Less[V](vn[i], vn[j])
+			})
+
+			newP := intersection(p, vn)
+			newX := intersection(x, vn)
+
+			cliques = append(cliques, g.bronKerbosch(newR, newP, newX)...)
+			p = remove(p, v)
+			x = append(x, v)
+		}
+	}
+
+	return cliques
+}
+
+func intersection[V comparable](a, b []V) []V {
+	var result []V
+	for _, x := range a {
+		for _, y := range b {
+			if x == y {
+				result = append(result, x)
+				break
+			}
+		}
+	}
+	return result
+}
+
+func contains[V Ordered](list []V, item V) bool {
+	for _, v := range list {
+		if v == item {
+			return true
+		}
+	}
+	return false
+}
+
+func remove[V Ordered](s []V, e V) []V {
+	var result []V
+	for _, v := range s {
+		if v != e {
+			result = append(result, v)
+		}
+	}
+	return result
 }
 
 func (e edge[V, W]) GetLeft() V {

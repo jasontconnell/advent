@@ -2,17 +2,17 @@ package common
 
 import "fmt"
 
-type state[V comparable, W Number] struct {
+type state[V Ordered, W Number] struct {
 	vertex V
 	path   []Edge[V, W]
 }
 
-type edgestate[V comparable, W Number] struct {
+type edgestate[V Ordered, W Number] struct {
 	edge  Edge[V, W]
 	total W
 }
 
-type statekey[V comparable] struct {
+type statekey[V Ordered] struct {
 	left, right V
 }
 
@@ -86,7 +86,7 @@ func (g *graph[V, W]) AStar(v1, v2 V, h func(e Edge[V, W]) W) []Edge[V, W] {
 	return nil
 }
 
-func getMoves[V comparable, W Number](g graph[V, W], from V) []Edge[V, W] {
+func getMoves[V Ordered, W Number](g graph[V, W], from V) []Edge[V, W] {
 	mvs := []Edge[V, W]{}
 	for _, e := range g.GetEdgesFrom(from) {
 		mvs = append(mvs, e)

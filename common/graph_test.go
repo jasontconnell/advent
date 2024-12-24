@@ -97,12 +97,5 @@ type xy struct {
 }
 
 func TestGetPath(t *testing.T) {
-	g := NewGraph[xy]()
-	g.AddVertices(xy{0, 0}, xy{0, 1}, xy{0, 2}, xy{1, 2}, xy{3, 4}, xy{3, 5}, xy{5, 5})
-	g.AddEdge(xy{0, 0}, xy{0, 1})
-	g.AddEdge(xy{0, 1}, xy{1, 2})
-	g.AddEdge(xy{1, 2}, xy{3, 4})
-	g.AddEdge(xy{3, 4}, xy{5, 5})
-	p := g.BFS(xy{0, 0}, xy{5, 5})
-	t.Log(p)
+
 }

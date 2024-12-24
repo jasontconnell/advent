@@ -8,3 +8,8 @@ type Item[T any, N Number] struct {
 	item  T
 	value N
 }
+
+type Ordered interface {
+	comparable
+	Number | ~string
+}
