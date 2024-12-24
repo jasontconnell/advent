@@ -34,8 +34,10 @@ func part1(in input) output {
 	return findTs(machines)
 }
 
-func part2(in input) output {
-	return 0
+func part2(in input) string {
+	machines := parse(in)
+	largest := largestClique(machines)
+	return strings.Join(largest, ",")
 }
 
 func findTs(g common.Graph[string, int]) int {
@@ -80,9 +82,19 @@ func findTs(g common.Graph[string, int]) int {
 	return ts
 }
 
-func findCliques(g common.Graph[string, int]) {
-	// queue := g.GetVertices()
-
+func largestClique(g common.Graph[string, int]) []string {
+	cliques := g.AllCliques()
+	max := 0
+	maxidx := -1
+	for i, c := range cliques {
+		if len(c) > max {
+			log.Println(c)
+			max = len(c)
+			maxidx = i
+		}
+	}
+	sort.Strings(cliques[maxidx])
+	return cliques[maxidx]
 }
 
 func parse(in []string) common.Graph[string, int] {
