@@ -73,7 +73,16 @@ func isValidPart2(s string) bool {
 	if !isValid(s) {
 		return false
 	}
-	return true
+
+	invalid := false
+	for j := 1; j < len(s)/2+1; j++ {
+		ss := s[:j]
+		if s == strings.Repeat(ss, len(s)/len(ss)) {
+			invalid = true
+			break
+		}
+	}
+	return !invalid
 }
 
 func isValid(s string) bool {
