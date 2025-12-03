@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 
@@ -36,34 +37,48 @@ func part1(in input) output {
 	batteries := parseInput(in)
 	sum := 0
 	for _, b := range batteries {
-		sum += findLargest(b)
+		sum += findLargest(b, 2)
 	}
 	return sum
 }
 
 func part2(in input) output {
-	return 0
+	batteries := parseInput(in)
+	sum := 0
+	for _, b := range batteries {
+		sum += findLargest(b, 12)
+	}
+	return sum
 }
 
-func findLargest(batteries []int) int {
-	fm := 0
-	fp := -1
+func findLargest(batteries []int, n int) int {
+	res := []int{}
+	lidx := 0
+	for idx := 0; idx < n; idx++ {
+		cmax := 0
+		end := len(batteries) - (n - len(res) - 1)
+		for i := lidx; i < end; i++ {
+			x := batteries[i]
+			if x > cmax {
+				cmax = x
+				lidx = i
+			}
+		}
 
-	for i, x := range batteries[:len(batteries)-1] {
-		if x > fm {
-			fm = x
-			fp = i
+		if cmax > 0 {
+			res = append(res, cmax)
+			lidx++
 		}
 	}
 
-	lm := 0
-	for _, x := range batteries[fp+1:] {
-		if x > lm {
-			lm = x
-		}
+	ans := 0
+	pow := 0
+	for i := len(res) - 1; i >= 0; i-- {
+		ans += res[i] * int(math.Pow10(pow))
+		pow++
 	}
 
-	return fm*10 + lm
+	return ans
 }
 
 func parseInput(in input) [][]int {
