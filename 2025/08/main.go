@@ -49,10 +49,6 @@ func part1(in input) output {
 	coords := parseInput(in)
 	groups := groupPairs(coords, process)
 
-	for _, g := range groups {
-		log.Println("group", len(g))
-	}
-
 	size := 1
 	for i := len(groups) - 1; i > len(groups)-4; i-- {
 		size *= len(groups[i])
@@ -71,8 +67,12 @@ func groupPairs(coords []xyz, process int) []map[xyz]bool {
 	copy(cp, coords)
 
 	pairs := getDistances(cp)
+	log.Println("pairs len", len(pairs))
+	processed := 0
 
-	for _, next := range pairs[:process+1] {
+	log.Println("last pair", pairs[len(pairs)-1])
+
+	for _, next := range pairs {
 		var group map[xyz]bool
 		for _, g := range groups {
 			if _, ok := g[next.p1]; ok {
@@ -95,6 +95,11 @@ func groupPairs(coords []xyz, process int) []map[xyz]bool {
 
 		group[next.p1] = true
 		group[next.p2] = true
+		processed++
+
+		if processed >= process {
+			break
+		}
 	}
 
 	sort.Slice(groups, func(i, j int) bool {
