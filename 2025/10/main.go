@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -17,6 +18,12 @@ type machine struct {
 	diagram int
 	toggles []int
 	reqs    []int
+}
+
+type state struct {
+	cur     int
+	presses int
+	last    int
 }
 
 func main() {
@@ -36,13 +43,83 @@ func main() {
 }
 
 func part1(in input) output {
-	parseInput(in)
-	log.Println(getBinaryPos([]int{0, 1, 2, 3}))
-	return 0
+	list := parseInput(in)
+	total := 0
+	for _, m := range list {
+		fmt.Println("----------------", m.diagram)
+		total += determineMinPresses(m)
+	}
+	return total
 }
 
 func part2(in input) output {
 	return 0
+}
+
+func determineMinPresses(m machine) int {
+	min := math.MaxInt32
+
+	// queue := common.NewPriorityQueue(func(s state) int {
+	// 	return -s.presses
+	// })
+	queue := common.NewQueue[state, int]()
+
+	visited := make(map[int]map[int]bool)
+
+	queue.Enqueue(state{cur: 0, presses: 0})
+
+	for queue.Any() {
+		cur := queue.Dequeue()
+		if cur.cur == m.diagram {
+			fmt.Println("current min", min, "presses", cur.presses)
+			if cur.presses < min {
+				min = cur.presses
+				fmt.Println("new min", min)
+			}
+			continue
+		}
+
+		if pmap, ok := visited[cur.cur]; ok {
+			if _, ok := pmap[cur.last]; ok {
+				continue
+			}
+		} else {
+			visited[cur.cur] = make(map[int]bool)
+		}
+		visited[cur.cur][cur.last] = true
+
+		// log.Println(visited)
+
+		if cur.presses >= min {
+			continue
+		}
+
+		for _, c := range m.toggles {
+			if c == cur.last {
+				continue
+			}
+			pressed := pressButtons(cur.cur, c)
+			// log.Println("total buttons", len(m.toggles), m.toggles, "pressing", c, cur.last, pressed, m.diagram)
+			queue.Enqueue(state{cur: pressed, presses: cur.presses + 1, last: c})
+		}
+
+		log.Println(queue.Len())
+	}
+
+	return min
+}
+
+func pressButtons(i, j int) int {
+	x := i
+	for pos := 11; pos >= 0; pos-- {
+		c := 1 << pos
+		isOne := (j & c) == c
+
+		if isOne {
+			x = x ^ c
+		}
+	}
+	return x
 }
 
 func parseInput(in input) []machine {

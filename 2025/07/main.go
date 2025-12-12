@@ -52,7 +52,6 @@ func part1(in input) output {
 
 func part2(in input) output {
 	m, start := parseInput(in)
-	log.Println(len(m), start)
 	return countTimelines(m, start)
 }
 
@@ -90,23 +89,47 @@ func simulate(m map[xy]bool, start xy) int {
 }
 
 func countTimelines(m map[xy]bool, start xy) int {
+	max := maxPoint(m)
+	paths := make(map[xy]int)
+	for y := max.y; y >= 0; y-- {
+		for x := 0; x <= max.x; x++ {
+			pt := xy{x, y}
+			if pt == start {
+				continue
+			}
+			if split, ok := m[pt]; ok && split {
+				paths[pt] = calcPaths(m, paths, pt)
+			}
+		}
+	}
+	log.Println(paths)
+	return calcPaths(m, paths, start)
+}
+
+func calcPaths(m map[xy]bool, paths map[xy]int, start xy) int {
 	down, left, right := xy{0, 1}, xy{-1, 0}, xy{1, 0}
 	queue := []xy{start.add(down)}
-	count := 0
+	count := 1
 
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
 
+		if fromHere, ok := paths[cur]; ok {
+			log.Println("found path from", cur, fromHere)
+			count += fromHere
+			break
+		}
+
 		if _, ok := m[cur]; !ok {
 			// reached bottom
-			count++
 			continue
 		}
 
 		if split, ok := m[cur]; ok && split {
 			lbeam, rbeam := cur.add(left), cur.add(right)
 			queue = append([]xy{lbeam, rbeam}, queue...)
+			count += 2
 		} else {
 			dbeam := cur.add(down)
 			queue = append([]xy{dbeam}, queue...)
